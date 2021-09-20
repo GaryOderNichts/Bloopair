@@ -68,4 +68,8 @@ void run_ios_pad_patches(void)
     // ppc smd messages hook
     *(volatile uint32_t *) 0x11f02350 = ARM_BL(0x11f02350, processSmdMessages);
     *(volatile uint32_t *) 0x11f02868 = ARM_BL(0x11f02868, processSmdMessages);
+
+#ifdef vprintf_hook
+    *(volatile uint32_t *) 0x11f7efec = ARM_BL(0x11f7efec, vprintf_hook);
+#endif
 }

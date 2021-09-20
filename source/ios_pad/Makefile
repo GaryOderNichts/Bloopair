@@ -49,7 +49,7 @@ INCLUDES	:= source
 CFLAGS	:= -Wall -std=gnu11 -Os $(MACHDEP) $(INCLUDE) -Wno-array-bounds
 
 ifeq ($(LOGGING), 1)
-	CFLAGS += -DLOGGING
+	CFLAGS += -DLOGGING -DVPRINTF_HOOK
 	SOURCES += source/log
 endif
 

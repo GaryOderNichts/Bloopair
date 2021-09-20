@@ -45,7 +45,7 @@ void log_deinit(void)
 
 void log_print(const char *str, int len)
 {
-    if(log_socket < 0) {
+    if(log_socket < 0 && log_init() < 0) {
         return;
     }
 
@@ -64,10 +64,6 @@ void log_print(const char *str, int len)
 
 void log_printf(const char *format, ...)
 {
-    if(log_socket < 0 && log_init() < 0) {
-        return;
-    }
-
     va_list args;
     va_start(args, format);
 
@@ -78,3 +74,15 @@ void log_printf(const char *format, ...)
 
     va_end(args);
 }
+
+#ifdef VPRINTF_HOOK
+int (*const real_vprintf)(const char* fmt, va_list arg) = (void*) 0x11f7efc8;
+int vprintf_hook(const char* fmt, va_list arg)
+{
+    char buffer[0x100];
+    int len = _vsnprintf(buffer, sizeof(buffer), fmt, arg);
+    log_print(buffer, len);
+
+    return real_vprintf(fmt, arg);
+}
+#endif
