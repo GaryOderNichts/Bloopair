@@ -20,6 +20,8 @@
 
 hh_dev_user_data_t hh_dev_user_data[BTA_HH_MAX_KNOWN] = { 0 };
 
+tBTA_HH_CB* bta_hh_cb = (tBTA_HH_CB*) 0x1214d718;
+
 void (*const real_bta_hh_event)(uint8_t event, void *p_data) = (void*) 0x11f405ac;
 void bta_hh_event(uint8_t event, void *p_data)
 {
@@ -74,4 +76,14 @@ void bta_hh_event(uint8_t event, void *p_data)
     real_bta_hh_event(event, p_data);
 }
 
-tBTA_HH_CB* bta_hh_cb = (tBTA_HH_CB*) 0x1214d718;
+void (*const real_bta_hh_api_disable)(void) = (void*) 0x11f07174;
+void bta_hh_api_disable(void)
+{
+    for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
+        hh_dev_user_data[i].additional_data_read = 0;
+    }
+
+    deinitReportThread();
+
+    real_bta_hh_api_disable();    
+}

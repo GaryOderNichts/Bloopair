@@ -16,7 +16,6 @@
  */
 
 #include "bta_hh.h"
-#include "controllers.h"
 #include "bt_api.h"
 
 void (*const bta_hh_sm_execute)(tBTA_HH_DEV_CB *p_cb, uint16_t event, void * p_data) = (void*) 0x11f07a88;
@@ -111,16 +110,4 @@ void bta_hh_open_act(tBTA_HH_DEV_CB *p_cb, void *p_data)
         bdcpy(conn_data.bd_addr, p_cb->addr);
         bta_hh_start_sdp(p_cb, (void*) &conn_data);
     }
-}
-
-void (*const real_bta_hh_api_disable)(void) = (void*) 0x11f07174;
-void bta_hh_api_disable(void)
-{
-    for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
-        hh_dev_user_data[i].additional_data_read = 0;
-    }
-
-    deinitReportThread();
-
-    real_bta_hh_api_disable();    
 }

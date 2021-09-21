@@ -42,7 +42,7 @@ void bta_search_callback(uint8_t event, void *p_data)
     real_bta_search_callback(event, p_data);
 }
 
-const void (*real_BTA_DmSearch)(tBTA_DM_INQ *p_dm_inq, uint32_t services, void *p_cback) = (void*) 0x11f04c7c;
+void (*const real_BTA_DmSearch)(tBTA_DM_INQ *p_dm_inq, uint32_t services, void *p_cback) = (void*) 0x11f04c7c;
 void BTA_DmSearch_hook(tBTA_DM_INQ *p_dm_inq, uint32_t services, void *p_cback)
 {
     // set mode to general to allow all devices (by default it's only limited)

@@ -1,30 +1,30 @@
 OUTPUT_ARCH(arm)
 
 SECTIONS {
-	. = 0x11F86000;
+    . = 0x11F86000;
 
-	.text : {
-		_text_start = .;
-		*(.text*);
-		*(.rodata*);
-		*(.data*);
-	}
+    .text : {
+        _text_start = .;
+        *(.text*);
+        *(.rodata*);
+        *(.data*);
+    }
     _text_end = .;
 
-	/* the kernel will copy the crypto tables here */
-	.crypto : {
-		PROVIDE(__ans_tbl = .);
-		. += 0x2a;
-		PROVIDE(__sboxes = .);
-	}
+    /* the kernel will copy the crypto tables here */
+    .crypto : {
+        PROVIDE(__ans_tbl = .);
+        . += 0x2a;
+        PROVIDE(__sboxes = .);
+    }
 
-	. = 0x12159000;
+    . = 0x12159000;
 
-	.bss : {
-		*(.bss*);
-	}
+    .bss : {
+        *(.bss*);
+    }
 
-	/DISCARD/ : {
-		*(*);
-	}
+    /DISCARD/ : {
+        *(*);
+    }
 }

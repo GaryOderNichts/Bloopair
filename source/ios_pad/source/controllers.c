@@ -48,7 +48,7 @@ static int continuous_report_thread(void* arg)
         for (uint32_t i = 0; i < BTA_HH_MAX_KNOWN; i++) {
             Controller_t* controller = &controllers[i];
             ReportBuffer_t* report_buf = controller->reportData;
-            // make sure the controller is initialized, has data reporting set, and has a report buf
+            // make sure the controller is initialized and has a report buf
             if (controller->isInitialized && report_buf) {
                 // send the current state
                 sendControllerInput(controller, report_buf->buttons, report_buf->left_stick_x, report_buf->right_stick_x, report_buf->left_stick_y, report_buf->right_stick_y);
@@ -123,7 +123,6 @@ int initController(uint8_t handle, uint8_t* name, uint16_t vendor_id, uint16_t p
 
     if (controllers[handle].isInitialized) {
         DEBUG("already initialized\n");
-        BTA_HhClose(handle);
         return -1;
     }
 
@@ -208,4 +207,5 @@ void initContinuousReports(Controller_t* controller)
 void deinitContinuousReports(Controller_t* controller)
 {
     IOS_Free(0xcaff, controller->reportData);
+    controller->reportData = NULL;
 }
