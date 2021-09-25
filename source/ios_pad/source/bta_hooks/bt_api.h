@@ -5,7 +5,6 @@
 
 /* Structures are based on reverse engineering and https://android.googlesource.com/platform/external/bluetooth/bluedroid/ */
 
-// TODO confirm lenght
 #define BD_NAME_LEN     248
 typedef uint8_t BD_NAME[BD_NAME_LEN];         /* Device name */
 
@@ -63,15 +62,6 @@ typedef struct
 
 /* invalid device handle */
 #define BTA_HH_INVALID_HANDLE   0xff
-
-typedef struct {
-    uint8_t  additional_data_read;
-    uint16_t vendor_id;
-    uint16_t product_id;
-    BD_NAME  device_name;
-} hh_dev_user_data_t;
-
-extern hh_dev_user_data_t hh_dev_user_data[BTA_HH_MAX_KNOWN];
 
 /* report descriptor information */
 typedef struct {
@@ -180,7 +170,7 @@ typedef struct {
     BD_ADDR  bd_addr;        /* BD address peer device. */
     BD_NAME  bd_name;        /* Name of peer device. */
     uint32_t services;       /* Services found on peer device. */
-    // ...
+    uint8_t result;
 } tBTA_DM_DISC_RES;
 
 /* Structure associated with BTA_DM_INQ_RES_EVT */
@@ -193,7 +183,10 @@ typedef struct
     uint8_t       is_limited;               /* TRUE, if the limited inquiry bit is set in the CoD */
     int8_t        rssi;                     /* The rssi value */
     uint8_t       *p_eir;                   /* received EIR */
-    // ...
+    uint8_t       inq_result_type;
+    uint8_t       ble_addr_type;
+    uint8_t       ble_evt_type;
+    uint8_t       device_type;
 } tBTA_DM_INQ_RES;
 
 /* Security Callback Events */

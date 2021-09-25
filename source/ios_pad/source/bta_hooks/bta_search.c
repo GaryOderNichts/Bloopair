@@ -28,7 +28,7 @@ void bta_search_callback(uint8_t event, void *p_data)
     switch (event) {
     case BTA_DM_DISC_RES_EVT: {
         tBTA_DM_DISC_RES* res = (tBTA_DM_DISC_RES*) p_data;
-        if (!isOfficialName((const char*) res->bd_name)) {
+        if (res->result == 0 && !isOfficialName((const char*) res->bd_name)) {
             DEBUG("%s is non official, replacing name...\n", res->bd_name);
             // replace device name
             _memcpy(res->bd_name, PRO_CONTROLLER_NAME, sizeof(PRO_CONTROLLER_NAME));

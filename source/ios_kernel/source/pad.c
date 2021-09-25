@@ -62,8 +62,13 @@ void run_ios_pad_patches(void)
     // hook BTA_DmSearch so we can edit it's params
     *(volatile uint32_t *) 0x11f3e998 = ARM_BL(0x11f3e998, BTA_DmSearch_hook);
 
-    // hook HID_HostGetSDPRecord to get device name first 
-    *(volatile uint32_t *) 0x11f06e98 = ARM_BL(0x11f06e98, HID_HostGetSDPRecord_hook);
+    // the Wii U doesn't read the DI record by default so we don't have the vid and pid
+    // so patch start sdp to read the vid and pid and store it in the custom info store
+    *(volatile uint32_t *) 0x11f06e98 = ARM_BL(0x11f06e98, SDP_DiDiscover);
+    *(volatile uint32_t *) 0x11f06ef8 = bta_hh_di_sdp_callback;
+
+    // hook into the clear device call so our custom bloopair data gets cleared
+    *(volatile uint32_t *) 0x11f03824 = ARM_BL(0x11f03824, wpad_start_clear_device_hook);
 
     // ppc smd messages hook
     *(volatile uint32_t *) 0x11f02350 = ARM_BL(0x11f02350, processSmdMessages);

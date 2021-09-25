@@ -17,8 +17,7 @@
 
 #include "bta_hh.h"
 #include <controllers.h>
-
-hh_dev_user_data_t hh_dev_user_data[BTA_HH_MAX_KNOWN] = { 0 };
+#include <info_store.h>
 
 tBTA_HH_CB* bta_hh_cb = (tBTA_HH_CB*) 0x1214d718;
 
@@ -30,12 +29,13 @@ void bta_hh_event(uint8_t event, void *p_data)
     switch (event) {
     case BTA_HH_OPEN_EVT: {
         tBTA_HH_CONN* conn_data = (tBTA_HH_CONN*) p_data;
-
         DEBUG("open event for handle %u\n", conn_data->handle);
+
         if (conn_data->handle != BTA_HH_INVALID_HANDLE) {
-            uint8_t idx = bta_hh_cb->cb_index[conn_data->handle];
-            hh_dev_user_data_t* user_data = &hh_dev_user_data[idx];
-            if (initController(conn_data->handle, user_data->device_name, user_data->vendor_id, user_data->product_id) != 0) {
+            StoredInfo_t* info = store_get_device_info(conn_data->bda);
+            DEBUG("found info for device %p\n", info);
+
+            if (!info || initController(conn_data->handle, info->name, info->vendor_id, info->product_id) != 0) {
                 // close connection
                 BTA_HhClose(conn_data->handle);
                 return;
@@ -63,6 +63,8 @@ void bta_hh_event(uint8_t event, void *p_data)
     }
     case BTA_HH_VC_UNPLUG_EVT: {
         tBTA_HH_CBDATA* cb_data = (tBTA_HH_CBDATA*) p_data;
+        DEBUG("vc unplug %u\n", cb_data->handle);
+
         // disconnect virtually unplugged devices
         if (cb_data->handle != BTA_HH_INVALID_HANDLE) {
             BTA_HhClose(cb_data->handle);
@@ -79,11 +81,19 @@ void bta_hh_event(uint8_t event, void *p_data)
 void (*const real_bta_hh_api_disable)(void) = (void*) 0x11f07174;
 void bta_hh_api_disable(void)
 {
+    DEBUG("bta_hh_api_disable\n");
+
     for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
-        hh_dev_user_data[i].additional_data_read = 0;
+        if (controllers[i].isInitialized) {
+            if (controllers[i].deinit) {
+                controllers[i].deinit(&controllers[i]);
+            }
+            controllers[i].isInitialized = 0;
+        }
     }
 
     deinitReportThread();
+    stop_info_thread();
 
     real_bta_hh_api_disable();    
 }
