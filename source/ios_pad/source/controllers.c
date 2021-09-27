@@ -20,8 +20,6 @@
 
 Controller_t controllers[BTA_HH_MAX_KNOWN];
 
-int report_semaphore = -1;
-
 static void* report_thread_stack_base;
 static int report_thread;
 static uint8_t report_thread_running = 0;
@@ -43,19 +41,19 @@ static int continuous_report_thread(void* arg)
         uint32_t message;
         IOS_ReceiveMessage(queue_id, &message, 0);
 
-        IOS_WaitSemaphore(report_semaphore, 0);
-
         for (uint32_t i = 0; i < BTA_HH_MAX_KNOWN; i++) {
             Controller_t* controller = &controllers[i];
             ReportBuffer_t* report_buf = controller->reportData;
-            // make sure the controller is initialized and has a report buf
-            if (controller->isInitialized && report_buf) {
+            // make sure the controller is initialized, has the reporting mode set, and has a report buf
+            if (controller->isInitialized && controller->dataReportingMode == 0x3d && report_buf) {
+                IOS_WaitSemaphore(report_buf->semaphore, 1);
+
                 // send the current state
                 sendControllerInput(controller, report_buf->buttons, report_buf->left_stick_x, report_buf->right_stick_x, report_buf->left_stick_y, report_buf->right_stick_y);
+
+                IOS_SignalSempahore(report_buf->semaphore);
             }
         }
-
-        IOS_SignalSempahore(report_semaphore);
     }
 
     IOS_DestroyTimer(timer_id);
@@ -65,9 +63,6 @@ static int continuous_report_thread(void* arg)
 
 void initReportThread(void)
 {
-    // create a semaphore for sync
-    report_semaphore = IOS_CreateSemaphore(1, 1);
-
     report_thread_running = 1;
 
     // allocate a stack
@@ -89,8 +84,6 @@ void deinitReportThread(void)
     // wait until it finished
     IOS_JoinThread(report_thread, NULL);
 
-    IOS_DestroySempahore(report_semaphore);
-
     // free stack
     IOS_Free(0xcaff, report_thread_stack_base);
 }
@@ -109,7 +102,7 @@ int isOfficialName(const char* name)
     return 0;
 }
 
-void controllerInit_switch(Controller_t* controller, uint8_t isProController, uint8_t right_joycon);
+void controllerInit_switch(Controller_t* controller, uint8_t right_joycon);
 void controllerInit_xbox_one(Controller_t* controller);
 void controllerInit_dualsense(Controller_t* controller);
 
@@ -121,45 +114,49 @@ int initController(uint8_t handle, uint8_t* name, uint16_t vendor_id, uint16_t p
         initReportThread();
     }
 
-    if (controllers[handle].isInitialized) {
-        DEBUG("already initialized\n");
-        return -1;
+    Controller_t* controller = &controllers[handle];
+
+    // if this controller was already initialized, deinitialize it first
+    if (controller->isInitialized) {
+        if (controller->deinit) {
+            controller->deinit(&controllers[handle]);
+        }
+        controller->isInitialized = 0;
     }
 
-    _memset(&controllers[handle], 0, sizeof(Controller_t));
+    _memset(controller, 0, sizeof(Controller_t));
 
-    controllers[handle].handle = handle;
-    controllers[handle].isInitialized = 1;
+    controller->handle = handle;
+    controller->isInitialized = 1;
     
     if (isOfficialName((const char*) name)) {
-        controllers[handle].isOfficialController = 1;
+        controller->isOfficialController = 1;
         return 0;
     }
     else {
-        // TODO reading the vid and pid is annoying if we already have ongoing hid connections, for now just rely on the name
-
-        if ((_strncmp((const char*) name, "Pro Controller", 0x40) == 0) || // switch pro controller
-            (_strncmp((const char*) name, "Joy-Con (R)", 0x40) == 0) || // joycon r
-            (_strncmp((const char*) name, "Joy-Con (L)", 0x40) == 0)) { // joycon l
-            controllerInit_switch(&controllers[handle], 
-                _strncmp((const char*) name, "Pro Controller", 0x40) == 0,
-                _strncmp((const char*) name, "Joy-Con (R)", 0x40) == 0);
+        if ((vendor_id == 0x057e && product_id == 0x2009) || // switch pro controller
+            (vendor_id == 0x057e && product_id == 0x2007) || // joycon r
+            (vendor_id == 0x057e && product_id == 0x2006)) { // joycon l
+            controllerInit_switch(controller, vendor_id == 0x2007);
             return 0;
         }
-        else if ((_strncmp((const char*) name, "Xbox Wireless Controller", 0x40) == 0)) { // xbox one controller
-            controllerInit_xbox_one(&controllers[handle]);
+        else if ((vendor_id == 0x045e && product_id == 0x02e0) || // xbox one s controller
+                 (vendor_id == 0x045e && product_id == 0x02fd) || // xbox one s controller
+                 (vendor_id == 0x045e && product_id == 0x0b00) || // xbox one elite controller
+                 (vendor_id == 0x045e && product_id == 0x0b05) || // xbox one elite controller
+                 (vendor_id == 0x045e && product_id == 0x0b0a)) { // xbox one adaptive controller
+            controllerInit_xbox_one(controller);
             return 0;
         }
-        else if ((_strncmp((const char*) name, "Wireless Controller", 0x40) == 0)) { // dualsense (i wonder how many other controllers are named "Wireless Controller" :P)
-            controllerInit_dualsense(&controllers[handle]);
+        else if (vendor_id == 0x054c && product_id == 0x0ce6) { // dualsense
+            controllerInit_dualsense(controller);
             return 0;
         }
     }
 
-    DEBUG("unsupported device\n");
-
     // We don't support this device, close connection
-    controllers[handle].isInitialized = 0;
+    DEBUG("unsupported device\n");
+    controller->isInitialized = 0;
     return -1;
 }
 
@@ -200,12 +197,16 @@ void sendControllerInput(Controller_t* controller, uint32_t buttons, int16_t lef
 void initContinuousReports(Controller_t* controller)
 {
     ReportBuffer_t* report_buf = IOS_Alloc(0xcaff, sizeof(ReportBuffer_t));
-    _memset(report_buf, 0, sizeof(report_buf));
+    _memset(report_buf, 0, sizeof(ReportBuffer_t));
     controller->reportData = report_buf;
+
+    report_buf->semaphore = IOS_CreateSemaphore(1, 1);
 }
 
 void deinitContinuousReports(Controller_t* controller)
 {
+    IOS_DestroySempahore(controller->reportData->semaphore);
+
     IOS_Free(0xcaff, controller->reportData);
     controller->reportData = NULL;
 }

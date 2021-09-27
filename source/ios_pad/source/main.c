@@ -269,6 +269,7 @@ void processSmdMessages(void)
             }
             case 0x12: { // set report format
                 DEBUG("data reporting set to %x\n", output_buf->data[2]);
+                controller->dataReportingMode = output_buf->data[2];
                 sendAcknowledgeReport(output_buf->dev_handle, 0x12, 0);
                 break;
             }

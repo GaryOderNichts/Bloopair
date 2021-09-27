@@ -110,6 +110,8 @@ void controllerSetLed_dualsense(Controller_t* controller, uint8_t led)
 
 void controllerData_dualsense(Controller_t* controller, uint8_t* buf, uint16_t len)
 {
+    ReportBuffer_t* rep = controller->reportData;
+
     if (buf[0] == 0x01) {
         int16_t left_stick_x = (buf[1] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
         int16_t left_stick_y = (buf[2] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
@@ -147,7 +149,15 @@ void controllerData_dualsense(Controller_t* controller, uint8_t* buf, uint16_t l
         if (buf[7] & 0x01)
             buttons |= WPAD_PRO_BUTTON_HOME;
 
-        sendControllerInput(controller, buttons, left_stick_x, right_stick_x, left_stick_y, right_stick_y);
+        IOS_WaitSemaphore(controller->reportData->semaphore, 0);
+
+        rep->buttons = buttons;
+        rep->left_stick_x = left_stick_x;
+        rep->right_stick_x = right_stick_x;
+        rep->left_stick_y = left_stick_y;
+        rep->right_stick_y = right_stick_y;
+
+        IOS_SignalSempahore(controller->reportData->semaphore);
     }
     else if (buf[0] == 0x31) {
         int16_t left_stick_x = (buf[2] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
@@ -190,17 +200,29 @@ void controllerData_dualsense(Controller_t* controller, uint8_t* buf, uint16_t l
         controller->battery = battery_level > 4 ? 4 : battery_level;
         controller->isCharging = (buf[53] & 0x10) && !(buf[53] & 0x20);
 
-        sendControllerInput(controller, buttons, left_stick_x, right_stick_x, left_stick_y, right_stick_y);
+        IOS_WaitSemaphore(controller->reportData->semaphore, 0);
+
+        rep->buttons = buttons;
+        rep->left_stick_x = left_stick_x;
+        rep->right_stick_x = right_stick_x;
+        rep->left_stick_y = left_stick_y;
+        rep->right_stick_y = right_stick_y;
+
+        IOS_SignalSempahore(controller->reportData->semaphore);
     }
 }
 
 void controllerDeinit_dualsense(Controller_t* controller)
 {
+    deinitContinuousReports(controller);
+
     IOS_Free(0xcaff, controller->additionalData);
 }
 
 void controllerInit_dualsense(Controller_t* controller)
 {
+    initContinuousReports(controller);
+
     controller->data = controllerData_dualsense;
     controller->setPlayerLed = controllerSetLed_dualsense;
     controller->rumble = controllerRumble_dualsense;

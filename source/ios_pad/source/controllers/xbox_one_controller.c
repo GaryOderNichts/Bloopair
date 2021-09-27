@@ -40,11 +40,7 @@ enum {
 
 void controllerData_xbox_one(Controller_t* controller, uint8_t* buf, uint16_t len)
 {
-    if (report_semaphore == -1) {
-        return;
-    }
-
-    IOS_WaitSemaphore(report_semaphore, 0);
+    IOS_WaitSemaphore(controller->reportData->semaphore, 0);
 
     ReportBuffer_t* rep = controller->reportData;
 
@@ -126,7 +122,7 @@ void controllerData_xbox_one(Controller_t* controller, uint8_t* buf, uint16_t le
         controller->isCharging = buf[1] & 0x10;
     }
 
-    IOS_SignalSempahore(report_semaphore);
+    IOS_SignalSempahore(controller->reportData->semaphore);
 }
 
 void controllerRumble_xbox_one(Controller_t* controller, uint8_t rumble)

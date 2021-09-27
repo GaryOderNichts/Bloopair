@@ -17,11 +17,6 @@
 
 #include <controllers.h>
 
-typedef struct {
-    uint8_t isProController;
-    uint8_t isRightJoycon;
-} SwitchData_t;
-
 static uint8_t report_count = 0;
 
 static const uint32_t dpad_map[9] = {
@@ -75,7 +70,7 @@ void controllerRumble_switch(Controller_t* controller, uint8_t rumble)
 void controllerSetLed_switch(Controller_t* controller, uint8_t led)
 {
     // if this is the right joycon swap led order
-    if (((SwitchData_t*) controller->additionalData)->isRightJoycon) {
+    if (controller->additionalData) {
         led = ((led & 1) << 3) | ((led & 2) << 1) | ((led & 4) >> 1) | ((led & 8) >> 3);
     }
 
@@ -90,10 +85,6 @@ void controllerSetLed_switch(Controller_t* controller, uint8_t led)
 
 void controllerData_switch(Controller_t* controller, uint8_t* buf, uint16_t len)
 {
-    if (controller->reportData && report_semaphore == -1) {
-        return;
-    }
-
     ReportBuffer_t* rep = controller->reportData;
 
     if (buf[0] == 0x3f) {
@@ -142,36 +133,26 @@ void controllerData_switch(Controller_t* controller, uint8_t* buf, uint16_t len)
         // if (buf[2] & 0x20)
         //     buttons |= WPAD_PRO_BUTTON_;
 
-        if (controller->reportData) {
-            IOS_WaitSemaphore(report_semaphore, 0);
+        IOS_WaitSemaphore(controller->reportData->semaphore, 0);
 
-            rep->buttons = buttons;
-            rep->left_stick_x = left_stick_x;
-            rep->right_stick_x = right_stick_x;
-            rep->left_stick_y = left_stick_y;
-            rep->right_stick_y = right_stick_y;
+        rep->buttons = buttons;
+        rep->left_stick_x = left_stick_x;
+        rep->right_stick_x = right_stick_x;
+        rep->left_stick_y = left_stick_y;
+        rep->right_stick_y = right_stick_y;
 
-            IOS_SignalSempahore(report_semaphore);
-        }
-        else {
-            sendControllerInput(controller, buttons, left_stick_x, right_stick_x, left_stick_y, right_stick_y);
-        }
+        IOS_SignalSempahore(controller->reportData->semaphore);
     }
 }
 
 void controllerDeinit_switch(Controller_t* controller)
 {
-    if (controller->reportData) {
-        deinitContinuousReports(controller);
-    }
+    deinitContinuousReports(controller);
 }
 
-void controllerInit_switch(Controller_t* controller, uint8_t isProController, uint8_t right_joycon)
+void controllerInit_switch(Controller_t* controller, uint8_t right_joycon)
 {
-    if (!isProController) {
-        // The pro controller already sends continous reports but the joy-con don't
-        initContinuousReports(controller);
-    }
+    initContinuousReports(controller);
 
     controller->data = controllerData_switch;
     controller->setPlayerLed = controllerSetLed_switch;
@@ -181,9 +162,6 @@ void controllerInit_switch(Controller_t* controller, uint8_t isProController, ui
     controller->battery = 4;
     controller->isCharging = 0;
 
-    SwitchData_t* data = (SwitchData_t*) IOS_Alloc(0xcaff, sizeof(SwitchData_t));
-    controller->additionalData = data;
-
-    data->isProController = isProController;
-    data->isRightJoycon = right_joycon;
+    // just store this in the pointer directly
+    controller->additionalData = (void*) (uint32_t) right_joycon;
 }

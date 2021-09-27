@@ -71,6 +71,7 @@ typedef void (*ControllerRumbleFn)(Controller_t* controller, uint8_t rumble);
 
 // report data for continuous reports
 typedef struct {
+    int semaphore;
     uint32_t buttons;
     int16_t left_stick_x;
     int16_t right_stick_x;
@@ -90,6 +91,8 @@ struct Controller_t {
     uint8_t index;
     // is ir enabled
     uint8_t irEnabled;
+    // data reporting mode (should be 0x3d for pro controller)
+    uint8_t dataReportingMode;
     // called when the controller is disconnected
     ControllerDeinitFn deinit;
     // called when hid data is received
@@ -111,8 +114,6 @@ struct Controller_t {
 };
 
 extern Controller_t controllers[BTA_HH_MAX_KNOWN];
-
-extern int report_semaphore;
 
 void initReportThread(void);
 

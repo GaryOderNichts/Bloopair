@@ -77,4 +77,24 @@ void run_ios_pad_patches(void)
 #ifdef vprintf_hook
     *(volatile uint32_t *) 0x11f7efec = ARM_BL(0x11f7efec, vprintf_hook);
 #endif
+
+#ifdef MORE_LOGS
+    //Set bta_sys_cfg.trace_level to BT_TRACE_LEVEL_DEBUG
+    *(volatile uint8_t *) 0x11fca8d4 = 5;
+
+    // Set appl_trace_level to BT_TRACE_LEVEL_DEBUG
+    *(volatile uint8_t *) 0x120fd085 = 5;
+
+    // Set btm_cb.trace_level to BT_TRACE_LEVEL_DEBUG
+    *(volatile uint8_t *) 0x12150f88 = 5;
+
+    // Set hh_cb.trace_level to BT_TRACE_LEVEL_DEBUG
+    *(volatile uint8_t *) 0x12151475 = 5;
+
+    // Set l2cb.l2cap_trace_level to BT_TRACE_LEVEL_DEBUG
+    *(volatile uint8_t *) 0x12151478 = 5;
+
+    // Set sdp_cb.trace_level to BT_TRACE_LEVEL_DEBUG
+    *(volatile uint8_t *) 0x12155454 = 5;
+#endif
 }
