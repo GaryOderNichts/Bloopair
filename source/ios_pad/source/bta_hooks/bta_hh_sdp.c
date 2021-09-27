@@ -17,6 +17,7 @@
 
 #include "bta_hh.h"
 #include "bt_api.h"
+#include <controllers.h>
 #include <info_store.h>
 
 void (*const bta_hh_sm_execute)(tBTA_HH_DEV_CB *p_cb, uint16_t event, void * p_data) = (void*) 0x11f07a88;
@@ -44,13 +45,16 @@ void name_read_cback(tBTM_REMOTE_DEV_NAME* name)
 
     retry = 0;
 
-    store_add_name(bta_hh_cb->p_cur->addr, name->remote_bd_name);
+    StoredInfo_t* info = store_get_device_info(bta_hh_cb->p_cur->addr);
+    if (!info) {
+        info = store_allocate_device_info(bta_hh_cb->p_cur->addr);
+    }
 
-    // save store
-    ReportMessage_t* message = IOS_Alloc(0xcaff, sizeof(ReportMessage_t));
-    if (message) {
-        message->type = MESSAGE_TYPE_SAVE_STORE;
-        IOS_SendMessage(info_message_queue, (uint32_t) message, 0);
+    if (isOfficialName((const char*) name->remote_bd_name)) {
+        info->magic = MAGIC_OFFICIAL;
+    }
+    else {
+        info->magic = MAGIC_BLOOPAIR;
     }
 
     // continue with getting the sdp record
@@ -102,19 +106,20 @@ void bta_hh_di_sdp_callback(uint16_t result)
 
 void name_read_cback_open(tBTM_REMOTE_DEV_NAME* name)
 {
-    DEBUG("got name %s status %d\n", name->remote_bd_name, name->status);
+    DEBUG("open: got name %s status %d\n", name->remote_bd_name, name->status);
 
-    if (name->status != 0) {
-        return;
-    }
+    if (name->status == 0) {
+        StoredInfo_t* info = store_get_device_info(bta_hh_cb->p_cur->addr);
+        if (!info) {
+            info = store_allocate_device_info(bta_hh_cb->p_cur->addr);
+        }
 
-    store_add_name(bta_hh_cb->p_cur->addr, name->remote_bd_name);
-
-    // save store
-    ReportMessage_t* message = IOS_Alloc(0xcaff, sizeof(ReportMessage_t));
-    if (message) {
-        message->type = MESSAGE_TYPE_SAVE_STORE;
-        IOS_SendMessage(info_message_queue, (uint32_t) message, 0);
+        if (isOfficialName((const char*) name->remote_bd_name)) {
+            info->magic = MAGIC_OFFICIAL;
+        }
+        else {
+            info->magic = MAGIC_BLOOPAIR;
+        }
     }
 
     bta_hh_sm_execute(bta_hh_cb->p_cur, BTA_HH_OPEN_CMPL_EVT, NULL);
@@ -131,13 +136,15 @@ void bta_hh_open_act(tBTA_HH_DEV_CB *p_cb, void *p_data)
 
     /* SDP has been done */
     if (p_cb->app_id != 0) {
-        // controllers paired without bloopair running don't have an entry in the store yet
-        if (!store_get_device_info(p_cb->addr)) {
+        StoredInfo_t* info = store_get_device_info(p_cb->addr);
+
+        // controllers paired without bloopair running have an unknown entry in the store
+        if (info && info->magic == MAGIC_UNKNOWN) {
             bta_hh_cb->p_cur = p_cb;
             BTM_ReadRemoteDeviceName(p_cb->addr, name_read_cback_open);
         }
         else {
-            bta_hh_sm_execute(p_cb, BTA_HH_OPEN_CMPL_EVT, NULL);
+            bta_hh_sm_execute(p_cb, BTA_HH_OPEN_CMPL_EVT, p_data);
         }
     }
     else

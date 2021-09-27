@@ -35,7 +35,7 @@ void bta_hh_event(uint8_t event, void *p_data)
             StoredInfo_t* info = store_get_device_info(conn_data->bda);
             DEBUG("found info for device %p\n", info);
 
-            if (!info || initController(conn_data->handle, info->name, info->vendor_id, info->product_id) != 0) {
+            if (!info || initController(conn_data->handle, info->magic, info->vendor_id, info->product_id) != 0) {
                 // close connection
                 BTA_HhClose(conn_data->handle);
                 return;

@@ -20,30 +20,51 @@
 #include <imports.h>
 #include "bta_hooks/bt_api.h"
 
-typedef struct {
-    uint32_t __version;
-    uint8_t is_used;
+enum {
+    MAGIC_EMPTY    = 0,
+    MAGIC_OFFICIAL = 0xB0,
+    MAGIC_BLOOPAIR = 0xB1,
+    MAGIC_UNKNOWN  = 0xFF,
+};
+
+typedef struct __attribute__ ((__packed__)) {
     BD_ADDR address;
-    uint8_t name[64];
+    //uint8_t name[64];
+
+/*
+    Bloopair specific:
+    We use the last few bytes of the name to store additional data,
+    that way we don't have to create a custom userconfig entry and don't leave back
+    any traces on the console
+*/
+    uint8_t name[59];
+    uint8_t magic;
+    uint16_t vendor_id;
+    uint16_t product_id;
+} bt_devInfo_entry_t;
+
+typedef struct __attribute__ ((__packed__)) {
+    uint8_t num_entries;
+    bt_devInfo_entry_t entries[10];
+    // stores link keys and probably some other stuff
+    uint8_t unk[0x1a4];
+} bt_devInfo_t;
+
+typedef struct {
+    uint8_t magic;
+    BD_ADDR address;
     uint16_t vendor_id;
     uint16_t product_id;
 } StoredInfo_t;
 
-int store_update_device_info(int write);
-
-void store_clear_removed_devices(void);
-
-int store_add_name(uint8_t* address, uint8_t* name);
-
-int store_add_vid_pid(uint8_t* address, uint16_t vendor_id, uint16_t product_id);
-
 StoredInfo_t* store_get_device_info(uint8_t* address);
+
+StoredInfo_t* store_allocate_device_info(uint8_t* address);
 
 extern int info_message_queue;
 
 enum {
     MESSAGE_TYPE_DI_RECORD,
-    MESSAGE_TYPE_SAVE_STORE,
 };
 
 typedef struct {

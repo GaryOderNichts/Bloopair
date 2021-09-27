@@ -36,37 +36,6 @@ typedef struct {
 	uint32_t unk;
 } IOSVec_t;
 
-typedef struct __attribute__ ((__packed__)) {
-    char name[64];
-    uint32_t access;
-    uint32_t data_type;
-    int error;
-    uint32_t data_size;
-    void* data;
-} UCSysConfig_t;
-
-enum {
-    UC_DATA_TYPE_U8      = 1,
-    UC_DATA_TYPE_U16     = 2,
-    UC_DATA_TYPE_U32     = 3,
-    UC_DATA_TYPE_I32     = 4,
-    UC_DATA_TYPE_F32     = 5,
-    UC_DATA_TYPE_STRING  = 6,
-    UC_DATA_TYPE_BINARY  = 7,
-    UC_DATA_TYPE_COMPLEX = 8,
-};
-
-typedef struct {
-    uint8_t address[6];
-    uint8_t name[64];
-} bt_db_entry_t;
-
-typedef struct {
-    uint8_t num_entries;
-    bt_db_entry_t entries[10];
-    uint8_t unk[0x1a4];
-} bt_db_t;
-
 extern void (*const pad_printf)(const char* fmt, ...);
 extern void (*const usleep)(uint32_t usecs);
 extern int (*const IOS_CreateThread)(int (*fun)(void* arg), void* arg, uint32_t* stack_top, uint32_t stacksize, int priority, uint32_t flags);
@@ -109,19 +78,15 @@ extern void (*const utl_freebuf)(void **p);
 extern void (*const bta_sys_sendmsg)(void* msg);
 extern void (*const BTA_HhSendData)(uint8_t dev_handle, uint8_t* dev_bda, BT_HDR *p_buf);
 extern void (*const BTA_HhClose)(uint8_t dev_handle);
+extern void (*const BTA_HhAddDev)(uint8_t* bda, uint16_t attr_mask, uint8_t sub_class, uint8_t app_id, uint32_t dl_len, uint8_t* dsc_list);
 extern uint8_t (*const BTM_ReadRemoteDeviceName)(uint8_t* remote_bda, void *p_cb);
 extern void (*const BTA_DmSetAfhChannels)(uint8_t first, uint8_t last);
+extern void (*const BTA_DmAddDevice)(uint8_t* bd_addr, uint8_t* dev_class, uint8_t* link_key, uint32_t trusted_mask, uint8_t is_trusted, uint8_t key_type, uint8_t io_cap);
 extern int (*const smdIopSendMessage)(int idx, void* ptr, uint32_t size);
 extern int (*const smdIopReceive)(int idx, void* ptr);
 extern uint8_t (*const btm_remove_acl)(uint8_t* bd_addr);
 extern int (*const deleteDevice)(uint8_t* bd_addr);
-extern int (*const UCWriteSysConfig)(int handle, uint32_t num, UCSysConfig_t* configs);
-extern int (*const UCReadSysConfig)(int handle, uint32_t num, UCSysConfig_t* configs);
-extern int (*const UCDeleteSysConfig)(int handle, uint32_t num, UCSysConfig_t* configs);
-extern int (*const UCOpen)(void);
-extern int (*const UCClose)(int handle);
 
 extern uint32_t* isSmdReady;
 extern uint32_t* bluetoothFlags;
 extern uint32_t* smdIopIndex;
-extern bt_db_t* bt_db;

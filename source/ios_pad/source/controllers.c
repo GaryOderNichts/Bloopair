@@ -17,6 +17,7 @@
 
 #include "controllers.h"
 #include "utils.h"
+#include "info_store.h"
 
 Controller_t controllers[BTA_HH_MAX_KNOWN];
 
@@ -106,9 +107,9 @@ void controllerInit_switch(Controller_t* controller, uint8_t right_joycon);
 void controllerInit_xbox_one(Controller_t* controller);
 void controllerInit_dualsense(Controller_t* controller);
 
-int initController(uint8_t handle, uint8_t* name, uint16_t vendor_id, uint16_t product_id)
+int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t product_id)
 {
-    DEBUG("initController handle %u name %s vid %x pid %x\n", handle, name, vendor_id, product_id);
+    DEBUG("initController handle %u magic %x vid %x pid %x\n", handle, magic, vendor_id, product_id);
 
     if (!report_thread_running) {
         initReportThread();
@@ -129,11 +130,11 @@ int initController(uint8_t handle, uint8_t* name, uint16_t vendor_id, uint16_t p
     controller->handle = handle;
     controller->isInitialized = 1;
     
-    if (isOfficialName((const char*) name)) {
+    if (magic == MAGIC_OFFICIAL) {
         controller->isOfficialController = 1;
         return 0;
     }
-    else {
+    else if (magic == MAGIC_BLOOPAIR) {
         if ((vendor_id == 0x057e && product_id == 0x2009) || // switch pro controller
             (vendor_id == 0x057e && product_id == 0x2007) || // joycon r
             (vendor_id == 0x057e && product_id == 0x2006)) { // joycon l

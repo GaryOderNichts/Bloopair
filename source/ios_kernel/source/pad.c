@@ -67,8 +67,10 @@ void run_ios_pad_patches(void)
     *(volatile uint32_t *) 0x11f06e98 = ARM_BL(0x11f06e98, SDP_DiDiscover);
     *(volatile uint32_t *) 0x11f06ef8 = bta_hh_di_sdp_callback;
 
-    // hook into the clear device call so our custom bloopair data gets cleared
-    *(volatile uint32_t *) 0x11f03824 = ARM_BL(0x11f03824, wpad_start_clear_device_hook);
+    // hook writeDevInfo so we can write our custom data too
+    *(volatile uint32_t *) 0x11f41b00 = ARM_B(0x11f41b00, writeDevInfo_hook);
+    *(volatile uint32_t *) 0x11f41af4 = ARM_B(0x11f41af4, writeDevInfo_hook);
+    *(volatile uint32_t *) 0x11f41b20 = ARM_BL(0x11f41b20, writeDevInfo_hook);
 
     // ppc smd messages hook
     *(volatile uint32_t *) 0x11f02350 = ARM_BL(0x11f02350, processSmdMessages);

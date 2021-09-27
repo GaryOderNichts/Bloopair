@@ -18,133 +18,15 @@
 #include "info_store.h"
 #include "controllers.h"
 
+bt_devInfo_t* bt_devInfo = (bt_devInfo_t*) 0x12157778;
+
 StoredInfo_t stored_infos[BTA_HH_MAX_KNOWN] = { 0 };
-
-int store_update_device_info(int write)
-{
-    UCSysConfig_t configs[2];
-    _memset(configs, 0, sizeof(configs));
-
-    _strncpy(configs[0].name, "slc:btStd", 64);
-    configs[0].access = 0x777;
-    configs[0].data_type = UC_DATA_TYPE_COMPLEX;
-
-    _strncpy(configs[1].name, "slc:btStd.bloopairInfo", 64);
-    configs[1].data_type = UC_DATA_TYPE_BINARY;
-    configs[1].data_size = sizeof(stored_infos);
-    configs[1].data = &stored_infos;
-
-    int handle = UCOpen();
-    if (handle < 0) {
-        return handle;
-    }
-
-    int res;
-    if (write) {
-        res = UCWriteSysConfig(handle, 2, configs);
-    }
-    else {
-        res = UCReadSysConfig(handle, 2, configs);
-    }
-    
-    UCClose(handle);
-
-    return res;
-}
-
-void store_clear_removed_devices(void)
-{
-    // read our stored devices
-    store_update_device_info(0);
-
-    // create a temporary store
-    StoredInfo_t tmp_stored_infos[BTA_HH_MAX_KNOWN];
-    _memset(tmp_stored_infos, 0, sizeof(tmp_stored_infos));
-
-    if (bt_db->num_entries > BTA_HH_MAX_KNOWN) {
-        return;
-    }
-
-    // only add paired devices back to the list
-    StoredInfo_t* tmpInfo = tmp_stored_infos;
-    for (int i = 0; i < bt_db->num_entries; i++) {
-        bt_db_entry_t* entry = &bt_db->entries[i];
-
-        StoredInfo_t* info = store_get_device_info(entry->address);
-        if (info) {
-            _memcpy(tmpInfo, info, sizeof(StoredInfo_t));
-            tmpInfo++;
-        }
-    }
-
-    // copy and write back infos
-    _memcpy(stored_infos, tmp_stored_infos, sizeof(stored_infos));
-    store_update_device_info(1);
-}
-
-int store_add_name(uint8_t* address, uint8_t* name)
-{
-    StoredInfo_t* info = store_get_device_info(address);
-
-    if (!info) {
-        // look for a free entry
-        for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
-            if (!stored_infos[i].is_used) {
-                info = &stored_infos[i];
-
-                // mark as used any set address
-                info->is_used = 1;
-                _memcpy(info->address, address, sizeof(BD_ADDR));
-                break;
-            }
-        }
-    }
-
-    if (!info) {
-        // can't add
-        return -1;
-    }
-
-    _strncpy((char*) info->name, (char*) name, 64);
-
-    return 0;
-}
-
-int store_add_vid_pid(uint8_t* address, uint16_t vendor_id, uint16_t product_id)
-{
-    StoredInfo_t* info = store_get_device_info(address);
-
-    if (!info) {
-        // look for a free entry
-        for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
-            if (!stored_infos[i].is_used) {
-                info = &stored_infos[i];
-
-                // mark as used any set address
-                info->is_used = 1;
-                _memcpy(info->address, address, sizeof(BD_ADDR));
-                break;
-            }
-        }
-    }
-
-    if (!info) {
-        // can't add
-        return -1;
-    }
-
-    info->vendor_id = vendor_id;
-    info->product_id = product_id;
-    info->is_used = 1;
-
-    return 0;
-}
 
 StoredInfo_t* store_get_device_info(uint8_t* address)
 {
     for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
-        if (stored_infos[i].is_used &&
-            _memcmp(stored_infos[i].address, address, sizeof(BD_ADDR)) == 0) {
+        if (stored_infos[i].magic != MAGIC_EMPTY &&
+            _memcmp(stored_infos[i].address, address, BD_ADDR_LEN) == 0) {
             return &stored_infos[i];
         }
     }
@@ -152,31 +34,65 @@ StoredInfo_t* store_get_device_info(uint8_t* address)
     return NULL;
 }
 
-int (*const real_wpad_start_clear_device)(void) = (void*) 0x11f40e34;
-int wpad_start_clear_device_hook(void)
+StoredInfo_t* store_allocate_device_info(uint8_t* address)
 {
-    DEBUG("wpad_start_clear_device\n");
-
-    UCSysConfig_t configs[2];
-    _memset(configs, 0, sizeof(configs));
-
-    _strncpy(configs[0].name, "slc:btStd", 64);
-    configs[0].access = 0x777;
-    configs[0].data_type = UC_DATA_TYPE_COMPLEX;
-
-    _strncpy(configs[1].name, "slc:btStd.bloopairInfo", 64);
-    configs[1].data_type = UC_DATA_TYPE_BINARY;
-
-    int handle = UCOpen();
-    if (handle >= 0) {
-        UCDeleteSysConfig(handle, 2, configs);
-        UCClose(handle);
+    // look for a free entry
+    for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
+        if (stored_infos[i].magic == MAGIC_EMPTY) {
+            stored_infos[i].magic = MAGIC_UNKNOWN;
+            _memcpy(stored_infos[i].address, address, BD_ADDR_LEN);
+            return &stored_infos[i];
+        }
     }
 
-    // clear stored infos in memory as well
-    _memset(stored_infos, 0, sizeof(stored_infos));
+    return NULL;
+}
 
-    return real_wpad_start_clear_device();
+void readDevInfo(void)
+{
+    for (int i = 0; i < bt_devInfo->num_entries; i++) {
+        bt_devInfo_entry_t* entry = &bt_devInfo->entries[i];
+
+        StoredInfo_t* info = store_get_device_info(entry->address);
+        if (!info) {
+            info = store_allocate_device_info(entry->address);
+            if (!info) {
+                break;
+            }
+        }
+
+        if (entry->magic == MAGIC_EMPTY) {
+            info->magic = MAGIC_UNKNOWN;
+        }
+        else {
+            info->magic = entry->magic;
+            info->vendor_id = entry->vendor_id;
+            info->product_id = entry->product_id;
+        }
+    }
+}
+
+int (*const real_writeDevInfo)(void* callback) = (void*) 0x11f4181c;
+int writeDevInfo_hook(void* callback)
+{
+    DEBUG("writeDevInfo_hook %p\n", callback);
+
+    // populate devInfo with our custom info before writing
+    for (int i = 0; i < bt_devInfo->num_entries; i++) {
+        bt_devInfo_entry_t* entry = &bt_devInfo->entries[i];
+
+        StoredInfo_t* info = store_get_device_info(entry->address);
+        if (!info) {
+            // we don't have info for this entry, skip it
+            continue;
+        }
+
+        entry->magic = info->magic;
+        entry->vendor_id = info->vendor_id;
+        entry->product_id = info->product_id;
+    }
+
+    return real_writeDevInfo(callback);
 }
 
 /*
@@ -218,7 +134,13 @@ static void read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db)
     DEBUG("got vid %X and pid %X\n", vendor_id, product_id);
 
     // store the vid and pid
-    store_add_vid_pid(bda, vendor_id, product_id);
+    StoredInfo_t* info = store_get_device_info(bda);
+    if (!info) {
+        info = store_allocate_device_info(bda);
+    }
+
+    info->vendor_id = vendor_id;
+    info->product_id = product_id;
 }
 
 static int info_thread_function(void* arg)
@@ -239,14 +161,6 @@ static int info_thread_function(void* arg)
         switch (message->type) {
         case MESSAGE_TYPE_DI_RECORD: {
             read_DI_record(message->addr, (tSDP_DISCOVERY_DB*) message->data);
-
-            // write info
-            store_update_device_info(1);
-            break;
-        }
-        case MESSAGE_TYPE_SAVE_STORE: {
-            // write info
-            store_update_device_info(1);
             break;
         }
         default:
@@ -265,8 +179,8 @@ void start_info_thread(void)
         return;
     }
 
-    // clear any devices that are no longer paired from our store and read our store
-    store_clear_removed_devices();
+    // read dev info and add it to our stored infos
+    readDevInfo();
 
     thread_running = 1;
 
@@ -295,4 +209,3 @@ void stop_info_thread(void)
     // free stack
     IOS_Free(0xcaff, thread_stack_base);
 }
-
