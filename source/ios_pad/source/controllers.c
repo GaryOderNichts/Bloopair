@@ -106,6 +106,7 @@ int isOfficialName(const char* name)
 void controllerInit_switch(Controller_t* controller, uint8_t right_joycon);
 void controllerInit_xbox_one(Controller_t* controller);
 void controllerInit_dualsense(Controller_t* controller);
+void controllerInit_dualshock4(Controller_t* controller);
 
 int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t product_id)
 {
@@ -151,6 +152,14 @@ int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t p
         }
         else if (vendor_id == 0x054c && product_id == 0x0ce6) { // dualsense
             controllerInit_dualsense(controller);
+            return 0;
+        }
+        else if ((vendor_id == 0x054c && product_id == 0x05c4) || // dualshock 4 v1
+                 (vendor_id == 0x054c && product_id == 0x09cc) || // dualshock 4 v2
+                 (vendor_id == 0x0f0d && product_id == 0x00f6) || // hori onyx
+                 (vendor_id == 0x1532 && product_id == 0x100a) || // razer raiju tournament
+                 (vendor_id == 0x146b && product_id == 0x0d01)) { // nacon ps4
+            controllerInit_dualshock4(controller);
             return 0;
         }
     }

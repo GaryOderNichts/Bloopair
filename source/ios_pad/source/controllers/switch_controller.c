@@ -101,7 +101,8 @@ void controllerData_switch(Controller_t* controller, uint8_t* buf, uint16_t len)
 
         uint32_t buttons = 0;
 
-        buttons |= dpad_map[buf[3] & 0xf];
+        if ((buf[3] & 0xf) < 9)
+            buttons |= dpad_map[buf[3] & 0xf];
 
         if (buf[1] & 0x01)
             buttons |= WPAD_PRO_BUTTON_B;

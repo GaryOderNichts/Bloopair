@@ -53,7 +53,8 @@ void controllerData_xbox_one(Controller_t* controller, uint8_t* buf, uint16_t le
         // clear all buttons besides home
         rep->buttons &= WPAD_PRO_BUTTON_HOME;
 
-        rep->buttons |= dpad_map[buf[13] & 0xf];
+        if ((buf[13] & 0xf) < 9)
+            rep->buttons |= dpad_map[buf[13] & 0xf];
 
         if (buf[10])
             rep->buttons |= WPAD_PRO_TRIGGER_ZL;
