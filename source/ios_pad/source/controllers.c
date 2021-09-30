@@ -47,7 +47,7 @@ static int continuous_report_thread(void* arg)
             ReportBuffer_t* report_buf = controller->reportData;
             // make sure the controller is initialized, has the reporting mode set, and has a report buf
             if (controller->isInitialized && controller->dataReportingMode == 0x3d && report_buf) {
-                IOS_WaitSemaphore(report_buf->semaphore, 1);
+                IOS_WaitSemaphore(report_buf->semaphore, 0);
 
                 // send the current state
                 sendControllerInput(controller, report_buf->buttons, report_buf->left_stick_x, report_buf->right_stick_x, report_buf->left_stick_y, report_buf->right_stick_y);
