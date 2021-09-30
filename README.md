@@ -11,7 +11,10 @@ It temporarily applies patches to the IOS-PAD module responsible for Bluetooth c
 ## Supported controllers
 - Nintendo Switch Pro Controller
 - Nintendo Switch Joy-Con
-- Microsoft Xbox One S/X Controller
+- Nintendo Switch SNES Controller
+- Microsoft Xbox One S/X Controller  
+Note: The Series S/X Controllers are currently not supported due to missing Bluetooth LE support
+- Sony Dualshock 4 Controller
 - Sony Dualsense Controller
 
 ## Installation
@@ -41,7 +44,6 @@ Pull requests for different controllers are always welcome.
 
 ## To-Do
 - Support more controllers
-- Determine controller based on vendor and product ID instead of controller name
 - Rumble for Joy-Con
 - Battery levels for Switch Pro Controller and Joy-Con
 - Bluetooth LE support (the Wii U's bluetooth stack seems to support this?)
