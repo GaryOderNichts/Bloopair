@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     ProcUIInit(&OSSavesDone_ReadyToRelease);
 
     // set a callback
-    OSDynLoad_AddNotifyCallback(load_callback, NULL);
+    OSDynLoad_AddNotifyCallback(load_callback, nullptr);
     
     // load padscore
     OSDynLoad_Module module;
@@ -78,6 +78,9 @@ int main(int argc, char **argv)
 
     // release padscore
     OSDynLoad_Release(module);
+
+    // delete callback
+    OSDynLoad_DelNotifyCallback(load_callback, nullptr);
 
     // exit to the menu as soon as possible
     ProcUIStatus status;

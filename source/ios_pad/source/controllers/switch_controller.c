@@ -17,6 +17,11 @@
 
 #include <controllers.h>
 
+typedef struct {
+    uint8_t right_joycon;
+    uint8_t first_report;
+} SwitchData_t;
+
 static uint8_t report_count = 0;
 
 static const uint32_t dpad_map[9] = {
@@ -70,7 +75,7 @@ void controllerRumble_switch(Controller_t* controller, uint8_t rumble)
 void controllerSetLed_switch(Controller_t* controller, uint8_t led)
 {
     // if this is the right joycon swap led order
-    if (controller->additionalData) {
+    if (((SwitchData_t*) controller->additionalData)->right_joycon) {
         led = ((led & 1) << 3) | ((led & 2) << 1) | ((led & 4) >> 1) | ((led & 8) >> 3);
     }
 
@@ -88,67 +93,60 @@ void controllerData_switch(Controller_t* controller, uint8_t* buf, uint16_t len)
     ReportBuffer_t* rep = controller->reportData;
 
     if (buf[0] == 0x3f) {
-        int16_t left_stick_x = ((buf[5] << 8) | buf[4]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
-        int16_t right_stick_x = ((buf[9] << 8) | buf[8]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
-        int16_t left_stick_y = ((buf[7] << 8) | buf[6]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
-        int16_t right_stick_y = ((buf[11] << 8) | buf[10]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
-
-        // apparently that's something the pro controller does once paired
-        // that completely messes with the start calibration, so drop that report
-        if (left_stick_x < -1450) {
+        // the pro controller sends weird stick data in the first report
+        // which completely messes with the start calibration, so we drop that report
+        if (((SwitchData_t*) controller->additionalData)->first_report) {
+            ((SwitchData_t*) controller->additionalData)->first_report = 0;
             return;
         }
 
-        uint32_t buttons = 0;
+        rep->left_stick_x = ((buf[5] << 8) | buf[4]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
+        rep->right_stick_x = ((buf[9] << 8) | buf[8]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
+        rep->left_stick_y = ((buf[7] << 8) | buf[6]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
+        rep->right_stick_y = ((buf[11] << 8) | buf[10]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
+
+        rep->buttons = 0;
 
         if ((buf[3] & 0xf) < 9)
-            buttons |= dpad_map[buf[3] & 0xf];
+            rep->buttons |= dpad_map[buf[3] & 0xf];
 
         if (buf[1] & 0x01)
-            buttons |= WPAD_PRO_BUTTON_B;
+            rep->buttons |= WPAD_PRO_BUTTON_B;
         if (buf[1] & 0x02)
-            buttons |= WPAD_PRO_BUTTON_A;
+            rep->buttons |= WPAD_PRO_BUTTON_A;
         if (buf[1] & 0x04)
-            buttons |= WPAD_PRO_BUTTON_Y;
+            rep->buttons |= WPAD_PRO_BUTTON_Y;
         if (buf[1] & 0x08)
-            buttons |= WPAD_PRO_BUTTON_X;
+            rep->buttons |= WPAD_PRO_BUTTON_X;
         if (buf[1] & 0x10)
-            buttons |= WPAD_PRO_TRIGGER_L;
+            rep->buttons |= WPAD_PRO_TRIGGER_L;
         if (buf[1] & 0x20)
-            buttons |= WPAD_PRO_TRIGGER_R;
+            rep->buttons |= WPAD_PRO_TRIGGER_R;
         if (buf[1] & 0x40)
-            buttons |= WPAD_PRO_TRIGGER_ZL;
+            rep->buttons |= WPAD_PRO_TRIGGER_ZL;
         if (buf[1] & 0x80)
-            buttons |= WPAD_PRO_TRIGGER_ZR;
+            rep->buttons |= WPAD_PRO_TRIGGER_ZR;
         if (buf[2] & 0x01)
-            buttons |= WPAD_PRO_BUTTON_MINUS;
+            rep->buttons |= WPAD_PRO_BUTTON_MINUS;
         if (buf[2] & 0x02)
-            buttons |= WPAD_PRO_BUTTON_PLUS;
+            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
         if (buf[2] & 0x04)
-            buttons |= WPAD_PRO_BUTTON_STICK_L;
+            rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
         if (buf[2] & 0x08)
-            buttons |= WPAD_PRO_BUTTON_STICK_R;
+            rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
         if (buf[2] & 0x10)
-            buttons |= WPAD_PRO_BUTTON_HOME;
+            rep->buttons |= WPAD_PRO_BUTTON_HOME;
         // capture button
         // if (buf[2] & 0x20)
-        //     buttons |= WPAD_PRO_BUTTON_;
-
-        IOS_WaitSemaphore(controller->reportData->semaphore, 0);
-
-        rep->buttons = buttons;
-        rep->left_stick_x = left_stick_x;
-        rep->right_stick_x = right_stick_x;
-        rep->left_stick_y = left_stick_y;
-        rep->right_stick_y = right_stick_y;
-
-        IOS_SignalSempahore(controller->reportData->semaphore);
+        //     rep->buttons |= WPAD_PRO_BUTTON_;y
     }
 }
 
 void controllerDeinit_switch(Controller_t* controller)
 {
     deinitContinuousReports(controller);
+
+    IOS_Free(0xcaff, controller->additionalData);
 }
 
 void controllerInit_switch(Controller_t* controller, uint8_t right_joycon)
@@ -163,6 +161,9 @@ void controllerInit_switch(Controller_t* controller, uint8_t right_joycon)
     controller->battery = 4;
     controller->isCharging = 0;
 
-    // just store this in the pointer directly
-    controller->additionalData = (void*) (uint32_t) right_joycon;
+    SwitchData_t* data = IOS_Alloc(0xcaff, sizeof(SwitchData_t));
+    data->first_report = 1;
+    data->right_joycon = right_joycon;
+
+    controller->additionalData = data;
 }

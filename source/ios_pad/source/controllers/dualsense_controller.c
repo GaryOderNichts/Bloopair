@@ -113,104 +113,84 @@ void controllerData_dualsense(Controller_t* controller, uint8_t* buf, uint16_t l
     ReportBuffer_t* rep = controller->reportData;
 
     if (buf[0] == 0x01) {
-        int16_t left_stick_x = (buf[1] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        int16_t left_stick_y = (buf[2] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        int16_t right_stick_x = (buf[3] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        int16_t right_stick_y = (buf[4] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+        rep->left_stick_x = (buf[1] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+        rep->left_stick_y = (buf[2] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+        rep->right_stick_x = (buf[3] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+        rep->right_stick_y = (buf[4] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
 
-        uint32_t buttons = 0;
+        rep->buttons = 0;
 
         if ((buf[5] & 0xf) < 9)
-            buttons |= dpad_map[buf[5] & 0xf];
+            rep->buttons |= dpad_map[buf[5] & 0xf];
 
         if (buf[5] & 0x40)
-            buttons |= WPAD_PRO_BUTTON_A;
+            rep->buttons |= WPAD_PRO_BUTTON_A;
         if (buf[5] & 0x20)
-            buttons |= WPAD_PRO_BUTTON_B;
+            rep->buttons |= WPAD_PRO_BUTTON_B;
         if (buf[5] & 0x80)
-            buttons |= WPAD_PRO_BUTTON_X;
+            rep->buttons |= WPAD_PRO_BUTTON_X;
         if (buf[5] & 0x10)
-            buttons |= WPAD_PRO_BUTTON_Y;
+            rep->buttons |= WPAD_PRO_BUTTON_Y;
         if (buf[6] & 0x01)
-            buttons |= WPAD_PRO_TRIGGER_L;
+            rep->buttons |= WPAD_PRO_TRIGGER_L;
         if (buf[6] & 0x02)
-            buttons |= WPAD_PRO_TRIGGER_R;
+            rep->buttons |= WPAD_PRO_TRIGGER_R;
         if (buf[6] & 0x04)
-            buttons |= WPAD_PRO_TRIGGER_ZL;
+            rep->buttons |= WPAD_PRO_TRIGGER_ZL;
         if (buf[6] & 0x08)
-            buttons |= WPAD_PRO_TRIGGER_ZR;
+            rep->buttons |= WPAD_PRO_TRIGGER_ZR;
         if (buf[6] & 0x10)
-            buttons |= WPAD_PRO_BUTTON_MINUS;
+            rep->buttons |= WPAD_PRO_BUTTON_MINUS;
         if (buf[6] & 0x20)
-            buttons |= WPAD_PRO_BUTTON_PLUS;
+            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
         if (buf[6] & 0x40)
-            buttons |= WPAD_PRO_BUTTON_STICK_L;
+            rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
         if (buf[6] & 0x80)
-            buttons |= WPAD_PRO_BUTTON_STICK_R;
+            rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
         if (buf[7] & 0x01)
-            buttons |= WPAD_PRO_BUTTON_HOME;
-
-        IOS_WaitSemaphore(controller->reportData->semaphore, 0);
-
-        rep->buttons = buttons;
-        rep->left_stick_x = left_stick_x;
-        rep->right_stick_x = right_stick_x;
-        rep->left_stick_y = left_stick_y;
-        rep->right_stick_y = right_stick_y;
-
-        IOS_SignalSempahore(controller->reportData->semaphore);
+            rep->buttons |= WPAD_PRO_BUTTON_HOME;
     }
     else if (buf[0] == 0x31) {
-        int16_t left_stick_x = (buf[2] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        int16_t left_stick_y = (buf[3] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        int16_t right_stick_x = (buf[4] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        int16_t right_stick_y = (buf[5] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+        rep->left_stick_x = (buf[2] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+        rep->left_stick_y = (buf[3] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+        rep->right_stick_x = (buf[4] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+        rep->right_stick_y = (buf[5] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
 
-        uint32_t buttons = 0;
+        rep->buttons = 0;
 
         if ((buf[9] & 0xf) < 9)
-            buttons |= dpad_map[buf[9] & 0xf];
+            rep->buttons |= dpad_map[buf[9] & 0xf];
 
         if (buf[9] & 0x40)
-            buttons |= WPAD_PRO_BUTTON_A;
+            rep->buttons |= WPAD_PRO_BUTTON_A;
         if (buf[9] & 0x20)
-            buttons |= WPAD_PRO_BUTTON_B;
+            rep->buttons |= WPAD_PRO_BUTTON_B;
         if (buf[9] & 0x80)
-            buttons |= WPAD_PRO_BUTTON_X;
+            rep->buttons |= WPAD_PRO_BUTTON_X;
         if (buf[9] & 0x10)
-            buttons |= WPAD_PRO_BUTTON_Y;
+            rep->buttons |= WPAD_PRO_BUTTON_Y;
         if (buf[10] & 0x01)
-            buttons |= WPAD_PRO_TRIGGER_L;
+            rep->buttons |= WPAD_PRO_TRIGGER_L;
         if (buf[10] & 0x02)
-            buttons |= WPAD_PRO_TRIGGER_R;
+            rep->buttons |= WPAD_PRO_TRIGGER_R;
         if (buf[10] & 0x04)
-            buttons |= WPAD_PRO_TRIGGER_ZL;
+            rep->buttons |= WPAD_PRO_TRIGGER_ZL;
         if (buf[10] & 0x08)
-            buttons |= WPAD_PRO_TRIGGER_ZR;
+            rep->buttons |= WPAD_PRO_TRIGGER_ZR;
         if (buf[10] & 0x10)
-            buttons |= WPAD_PRO_BUTTON_MINUS;
+            rep->buttons |= WPAD_PRO_BUTTON_MINUS;
         if (buf[10] & 0x20)
-            buttons |= WPAD_PRO_BUTTON_PLUS;
+            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
         if (buf[10] & 0x40)
-            buttons |= WPAD_PRO_BUTTON_STICK_L;
+            rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
         if (buf[10] & 0x80)
-            buttons |= WPAD_PRO_BUTTON_STICK_R;
+            rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
         if (buf[11] & 0x01)
-            buttons |= WPAD_PRO_BUTTON_HOME;
+            rep->buttons |= WPAD_PRO_BUTTON_HOME;
 
         uint8_t battery_level = (buf[53] & 0xf) >> 1;
         controller->battery = battery_level > 4 ? 4 : battery_level;
         controller->isCharging = (buf[53] & 0x10) && !(buf[53] & 0x20);
-
-        IOS_WaitSemaphore(controller->reportData->semaphore, 0);
-
-        rep->buttons = buttons;
-        rep->left_stick_x = left_stick_x;
-        rep->right_stick_x = right_stick_x;
-        rep->left_stick_y = left_stick_y;
-        rep->right_stick_y = right_stick_y;
-
-        IOS_SignalSempahore(controller->reportData->semaphore);
     }
 }
 

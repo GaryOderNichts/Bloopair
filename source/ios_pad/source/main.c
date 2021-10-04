@@ -215,6 +215,9 @@ void processSmdMessages(void)
         DEBUG("output request for handle %u size %u, cmd: 0x%X\n", output_buf->dev_handle, output_buf->length, output_buf->data[0]);
 
         Controller_t* controller = &controllers[output_buf->dev_handle];
+        if (!controller->isInitialized) {
+            continue;
+        }
 
         if (controller->isOfficialController) {
 #ifdef TESTING
@@ -332,6 +335,10 @@ void bta_hh_co_data(uint8_t dev_handle, uint8_t *p_rpt, uint16_t len, uint8_t mo
     }
 
     Controller_t* controller = &controllers[dev_handle];
+    if (!controller->isInitialized) {
+        return;
+    }
+
     if (controller->isOfficialController) {
         sendInputData(dev_handle, p_rpt, len);
 #ifdef TESTING

@@ -71,7 +71,6 @@ typedef void (*ControllerRumbleFn)(Controller_t* controller, uint8_t rumble);
 
 // report data for continuous reports
 typedef struct {
-    int semaphore;
     uint32_t buttons;
     int16_t left_stick_x;
     int16_t right_stick_x;
