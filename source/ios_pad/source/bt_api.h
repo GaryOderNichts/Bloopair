@@ -1,7 +1,7 @@
 #pragma once
 
 #include <imports.h>
-#include "sdp/sdp.h"
+#include "stack/sdp.h"
 
 /* Structures are based on reverse engineering and https://android.googlesource.com/platform/external/bluetooth/bluedroid/ */
 
@@ -13,6 +13,9 @@ typedef uint8_t BD_ADDR[BD_ADDR_LEN];         /* Device address */
 
 #define DEV_CLASS_LEN   3
 typedef uint8_t DEV_CLASS[DEV_CLASS_LEN];     /* Device class */
+
+#define LINK_KEY_LEN    16
+typedef uint8_t LINK_KEY[LINK_KEY_LEN];       /* Link Key */
 
 /* Structure returned with remote name  request */
 typedef struct
@@ -210,3 +213,69 @@ typedef struct {
     uint8_t   loc_io_caps;    /* IO Capabilities of local device */
     uint8_t   rmt_io_caps;    /* IO Capabilities of remote device */
 } tBTA_DM_SP_CFM_REQ;
+
+enum
+{
+    BTA_HH_RPTT_RESRV,      /* reserved         */
+    BTA_HH_RPTT_INPUT,      /* input report     */
+    BTA_HH_RPTT_OUTPUT,     /* output report    */
+    BTA_HH_RPTT_FEATURE     /* feature report   */
+};
+
+#define HID_TRANS_SET_REPORT    (5)
+
+/*
+** Define structure for Security Device Record.
+** A record exists for each device authenticated with this device
+*/
+#define BTM_SEC_SERVICE_ARRAY_SIZE 3
+typedef struct __attribute__ ((__packed__))
+{
+    void                *p_cur_service;
+    void                *p_callback;
+    void                *p_ref_data;
+    uint32_t             timestamp;         /* Timestamp of the last connection   */
+    uint32_t             trusted_mask[BTM_SEC_SERVICE_ARRAY_SIZE];  /* Bitwise OR of trusted services     */
+    uint16_t             hci_handle;        /* Handle to connection when exists   */
+    uint16_t             clock_offset;      /* Latest known clock offset          */
+    BD_ADDR              bd_addr;           /* BD_ADDR of the device              */
+    DEV_CLASS            dev_class;         /* DEV_CLASS of the device            */
+    LINK_KEY             link_key;          /* Device link key                    */
+
+    uint8_t         sec_bd_name[68];    /* User friendly name of the device. (may be truncated to save space in dev_rec table) */
+    uint8_t         sec_flags;          /* Current device security state      */
+    uint8_t         features[8];        /* Features suported by the device    */
+
+    uint8_t     sec_state;              /* Operating state                    */
+    uint8_t     is_originator;          /* TRUE if device is originating connection */
+    uint8_t     role_master;            /* TRUE if current mode is master     */
+    uint16_t    security_required;      /* Security required for connection   */
+    uint8_t     link_key_not_sent;      /* link key notification has not been sent waiting for name */
+    uint8_t     link_key_type;          /* Type of key used in pairing   */
+    uint8_t     link_key_changed;       /* Changed link key during current connection */
+
+    uint8_t     sm4;                    /* BTM_SM4_TRUE, if the peer supports SM4 */
+    uint8_t     rmt_io_caps;            /* IO capability of the peer device */
+    uint8_t     rmt_auth_req;           /* the auth_req flag as in the IO caps rsp evt */
+
+    uint8_t     ble[30];
+} tBTM_SEC_DEV_REC;
+
+/* Security Service Levels [bit mask] (BTM_SetSecurityLevel)
+** Encryption should not be used without authentication
+*/
+#define BTM_SEC_NONE               0x0000 /* Nothing required */
+#define BTM_SEC_IN_AUTHORIZE       0x0001 /* Inbound call requires authorization */
+#define BTM_SEC_IN_AUTHENTICATE    0x0002 /* Inbound call requires authentication */
+#define BTM_SEC_IN_ENCRYPT         0x0004 /* Inbound call requires encryption */
+#define BTM_SEC_OUT_AUTHORIZE      0x0008 /* Outbound call requires authorization */
+#define BTM_SEC_OUT_AUTHENTICATE   0x0010 /* Outbound call requires authentication */
+#define BTM_SEC_OUT_ENCRYPT        0x0020 /* Outbound call requires encryption */
+#define BTM_SEC_BOND               0x0040 /* Bonding */
+#define BTM_SEC_BOND_CONN          0x0080 /* bond_created_connection */
+#define BTM_SEC_FORCE_MASTER       0x0100 /* Need to switch connection to be master */
+#define BTM_SEC_ATTEMPT_MASTER     0x0200 /* Try to switch connection to be master */
+#define BTM_SEC_FORCE_SLAVE        0x0400 /* Need to switch connection to be master */
+#define BTM_SEC_ATTEMPT_SLAVE      0x0800 /* Try to switch connection to be slave */
+#define BTM_SEC_IN_MITM            0x1000 /* inbound Do man in the middle protection */
+#define BTM_SEC_OUT_MITM           0x2000 /* outbound Do man in the middle protection */

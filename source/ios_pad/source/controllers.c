@@ -103,6 +103,7 @@ void controllerInit_switch(Controller_t* controller, uint8_t right_joycon);
 void controllerInit_xbox_one(Controller_t* controller);
 void controllerInit_dualsense(Controller_t* controller);
 void controllerInit_dualshock4(Controller_t* controller);
+void controllerInit_dualshock3(Controller_t* controller);
 
 int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t product_id)
 {
@@ -157,6 +158,10 @@ int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t p
                  (vendor_id == 0x1532 && product_id == 0x100a) || // razer raiju tournament
                  (vendor_id == 0x146b && product_id == 0x0d01)) { // nacon ps4
             controllerInit_dualshock4(controller);
+            return 0;
+        }
+        else if (vendor_id == 0x054c && product_id == 0x0268) { // dualshock 3
+            controllerInit_dualshock3(controller);
             return 0;
         }
     }

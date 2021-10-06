@@ -22,3 +22,5 @@
 void sendInputData(uint8_t dev_handle, const uint8_t* data, uint16_t len);
 
 void sendOutputData(uint8_t dev_handle, const uint8_t* data, uint16_t len);
+
+void setReport(uint8_t dev_handle, uint8_t type, const uint8_t* data, uint16_t len);

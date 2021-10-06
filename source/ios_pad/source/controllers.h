@@ -19,7 +19,7 @@
 
 #include <imports.h>
 #include "main.h"
-#include "bta_hooks/bta_hh.h"
+#include "bta/bta_hh.h"
 #include "crypto.h"
 
 //! Pro Controller buttons.

@@ -16,6 +16,12 @@ SECTIONS {
         PROVIDE(__ans_tbl = .);
         . += 0x2a;
         PROVIDE(__sboxes = .);
+        . += 0x900;
+    }
+
+    .fn_hook_bufs : {
+        . = ALIGN(0x10);
+        *(.fn_hook_bufs);
     }
 
     . = 0x12159000;

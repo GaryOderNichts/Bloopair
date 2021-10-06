@@ -18,7 +18,7 @@
 #pragma once
 
 #include <imports.h>
-#include "bta_hooks/bt_api.h"
+#include "bt_api.h"
 
 enum {
     MAGIC_EMPTY    = 0,
@@ -46,8 +46,9 @@ typedef struct __attribute__ ((__packed__)) {
 typedef struct __attribute__ ((__packed__)) {
     uint8_t num_entries;
     bt_devInfo_entry_t entries[10];
-    // stores link keys and probably some other stuff
-    uint8_t unk[0x1a4];
+    bt_devInfo_entry_t controller_order[4];
+    uint8_t wbc_pairing[41]; // wii balance board pairing information?
+    uint8_t unk[99]; // unused
 } bt_devInfo_t;
 
 typedef struct {

@@ -81,6 +81,19 @@ void sendOutputData(uint8_t dev_handle, const uint8_t* data, uint16_t len)
     BTA_HhSendData(dev_handle, NULL, p_buf);
 }
 
+void setReport(uint8_t dev_handle, uint8_t type, const uint8_t* data, uint16_t len)
+{
+    BT_HDR* p_buf = GKI_getpoolbuf(3);
+    if (!p_buf) {
+        return;
+    }
+
+    p_buf->len = len;
+    p_buf->offset = HH_SEND_DATA_OFFSET;
+    _memcpy(((uint8_t*) p_buf) + sizeof(BT_HDR) + HH_SEND_DATA_OFFSET, data, p_buf->len);
+    bta_hh_snd_write_dev(dev_handle, HID_TRANS_SET_REPORT, type, 0, 0, p_buf);
+}
+
 static void sendAcknowledgeReport(uint8_t dev_handle, uint8_t report, uint8_t result)
 {
     uint8_t data[5];

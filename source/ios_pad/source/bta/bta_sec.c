@@ -16,7 +16,7 @@
  */
 
 #include <imports.h>
-#include "bt_api.h"
+#include <bt_api.h>
 
 void BTA_DmConfirm(uint8_t* bd_addr, uint8_t accept)
 {

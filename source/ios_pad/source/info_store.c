@@ -72,7 +72,9 @@ void readDevInfo(void)
     }
 }
 
-int (*const real_writeDevInfo)(void* callback) = (void*) 0x11f4181c;
+// executable memory which gets populated by the kernel
+uint32_t __writeDevInfo_hook_buf[3] __attribute__ ((section (".fn_hook_bufs")));
+int (*const real_writeDevInfo)(void* callback) = (void*) __writeDevInfo_hook_buf;
 int writeDevInfo_hook(void* callback)
 {
     DEBUG("writeDevInfo_hook %p\n", callback);
