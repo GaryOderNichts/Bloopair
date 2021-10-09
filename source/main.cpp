@@ -23,7 +23,6 @@
 #include <proc_ui/procui.h>
 
 #include <coreinit/cache.h>
-#include <coreinit/ios.h>
 #include <coreinit/memorymap.h>
 #include <coreinit/dynload.h>
 #include <coreinit/debug.h>
@@ -33,6 +32,8 @@
 #include <condition_variable>
 
 #include "ios_exploit.h"
+#include "ipc.hpp"
+#include "pair_menu.hpp"
 
 std::mutex padscore_load_mtx;
 std::condition_variable padscore_load_cv;
@@ -57,30 +58,41 @@ int main(int argc, char **argv)
     // init procui
     ProcUIInit(&OSSavesDone_ReadyToRelease);
 
-    // set a callback
-    OSDynLoad_AddNotifyCallback(load_callback, nullptr);
-    
-    // load padscore
-    OSDynLoad_Module module;
-    OSDynLoad_Acquire("padscore.rpl", &module);
-
-    if (!padscore_loaded) {
-        // wait until padscore is loaded
-        std::unique_lock<std::mutex> lck(padscore_load_mtx);
-        if (padscore_load_cv.wait_until(lck, std::chrono::system_clock::now() + std::chrono::milliseconds(1000))
-            == std::cv_status::timeout) {
-            OSFatal("padscore load timed out\n");
-        }
+    IOSHandle btrmHandle = openBtrm();
+    if (btrmHandle < 0) {
+        OSFatal("Can't open btrm");
     }
 
-    // run the ios exploit
-    ExecuteIOSExploit();
+    if (!isBloopairRunning(btrmHandle)) {
+        // set a callback
+        OSDynLoad_AddNotifyCallback(load_callback, nullptr);
+        
+        // load padscore
+        OSDynLoad_Module module;
+        OSDynLoad_Acquire("padscore.rpl", &module);
 
-    // release padscore
-    OSDynLoad_Release(module);
+        if (!padscore_loaded) {
+            // wait until padscore is loaded
+            std::unique_lock<std::mutex> lck(padscore_load_mtx);
+            if (padscore_load_cv.wait_until(lck, std::chrono::system_clock::now() + std::chrono::milliseconds(1000))
+                == std::cv_status::timeout) {
+                OSFatal("padscore load timed out\n");
+            }
+        }
 
-    // delete callback
-    OSDynLoad_DelNotifyCallback(load_callback, nullptr);
+        // run the ios exploit
+        ExecuteIOSExploit();
+
+        // release padscore
+        OSDynLoad_Release(module);
+
+        // delete callback
+        OSDynLoad_DelNotifyCallback(load_callback, nullptr);
+    }
+
+    closeBtrm(btrmHandle);
+
+    handle_pairing_menu();
 
     // exit to the menu as soon as possible
     ProcUIStatus status;

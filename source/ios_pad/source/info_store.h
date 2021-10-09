@@ -47,8 +47,8 @@ typedef struct __attribute__ ((__packed__)) {
     uint8_t num_entries;
     bt_devInfo_entry_t entries[10];
     bt_devInfo_entry_t controller_order[4];
-    uint8_t wbc_pairing[41]; // wii balance board pairing information?
-    uint8_t unk[99]; // unused
+    uint8_t wbc_pairing[42]; // wii balance board pairing information?
+    uint8_t unk[98]; // unused
 } bt_devInfo_t;
 
 typedef struct {

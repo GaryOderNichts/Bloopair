@@ -130,6 +130,8 @@ void controllerData_dualshock3(Controller_t* controller, uint8_t* buf, uint16_t 
 void controllerDeinit_dualshock3(Controller_t* controller)
 {
     deinitContinuousReports(controller);
+
+    IOS_Free(0xcaff, controller->additionalData);
 }
 
 void controllerInit_dualshock3(Controller_t* controller)

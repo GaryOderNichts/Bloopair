@@ -55,6 +55,7 @@ extern int (*const IOS_Open)(const char* device, int mode);
 extern int (*const IOS_Close)(int fd);
 extern int (*const IOS_Ioctl)(int fd, uint32_t request, void *input_buffer, uint32_t input_buffer_len, void *output_buffer, uint32_t output_buffer_len);
 extern int (*const IOS_Ioctlv)(int fd, uint32_t request, uint32_t vector_count_in, uint32_t vector_count_out, IOSVec_t *vector);
+extern int (*const IOS_ResourceReply)(void *ipc_handle, int result);
 extern int (*const IOS_CreateSemaphore)(int32_t maxCount, int32_t initialCount);
 extern int (*const IOS_WaitSemaphore)(int id, uint32_t tryWait);
 extern int (*const IOS_SignalSempahore)(int id);
@@ -88,7 +89,9 @@ extern int (*const smdIopSendMessage)(int idx, void* ptr, uint32_t size);
 extern int (*const smdIopReceive)(int idx, void* ptr);
 extern uint8_t (*const btm_remove_acl)(uint8_t* bd_addr);
 extern int (*const deleteDevice)(uint8_t* bd_addr);
+extern int (*const registerNewDevice)(uint8_t* addr, uint8_t* link_key, uint8_t* name);
 
 extern uint32_t* isSmdReady;
 extern uint32_t* bluetoothFlags;
 extern uint32_t* smdIopIndex;
+extern uint8_t* local_device_bdaddr;
