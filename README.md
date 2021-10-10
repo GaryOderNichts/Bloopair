@@ -14,8 +14,10 @@ It temporarily applies patches to the IOS-PAD module responsible for Bluetooth c
 - Nintendo Switch SNES Controller
 - Microsoft Xbox One S/X Controller  
 Note: The Series S/X Controllers are currently not supported due to missing Bluetooth LE support
-- Sony Dualshock 4 Controller
-- Sony Dualsense Controller
+- Sony DualShock 3 Controller  
+To pair a DualShock 3 to the console, see the [Pairing a DualShock 3](#pairing-a-dualshock-3) section
+- Sony DualShock 4 Controller
+- Sony DualSense Controller
 
 ## Installation
 - Download the latest .zip from the [releases page](https://github.com/GaryOderNichts/Bloopair/releases)
@@ -30,6 +32,17 @@ Once launched, the Wii U menu should open
 If a controller had been paired in the past, simply turn it on again and it should reconnect.  
 After rebooting the console or exiting System Settings, relaunch Bloopair.
 
+## Pairing a DualShock 3
+The DualShock 3 needs to be paired using a USB cable. After the initial pairing it can be used like any other wireless Bluetooth controller.  
+- While launching Bloopair from the Homebrew Launcher, hold down the A button on the Gamepad or a connected controller.  
+You should now be in the USB pairing menu.
+- Connect the DualShock 3 using a USB cable to the front or back ports of the console.
+- The screen will say "Paired!" once the controller has been successfully paired.  
+You can now remove the USB cable from the controller.
+- Press the B button to exit to the Home Menu
+
+The DualShock 3 is now ready. Press the PS button to connect it to the console.
+
 ## FAQ / Troubleshooting
 
 ### My controller doesn't pair to the console
@@ -41,6 +54,10 @@ You can also try [clearing controller syncs](https://en-americas-support.nintend
 ### Will you add support for controller xyz?
 Possibly, I've for now added support for all the controllers I currently own. Maybe I can get a few more controllers which I could add support for.  
 Pull requests for different controllers are always welcome.
+
+### My console gets stuck on the Wii U Menu screen
+There seems to be an issue with the Homebrew Launcher Channel. This isn't something that can be fixed in Bloopair itself.  
+See the following [issue comment](https://github.com/GaryOderNichts/Bloopair/issues/17#issuecomment-932974462) for more info.
 
 ## To-Do
 - Support more controllers
