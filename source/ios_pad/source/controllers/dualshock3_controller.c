@@ -37,7 +37,7 @@ static void sendRumbleLedState(Controller_t* controller)
     data[0] = 0x01;
 
     data[2] = 1; // right rumble duration
-    data[3] = ds_data->rumble * 64;
+    data[3] = ds_data->rumble;
     data[4] = 1; // left rumble duration
     data[5] = ds_data->rumble * 64;
 
@@ -56,7 +56,9 @@ void controllerRumble_dualshock3(Controller_t* controller, uint8_t rumble)
 
     ds_data->rumble = rumble;
 
-    sendRumbleLedState(controller);
+    if (rumble) {
+        sendRumbleLedState(controller);
+    }
 }
 
 void controllerSetLed_dualshock3(Controller_t* controller, uint8_t led)
