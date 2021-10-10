@@ -40,7 +40,7 @@ static IOSHandle btrmHandle = -1;
 
 int ds3ReadBDA(uint32_t handle, uint8_t* outBDA)
 {
-    uint8_t buf[18]{};
+    __attribute__ ((aligned (0x20))) uint8_t buf[18]{};
     int res = HIDGetReport(handle, HID_REPORT_FEATURE, 0xf2, buf, sizeof(buf), nullptr, nullptr);
     if (res >= 0) {
         memcpy(outBDA, buf + 4, 6);
@@ -51,7 +51,7 @@ int ds3ReadBDA(uint32_t handle, uint8_t* outBDA)
 
 int ds3WriteMasterBDA(uint32_t handle, uint8_t* bda)
 {
-    uint8_t buf[8]{};
+    __attribute__ ((aligned (0x20))) uint8_t buf[8]{};
     memcpy(buf + 2, bda, 6);
     return HIDSetReport(handle, HID_REPORT_FEATURE, 0xf5, buf, sizeof(buf), nullptr, nullptr);
 }
@@ -60,8 +60,13 @@ int32_t hidAttachCallback(HIDClient* client, HIDDevice* device, HIDAttachEvent e
 {
     if (event == HID_DEVICE_ATTACH) {
         if (__builtin_bswap16(device->vid) == DS3_VID && __builtin_bswap16(device->pid) == DS3_PID) {
-            uint8_t bda[6];
-            ds3ReadBDA(device->handle, bda);
+            uint8_t bda[6]{};
+            int res = ds3ReadBDA(device->handle, bda);
+            if (res < 0) {
+                WHBLogPrintf("Failed to read bda: %x", res);
+                WHBLogConsoleDraw();
+                return HID_DEVICE_DETACH;
+            }
 
             WHBLogPrintf("DualShock 3 (%02x:%02x:%02x:%02x:%02x:%02x) connected",
                 bda[0], bda[1], bda[2], bda[3], bda[4], bda[5]);
@@ -69,7 +74,12 @@ int32_t hidAttachCallback(HIDClient* client, HIDDevice* device, HIDAttachEvent e
             WHBLogPrintf("Setting master address...");
             WHBLogConsoleDraw();
 
-            ds3WriteMasterBDA(device->handle, controller_bda);
+            res = ds3WriteMasterBDA(device->handle, controller_bda);
+            if (res < 0) {
+                WHBLogPrintf("Failed write master bda: %x", res);
+                WHBLogConsoleDraw();
+                return HID_DEVICE_DETACH;
+            }
 
             WHBLogPrintf("Adding pairing...");
             WHBLogConsoleDraw();
