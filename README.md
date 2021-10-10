@@ -34,14 +34,14 @@ After rebooting the console or exiting System Settings, relaunch Bloopair.
 
 ## Pairing a DualShock 3
 The DualShock 3 needs to be paired using a USB cable. After the initial pairing it can be used like any other wireless Bluetooth controller.  
-- While launching Bloopair from the Homebrew Launcher, hold down the A button on the Gamepad or a connected controller.  
+- While launching Bloopair from the Homebrew Launcher, hold down the A button on the Gamepad.  
 You should now be in the USB pairing menu.
 - Connect the DualShock 3 using a USB cable to the front or back ports of the console.
 - The screen will say "Paired!" once the controller has been successfully paired.  
-You can now remove the USB cable from the controller.
+You can now remove the USB cable from the controller. Press the PS button to connect it to the console.
 - Press the B button to exit to the Home Menu
 
-The DualShock 3 is now ready. Press the PS button to connect it to the console.
+The DualShock 3 is now ready to use with the console.
 
 ## FAQ / Troubleshooting
 

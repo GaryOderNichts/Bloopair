@@ -225,13 +225,13 @@ void handle_pairing_menu()
                 kpad_status.extensionType == WPAD_EXT_MPLUS_CLASSIC) {
                 
                 if (kpad_status.pro.hold & WPAD_PRO_BUTTON_B) {
-                    menuOpened = true;
+                    menuOpened = false;
                     break;
                 }
             }
             else {
                 if (kpad_status.hold & WPAD_BUTTON_B) {
-                    menuOpened = true;
+                    menuOpened = false;
                     break;
                 }
             }
