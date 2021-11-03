@@ -126,6 +126,9 @@ void controllerData_dualshock3(Controller_t* controller, uint8_t* buf, uint16_t 
             rep->buttons |= WPAD_PRO_BUTTON_Y;
         if (buf[4] & 0x01)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
+
+        controller->isCharging = buf[29] == 0x02;
+        controller->battery = CLAMP(buf[30], 0, 4);
     }
 }
 

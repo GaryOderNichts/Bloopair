@@ -245,6 +245,10 @@ static void handle_report_0x21(Controller_t* controller, uint8_t* buf, uint16_t 
 
     DEBUG("subcmd respone %d\n", buf[14]);
 
+    uint8_t battery = buf[2] >> 4;
+    controller->battery = battery >> 1;
+    controller->isCharging = battery & 0x1;
+
     if ((buf[13] & 0x80) == 0) {
         DEBUG("switch subcmd %d failed\n", buf[14]);
         return;
@@ -307,6 +311,10 @@ static void handle_report_0x30(Controller_t* controller, uint8_t* buf, uint16_t 
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
     ReportBuffer_t* rep = controller->reportData;
+
+    uint8_t battery = buf[2] >> 4;
+    controller->battery = battery >> 1;
+    controller->isCharging = battery & 0x1;
 
     rep->buttons = 0;
 
