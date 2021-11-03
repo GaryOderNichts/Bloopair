@@ -80,6 +80,16 @@ int main(int argc, char **argv)
             }
         }
 
+        void (*WPADInit)(void) = nullptr;
+        void (*WPADDisconnect)(uint32_t chan) = nullptr;
+        OSDynLoad_FindExport(module, FALSE, "WPADInit", (void**) &WPADInit);
+        OSDynLoad_FindExport(module, FALSE, "WPADDisconnect", (void**) &WPADDisconnect);
+
+        WPADInit();
+        for (uint32_t i = 0; i < 4; i++) {
+            WPADDisconnect(i);
+        }
+
         // run the ios exploit
         ExecuteIOSExploit();
 
