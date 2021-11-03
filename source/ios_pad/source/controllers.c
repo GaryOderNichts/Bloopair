@@ -99,7 +99,7 @@ int isOfficialName(const char* name)
     return 0;
 }
 
-void controllerInit_switch(Controller_t* controller, uint8_t right_joycon);
+void controllerInit_switch(Controller_t* controller);
 void controllerInit_xbox_one(Controller_t* controller);
 void controllerInit_dualsense(Controller_t* controller);
 void controllerInit_dualshock4(Controller_t* controller);
@@ -137,7 +137,7 @@ int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t p
             (vendor_id == 0x057e && product_id == 0x2007) || // joycon r
             (vendor_id == 0x057e && product_id == 0x2006) || // joycon l
             (vendor_id == 0x057e && product_id == 0x2017)) { // snes controller
-            controllerInit_switch(controller, product_id == 0x2007);
+            controllerInit_switch(controller);
             return 0;
         }
         else if ((vendor_id == 0x045e && product_id == 0x02e0) || // xbox one s controller

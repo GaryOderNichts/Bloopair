@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#define CLAMP(x, low, high) (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
+
 uint32_t crc32(uint32_t seed, const void* data, size_t len);
 
 void dumpHex(const void *data, size_t size);
