@@ -52,11 +52,13 @@ enum {
     SWITCH_SUBCMD_ENABLE_VIBRATION      = 0x48,
 };
 
+// TODO figure out the other device types
 enum {
     SWITCH_DEVICE_UNKNOWN,
     SWITCH_DEVICE_JOYCON_LEFT,
     SWITCH_DEVICE_JOYCON_RIGHT,
     SWITCH_DEVICE_PRO_CONTROLLER,
+    SWITCH_DEVICE_N64_CONTROLLER = 12,
 };
 
 static const uint32_t dpad_map[9] = {
@@ -264,8 +266,13 @@ static void handle_report_0x21(Controller_t* controller, uint8_t* buf, uint16_t 
         // enable rumble
         enableVibration(controller);
 
-        // read the factory calibration
-        requestFactoryCalibration(controller);
+        if ((sdata->device == SWITCH_DEVICE_JOYCON_LEFT) ||
+            (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT) ||
+            (sdata->device == SWITCH_DEVICE_PRO_CONTROLLER) ||
+            (sdata->device == SWITCH_DEVICE_N64_CONTROLLER)) {
+            // read the factory calibration
+            requestFactoryCalibration(controller);
+        }
     }
     else if (buf[14] == SWITCH_SUBCMD_SPI_FLASH_READ) {
         uint32_t size = buf[19];
@@ -411,6 +418,50 @@ static void handle_report_0x30(Controller_t* controller, uint8_t* buf, uint16_t 
         // capture button
         // if (buf[4] & 0x20)
         //     rep->buttons |= WPAD_PRO_BUTTON_;
+        if (buf[5] & 0x01)
+            rep->buttons |= WPAD_PRO_BUTTON_DOWN;
+        if (buf[5] & 0x02)
+            rep->buttons |= WPAD_PRO_BUTTON_UP;
+        if (buf[5] & 0x04)
+            rep->buttons |= WPAD_PRO_BUTTON_RIGHT;
+        if (buf[5] & 0x08)
+            rep->buttons |= WPAD_PRO_BUTTON_LEFT;
+        if (buf[5] & 0x40)
+            rep->buttons |= WPAD_PRO_TRIGGER_L;
+        if (buf[5] & 0x80)
+            rep->buttons |= WPAD_PRO_TRIGGER_ZL;
+    }
+    else if (sdata->device == SWITCH_DEVICE_N64_CONTROLLER) {
+        rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, buf[6] | (buf[7] & 0xf) << 8);
+        rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, (buf[7] >> 4) | (buf[8] << 4));
+        rep->right_stick_y = 0;
+        rep->right_stick_x = 0;
+
+        // map the C buttons to the right analog stick
+        if (buf[3] & 0x01)
+            rep->right_stick_y -= 1140;
+        if (buf[3] & 0x02)
+            rep->right_stick_x -= 1140;
+        if (buf[4] & 0x01)
+            rep->right_stick_x += 1140;
+        if (buf[3] & 0x80)
+            rep->right_stick_y += 1140;
+
+        if (buf[3] & 0x04)
+            rep->buttons |= WPAD_PRO_BUTTON_B;
+        if (buf[3] & 0x08)
+            rep->buttons |= WPAD_PRO_BUTTON_A;
+        if (buf[3] & 0x40)
+            rep->buttons |= WPAD_PRO_TRIGGER_R;
+        if (buf[4] & 0x02)
+            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
+        if (buf[4] & 0x08)
+            rep->buttons |= WPAD_PRO_TRIGGER_ZR;
+        if (buf[4] & 0x10)
+            rep->buttons |= WPAD_PRO_BUTTON_HOME;
+        // map capture button to X
+        if (buf[4] & 0x20)
+            rep->buttons |= WPAD_PRO_BUTTON_X;
         if (buf[5] & 0x01)
             rep->buttons |= WPAD_PRO_BUTTON_DOWN;
         if (buf[5] & 0x02)

@@ -133,10 +133,12 @@ int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t p
         return 0;
     }
     else if (magic == MAGIC_BLOOPAIR) {
-        if ((vendor_id == 0x057e && product_id == 0x2009) || // switch pro controller
+        if ((vendor_id == 0x057e && product_id == 0x2006) || // joycon l
             (vendor_id == 0x057e && product_id == 0x2007) || // joycon r
-            (vendor_id == 0x057e && product_id == 0x2006) || // joycon l
-            (vendor_id == 0x057e && product_id == 0x2017)) { // snes controller
+            (vendor_id == 0x057e && product_id == 0x2009) || // switch pro controller
+            (vendor_id == 0x057e && product_id == 0x2017) || // snes controller
+            (vendor_id == 0x057e && product_id == 0x2019) || // n64 controller
+            (vendor_id == 0x057e && product_id == 0x201a)) { // genesis/megadrive controller
             controllerInit_switch(controller);
             return 0;
         }
