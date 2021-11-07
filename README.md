@@ -11,7 +11,7 @@ It temporarily applies patches to the IOS-PAD module responsible for Bluetooth c
 ## Supported controllers
 - Nintendo Switch Pro Controller
 - Nintendo Switch Joy-Con
-- Nintendo Switch SNES Controller
+- Nintendo Switch Online SNES / N64 Controller
 - Microsoft Xbox One S/X Controller  
 Note: The Series S/X Controllers are currently not supported due to missing Bluetooth LE support
 - Sony DualShock 3 Controller  
@@ -61,8 +61,6 @@ See the following [issue comment](https://github.com/GaryOderNichts/Bloopair/iss
 
 ## To-Do
 - Support more controllers
-- Rumble for Joy-Con
-- Battery levels for Switch Pro Controller and Joy-Con
 - Bluetooth LE support (the Wii U's bluetooth stack seems to support this?)
 
 ## How it works
