@@ -410,9 +410,9 @@ static void handle_report_0x30(Controller_t* controller, uint8_t* buf, uint16_t 
         if (buf[4] & 0x02)
             rep->buttons |= WPAD_PRO_BUTTON_PLUS;
         if (buf[4] & 0x04)
-            rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
-        if (buf[4] & 0x08)
             rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
+        if (buf[4] & 0x08)
+            rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
         if (buf[4] & 0x10)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
         // capture button
@@ -520,9 +520,9 @@ static void handle_report_0x3f(Controller_t* controller, uint8_t* buf, uint16_t 
     if (buf[2] & 0x02)
         rep->buttons |= WPAD_PRO_BUTTON_PLUS;
     if (buf[2] & 0x04)
-        rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
-    if (buf[2] & 0x08)
         rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
+    if (buf[2] & 0x08)
+        rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
     if (buf[2] & 0x10)
         rep->buttons |= WPAD_PRO_BUTTON_HOME;
     // capture button
