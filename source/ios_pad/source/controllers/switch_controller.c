@@ -102,7 +102,7 @@ static void requestDeviceInfo(Controller_t* controller)
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
     uint8_t data[11];
-    _memset(&data, 0, sizeof(data));
+    memset(&data, 0, sizeof(data));
     data[0] = 0x01;
     data[1] = (sdata->report_count++) & 0xf;
 
@@ -115,7 +115,7 @@ static void requestFactoryCalibration(Controller_t* controller)
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
     uint8_t data[16];
-    _memset(&data, 0, sizeof(data));
+    memset(&data, 0, sizeof(data));
     data[0] = 0x01;
     data[1] = (sdata->report_count++) & 0xf;
 
@@ -134,7 +134,7 @@ static void requestUserCalibration(Controller_t* controller)
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
     uint8_t data[16];
-    _memset(&data, 0, sizeof(data));
+    memset(&data, 0, sizeof(data));
     data[0] = 0x01;
     data[1] = (sdata->report_count++) & 0xf;
 
@@ -153,7 +153,7 @@ static void setFullInputReportMode(Controller_t* controller)
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
     uint8_t data[12];
-    _memset(&data, 0, sizeof(data));
+    memset(&data, 0, sizeof(data));
     data[0] = 0x01;
     data[1] = (sdata->report_count++) & 0xf;
 
@@ -167,7 +167,7 @@ static void enableVibration(Controller_t* controller)
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
     uint8_t data[12];
-    _memset(&data, 0, sizeof(data));
+    memset(&data, 0, sizeof(data));
     data[0] = 0x01;
     data[1] = (sdata->report_count++) & 0xf;
 
@@ -188,7 +188,7 @@ static void setPlayerLeds(Controller_t* controller)
     }
 
     uint8_t data[12];
-    _memset(&data, 0, sizeof(data));
+    memset(&data, 0, sizeof(data));
     data[0] = 0x01;
     data[1] = (sdata->report_count++) & 0xf;
 
@@ -206,7 +206,7 @@ void controllerRumble_switch(Controller_t* controller, uint8_t rumble)
     }
 
     uint8_t data[12];
-    _memset(data, 0, sizeof(data));
+    memset(data, 0, sizeof(data));
     data[0] = 0x10;
     data[1] = (sdata->report_count++) & 0xf;
 
@@ -572,7 +572,7 @@ void controllerInit_switch(Controller_t* controller)
     controller->isCharging = 0;
 
     SwitchData_t* data = IOS_Alloc(0xcaff, sizeof(SwitchData_t));
-    _memset(data, 0, sizeof(SwitchData_t));
+    memset(data, 0, sizeof(SwitchData_t));
     data->first_report = 1;
 
     controller->additionalData = data;

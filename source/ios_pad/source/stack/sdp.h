@@ -93,10 +93,10 @@ typedef struct
 #define ATTR_ID_PRIMARY_RECORD                  0x0204
 #define ATTR_ID_VENDOR_ID_SOURCE                0x0205
 
-extern uint8_t (*const SDP_InitDiscoveryDb)(tSDP_DISCOVERY_DB *p_db, uint32_t len, uint16_t num_uuid, tBT_UUID *p_uuid_list, uint16_t num_attr, uint16_t *p_attr_list);
-extern uint8_t (*const SDP_ServiceSearchRequest)(uint8_t *p_bd_addr, tSDP_DISCOVERY_DB *p_db, void* p_cb);
-extern uint8_t (*const HID_HostGetSDPRecord)(uint8_t *addr, tSDP_DISCOVERY_DB *p_db, uint32_t db_len, void* p_cb);
-extern tSDP_DISC_ATTR* (*const SDP_FindAttributeInRec)(tSDP_DISC_REC *p_rec, uint16_t attr_id);
-extern tSDP_DISC_REC* (*const SDP_FindServiceUUIDInDb)(tSDP_DISCOVERY_DB *p_db, tBT_UUID *p_uuid, tSDP_DISC_REC *p_start_rec);
+uint8_t SDP_InitDiscoveryDb(tSDP_DISCOVERY_DB *p_db, uint32_t len, uint16_t num_uuid, tBT_UUID *p_uuid_list, uint16_t num_attr, uint16_t *p_attr_list);
+uint8_t SDP_ServiceSearchRequest(uint8_t *p_bd_addr, tSDP_DISCOVERY_DB *p_db, void* p_cb);
+uint8_t HID_HostGetSDPRecord(uint8_t *addr, tSDP_DISCOVERY_DB *p_db, uint32_t db_len, void* p_cb);
+tSDP_DISC_ATTR* SDP_FindAttributeInRec(tSDP_DISC_REC *p_rec, uint16_t attr_id);
+tSDP_DISC_REC* SDP_FindServiceUUIDInDb(tSDP_DISCOVERY_DB *p_db, tBT_UUID *p_uuid, tSDP_DISC_REC *p_start_rec);
 
 uint16_t SDP_DiDiscover(uint8_t* remote_device, tSDP_DISCOVERY_DB *p_db, uint32_t len, void *p_cb);

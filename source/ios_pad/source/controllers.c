@@ -88,11 +88,11 @@ void deinitReportThread(void)
 int isOfficialName(const char* name)
 {
     // wii remote / pro controller
-    if (_memcmp(name, "Nintendo RVL-CNT", 0x10) == 0) {
+    if (memcmp(name, "Nintendo RVL-CNT", 0x10) == 0) {
         return 1;
     }
     // balance board
-    else if (_memcmp(name, "Nintendo RVL-WBC", 0x10) == 0) {
+    else if (memcmp(name, "Nintendo RVL-WBC", 0x10) == 0) {
         return 1;
     }
 
@@ -123,7 +123,7 @@ int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t p
         controller->isInitialized = 0;
     }
 
-    _memset(controller, 0, sizeof(Controller_t));
+    memset(controller, 0, sizeof(Controller_t));
 
     controller->handle = handle;
     controller->isInitialized = 1;
@@ -179,17 +179,17 @@ int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t p
 void sendControllerInput(Controller_t* controller, uint32_t buttons, int16_t left_stick_x, int16_t right_stick_x, int16_t left_stick_y, int16_t right_stick_y)
 {
     uint8_t data[22];
-    _memset(data, 0, sizeof(data));
+    memset(data, 0, sizeof(data));
 
     left_stick_x = bswap16(left_stick_x + AXIS_BASE);
     right_stick_x = bswap16(right_stick_x + AXIS_BASE);
     left_stick_y = bswap16(left_stick_y * -1 + AXIS_BASE);
     right_stick_y = bswap16(right_stick_y * -1 + AXIS_BASE);
 
-    _memcpy(&data[1], &left_stick_x, 2);
-    _memcpy(&data[3], &right_stick_x, 2);
-    _memcpy(&data[5], &left_stick_y, 2);
-    _memcpy(&data[7], &right_stick_y, 2);
+    memcpy(&data[1], &left_stick_x, 2);
+    memcpy(&data[3], &right_stick_x, 2);
+    memcpy(&data[5], &left_stick_y, 2);
+    memcpy(&data[7], &right_stick_y, 2);
 
     data[9] = ~((buttons >> 8) & 0xff);
     data[10] = ~(buttons & 0xff);
@@ -211,7 +211,7 @@ void sendControllerInput(Controller_t* controller, uint32_t buttons, int16_t lef
 void initContinuousReports(Controller_t* controller)
 {
     ReportBuffer_t* report_buf = IOS_Alloc(0xcaff, sizeof(ReportBuffer_t));
-    _memset(report_buf, 0, sizeof(ReportBuffer_t));
+    memset(report_buf, 0, sizeof(ReportBuffer_t));
     controller->reportData = report_buf;
 }
 

@@ -32,7 +32,7 @@ static void sendRumbleLedState(Controller_t* controller)
     Dualshock3Data_t* ds_data = (Dualshock3Data_t*) controller->additionalData;
 
     uint8_t data[36];
-    _memset(data, 0, 36);
+    memset(data, 0, 36);
 
     data[0] = 0x01;
 
@@ -42,10 +42,10 @@ static void sendRumbleLedState(Controller_t* controller)
     data[5] = ds_data->rumble * 64;
 
     data[10] = ds_data->led_mask << 1;
-    _memcpy(&data[11], led_config, sizeof(led_config));
-    _memcpy(&data[16], led_config, sizeof(led_config));
-    _memcpy(&data[21], led_config, sizeof(led_config));
-    _memcpy(&data[26], led_config, sizeof(led_config));
+    memcpy(&data[11], led_config, sizeof(led_config));
+    memcpy(&data[16], led_config, sizeof(led_config));
+    memcpy(&data[21], led_config, sizeof(led_config));
+    memcpy(&data[26], led_config, sizeof(led_config));
 
     setReport(controller->handle, BTA_HH_RPTT_OUTPUT, data, sizeof(data));
 }
@@ -152,7 +152,7 @@ void controllerInit_dualshock3(Controller_t* controller)
     controller->isCharging = 0;
 
     controller->additionalData = IOS_Alloc(0xcaff, sizeof(Dualshock3Data_t));
-    _memset(controller->additionalData, 0, sizeof(Dualshock3Data_t));
+    memset(controller->additionalData, 0, sizeof(Dualshock3Data_t));
 
     // enable the controller so it sends reports
     setReport(controller->handle, BTA_HH_RPTT_FEATURE, enable_payload, sizeof(enable_payload));

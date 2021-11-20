@@ -20,7 +20,7 @@ int log_init(void)
     setsockopt(log_socket, SOL_SOCKET, SO_BROADCAST, &enable_broadcast, 4);
 
     struct sockaddr_in connect_addr;
-    _memset(&connect_addr, 0, sizeof(connect_addr));
+    memset(&connect_addr, 0, sizeof(connect_addr));
     connect_addr.sin_family = AF_INET;
     connect_addr.sin_port = 4405;
     connect_addr.sin_addr.s_addr = INADDR_BROADCAST;
@@ -69,7 +69,7 @@ void log_printf(const char *format, ...)
 
     char buffer[0x100];
 
-    int len = _vsnprintf(buffer, sizeof(buffer), format, args);
+    int len = vsnprintf(buffer, sizeof(buffer), format, args);
     log_print(buffer, len);
 
     va_end(args);
@@ -80,7 +80,7 @@ int (*const real_vprintf)(const char* fmt, va_list arg) = (void*) 0x11f7efc8;
 int vprintf_hook(const char* fmt, va_list arg)
 {
     char buffer[0x100];
-    int len = _vsnprintf(buffer, sizeof(buffer), fmt, arg);
+    int len = vsnprintf(buffer, sizeof(buffer), fmt, arg);
     log_print(buffer, len);
 
     return real_vprintf(fmt, arg);

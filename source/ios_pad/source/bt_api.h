@@ -36,7 +36,7 @@ typedef struct
 #define BTA_HH_SDP_CMPL_EVT  0x1707
 #define BTA_HH_OPEN_CMPL_EVT 0x170b
 
-#define sdp_db_size (*(uint16_t*) 0x11fca8cc)
+extern uint16_t sdp_db_size;
 
 /* BTA HID Host callback events */
 #define BTA_HH_OPEN_EVT         2       /* connection opened */

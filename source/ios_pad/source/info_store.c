@@ -26,7 +26,7 @@ StoredInfo_t* store_get_device_info(uint8_t* address)
 {
     for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
         if (stored_infos[i].magic != MAGIC_EMPTY &&
-            _memcmp(stored_infos[i].address, address, BD_ADDR_LEN) == 0) {
+            memcmp(stored_infos[i].address, address, BD_ADDR_LEN) == 0) {
             return &stored_infos[i];
         }
     }
@@ -40,7 +40,7 @@ StoredInfo_t* store_allocate_device_info(uint8_t* address)
     for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
         if (stored_infos[i].magic == MAGIC_EMPTY) {
             stored_infos[i].magic = MAGIC_UNKNOWN;
-            _memcpy(stored_infos[i].address, address, BD_ADDR_LEN);
+            memcpy(stored_infos[i].address, address, BD_ADDR_LEN);
             return &stored_infos[i];
         }
     }

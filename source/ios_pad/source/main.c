@@ -52,7 +52,7 @@ void sendInputData(uint8_t dev_handle, const uint8_t* data, uint16_t len)
         return;
     }
 
-    if (!(*isSmdReady)) {
+    if (!isSmdReady) {
         return;
     }
 
@@ -63,9 +63,9 @@ void sendInputData(uint8_t dev_handle, const uint8_t* data, uint16_t len)
     msg.sub_class = 4;
     msg.app_id = 3;
 
-    _memcpy(msg.data, data, len);
+    memcpy(msg.data, data, len);
 
-    smdIopSendMessage(*smdIopIndex, &msg, sizeof(padscore_input_data_t));
+    smdIopSendMessage(smdIopIndex, &msg, sizeof(padscore_input_data_t));
 }
 
 void sendOutputData(uint8_t dev_handle, const uint8_t* data, uint16_t len)
@@ -77,7 +77,7 @@ void sendOutputData(uint8_t dev_handle, const uint8_t* data, uint16_t len)
 
     p_buf->len = len;
     p_buf->offset = HH_SEND_DATA_OFFSET;
-    _memcpy(((uint8_t*) p_buf) + sizeof(BT_HDR) + HH_SEND_DATA_OFFSET, data, p_buf->len);
+    memcpy(((uint8_t*) p_buf) + sizeof(BT_HDR) + HH_SEND_DATA_OFFSET, data, p_buf->len);
     BTA_HhSendData(dev_handle, NULL, p_buf);
 }
 
@@ -90,7 +90,7 @@ void setReport(uint8_t dev_handle, uint8_t type, const uint8_t* data, uint16_t l
 
     p_buf->len = len;
     p_buf->offset = HH_SEND_DATA_OFFSET;
-    _memcpy(((uint8_t*) p_buf) + sizeof(BT_HDR) + HH_SEND_DATA_OFFSET, data, p_buf->len);
+    memcpy(((uint8_t*) p_buf) + sizeof(BT_HDR) + HH_SEND_DATA_OFFSET, data, p_buf->len);
     bta_hh_snd_write_dev(dev_handle, HID_TRANS_SET_REPORT, type, 0, 0, p_buf);
 }
 
@@ -115,7 +115,7 @@ static void sendReadResponse(uint8_t dev_handle, uint8_t result, uint32_t addres
     }
 
     uint8_t data[22];
-    _memset(data, 0, sizeof(data));
+    memset(data, 0, sizeof(data));
 
     data[0] = 0x21;
     data[1] = data[2] = 0;
@@ -124,7 +124,7 @@ static void sendReadResponse(uint8_t dev_handle, uint8_t result, uint32_t addres
     data[5] = address & 0xff;
 
     if (_data) {
-        _memcpy(&data[6], _data, size);
+        memcpy(&data[6], _data, size);
     }
 
     sendInputData(dev_handle, data, sizeof(data));
@@ -138,21 +138,21 @@ static void writeMemory(uint8_t dev_handle, uint32_t address, uint8_t* data, uin
     switch (address) {
     case 0x04a40040: // key part 1
         if (len == 6) {
-            _memcpy(controller->key, data, 6);
+            memcpy(controller->key, data, 6);
             sendAcknowledgeReport(dev_handle, 0x16, 0);
             return;
         }
         break;
     case 0x04a40046: // key part 2
         if (len == 6) {
-            _memcpy(controller->key + 6, data, 6);
+            memcpy(controller->key + 6, data, 6);
             sendAcknowledgeReport(dev_handle, 0x16, 0);
             return;
         }
         break;
     case 0x04a4004c: // key part 3
         if (len == 4) {
-            _memcpy(controller->key + 12, data, 4);
+            memcpy(controller->key + 12, data, 4);
             cryptoInit(&controller->crypto, controller->key);
             sendAcknowledgeReport(dev_handle, 0x16, 0);
             return;
@@ -201,11 +201,11 @@ static void readMemory(uint8_t dev_handle, uint32_t address, uint16_t len)
         if (len == 32) {
             uint8_t tmp[16];
             
-            _memset(tmp, 0xff, sizeof(tmp));
+            memset(tmp, 0xff, sizeof(tmp));
             encrypt(&controller->crypto, tmp, tmp, address, 16);
             sendReadResponse(dev_handle, 0, address, tmp, sizeof(tmp));
 
-            _memset(tmp, 0xff, sizeof(tmp));
+            memset(tmp, 0xff, sizeof(tmp));
             encrypt(&controller->crypto, tmp, tmp, address + 16, 16);
             sendReadResponse(dev_handle, 0, address + 16, tmp, sizeof(tmp));
             return;
@@ -220,11 +220,11 @@ static void readMemory(uint8_t dev_handle, uint32_t address, uint16_t len)
 // replacement for processing smd messages from padscore
 void processSmdMessages(void)
 {
-    if (!(*isSmdReady)) {
+    if (!isSmdReady) {
         return;
     }
 
-    while(smdIopReceive(*smdIopIndex, output_buf) != -0xc0005) {
+    while(smdIopReceive(smdIopIndex, output_buf) != -0xc0005) {
         DEBUG("output request for handle %u size %u, cmd: 0x%X\n", output_buf->dev_handle, output_buf->length, output_buf->data[0]);
 
         Controller_t* controller = &controllers[output_buf->dev_handle];
@@ -236,7 +236,7 @@ void processSmdMessages(void)
 #ifdef TESTING
             if (output_buf->data[0] == 0x16) {
                 uint32_t address;
-                _memcpy(&address, &output_buf->data[1], sizeof(address));
+                memcpy(&address, &output_buf->data[1], sizeof(address));
 
                 uint8_t len = output_buf->data[5];
                 uint8_t* data = &output_buf->data[6];
@@ -244,17 +244,17 @@ void processSmdMessages(void)
                 switch (address) {
                 case 0x04a40040: // key part 1
                     if (len == 6) {
-                        _memcpy(controller->key, data, 6);
+                        memcpy(controller->key, data, 6);
                     }
                     break;
                 case 0x04a40046: // key part 2
                     if (len == 6) {
-                        _memcpy(controller->key + 6, data, 6);
+                        memcpy(controller->key + 6, data, 6);
                     }
                     break;
                 case 0x04a4004c: // key part 3
                     if (len == 4) {
-                        _memcpy(controller->key + 12, data, 4);
+                        memcpy(controller->key + 12, data, 4);
                         cryptoInit(&controller->crypto, controller->key);
                     }
                     break;
@@ -313,15 +313,15 @@ void processSmdMessages(void)
             }
             case 0x16: { // write memory
                 uint32_t address;
-                _memcpy(&address, &output_buf->data[1], sizeof(address));
+                memcpy(&address, &output_buf->data[1], sizeof(address));
                 writeMemory(output_buf->dev_handle, address, &output_buf->data[6], output_buf->data[5]);
                 break;
             }
             case 0x17: { // read memory
                 uint32_t address;
-                _memcpy(&address, &output_buf->data[1], sizeof(address));
+                memcpy(&address, &output_buf->data[1], sizeof(address));
                 uint16_t len;
-                _memcpy(&len, &output_buf->data[5], sizeof(len));
+                memcpy(&len, &output_buf->data[5], sizeof(len));
                 readMemory(output_buf->dev_handle, address, len);
                 break;
             }

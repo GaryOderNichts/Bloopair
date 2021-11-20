@@ -33,7 +33,7 @@ static void *allocIobuf(uint32_t size)
     void *ptr = IOS_Alloc(0xcaff, size);
 
     if (ptr) {
-        _memset(ptr, 0, size);
+        memset(ptr, 0, size);
     }
 
     return ptr;
@@ -88,7 +88,7 @@ int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
         ret = IOS_Ioctl(socket_handle, 0x1, inbuf, 0x18, outbuf, 0x18);
 
         if (ret >= 0) {
-            _memcpy(addr, &outbuf[1], outbuf[5]);
+            memcpy(addr, &outbuf[1], outbuf[5]);
             *addrlen = outbuf[5];
         }
     } else {
@@ -109,7 +109,7 @@ int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     uint32_t *inbuf = (uint32_t *) iobuf;
 
     inbuf[0] = sockfd;
-    _memcpy(&inbuf[1], addr, addrlen);
+    memcpy(&inbuf[1], addr, addrlen);
     inbuf[5] = addrlen;
 
     int ret = IOS_Ioctl(socket_handle, 0x2, inbuf, 0x18, NULL, 0);
@@ -126,7 +126,7 @@ int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
     uint32_t *inbuf = (uint32_t *) iobuf;
 
     inbuf[0] = sockfd;
-    _memcpy(&inbuf[1], addr, addrlen);
+    memcpy(&inbuf[1], addr, addrlen);
     inbuf[5] = addrlen;
 
     int ret = IOS_Ioctl(socket_handle, 0x4, inbuf, 0x18, NULL, 0);
@@ -186,7 +186,7 @@ ssize_t recv(int sockfd, void *buf, size_t len, int flags)
     int ret = IOS_Ioctlv(socket_handle, 0xc, 1, 3, iovec);
 
     if (ret > 0 && buf) {
-        _memcpy(buf, data_buf, ret);
+        memcpy(buf, data_buf, ret);
     }
 
     freeIobuf(data_buf);
@@ -206,7 +206,7 @@ ssize_t send(int sockfd, const void *buf, size_t len, int flags)
     IOSVec_t *iovec = (IOSVec_t *) iobuf;
     uint32_t *inbuf = (uint32_t *) &iobuf[0x30];
 
-    _memcpy(data_buf, buf, len);
+    memcpy(data_buf, buf, len);
 
     inbuf[0] = sockfd;
     inbuf[1] = flags;
@@ -226,7 +226,7 @@ ssize_t send(int sockfd, const void *buf, size_t len, int flags)
 int setsockopt(int sockfd, int level, int optname, const void *optval, socklen_t optlen)
 {
     void* buf = allocIobuf(32);
-    _memcpy(buf, optval, optlen);
+    memcpy(buf, optval, optlen);
 
     IOSVec_t* iovec = (IOSVec_t *) allocIobuf(0x24);
     iovec[0].ptr = buf;

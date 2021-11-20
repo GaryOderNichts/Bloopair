@@ -20,9 +20,9 @@
 #include <controllers.h>
 #include <info_store.h>
 
-void (*const bta_hh_sm_execute)(tBTA_HH_DEV_CB *p_cb, uint16_t event, void * p_data) = (void*) 0x11f07a88;
-void (*const bta_hh_start_sdp)(tBTA_HH_DEV_CB *p_cb, void *p_data) = (void*) 0x11f06d5c;
-void (*const bta_hh_sdp_cback)(uint16_t result, uint16_t attr_mask, void *sdp_rec) = (void*) 0x11f06fa4;
+void bta_hh_sm_execute(tBTA_HH_DEV_CB *p_cb, uint16_t event, void * p_data);
+void bta_hh_start_sdp(tBTA_HH_DEV_CB *p_cb, void *p_data);
+void bta_hh_sdp_cback(uint16_t result, uint16_t attr_mask, void *sdp_rec);
 
 void name_read_cback(tBTM_REMOTE_DEV_NAME* name)
 {
@@ -94,9 +94,9 @@ void bta_hh_di_sdp_callback(uint16_t result)
     if (message) {
         message->type = MESSAGE_TYPE_DI_RECORD;
         // copy bdaddr to the buffer
-        _memcpy(message->addr, bta_hh_cb->p_cur->addr, BD_ADDR_LEN);
+        memcpy(message->addr, bta_hh_cb->p_cur->addr, BD_ADDR_LEN);
         // copy our db to the buffer
-        _memcpy(message->data, bta_hh_cb->p_disc_db, sdp_db_size);
+        memcpy(message->data, bta_hh_cb->p_disc_db, sdp_db_size);
         // send the message
         IOS_SendMessage(info_message_queue, (uint32_t) message, 0);
     }
@@ -153,7 +153,7 @@ void bta_hh_open_act(tBTA_HH_DEV_CB *p_cb, void *p_data)
     {
         p_cb->incoming_conn = 1;
 
-        _memset(&conn_data, 0, sizeof(tBTA_HH_API_CONN));
+        memset(&conn_data, 0, sizeof(tBTA_HH_API_CONN));
         bdcpy(conn_data.bd_addr, p_cb->addr);
         bta_hh_start_sdp(p_cb, (void*) &conn_data);
     }

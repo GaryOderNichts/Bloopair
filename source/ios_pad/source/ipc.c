@@ -28,7 +28,7 @@ static int bloopairFunc(BtrmRequest_t* request, BtrmResponse_t* response)
 
     case BLOOPAIR_FUNC_READ_DEVICE_BDADDR: {
         DEBUG("BLOOPAIR_FUNC_READ_DEVICE_BDADDR\n");
-        _memcpy(response->data, local_device_bdaddr, 6);
+        memcpy(response->data, local_device_bdaddr, 6);
         return 0;
     }
     

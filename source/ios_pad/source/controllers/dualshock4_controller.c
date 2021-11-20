@@ -54,7 +54,7 @@ static void sendRumbleLedState(Controller_t* controller)
     Dualshock4Data_t* ds_data = (Dualshock4Data_t*) controller->additionalData;
 
     uint8_t data[79];
-    _memset(data, 0, sizeof(data));
+    memset(data, 0, sizeof(data));
     data[0] = 0xa2;
     data[1] = 0x11; // report id
     data[2] = 0xc8; // report rate (125Hz) 
@@ -68,7 +68,7 @@ static void sendRumbleLedState(Controller_t* controller)
     data[11] = ds_data->led_color[2];
 
     uint32_t crc = bswap32(~crc32(0xffffffff, data, sizeof(data) - 4));
-    _memcpy(&data[75], &crc, 4);
+    memcpy(&data[75], &crc, 4);
 
     sendOutputData(controller->handle, data + 1, sizeof(data) - 1);
 }
@@ -86,7 +86,7 @@ void controllerSetLed_dualshock4(Controller_t* controller, uint8_t led)
 {
     Dualshock4Data_t* ds_data = (Dualshock4Data_t*) controller->additionalData;
     
-    _memcpy(ds_data->led_color, &led_colors[led], 3);
+    memcpy(ds_data->led_color, &led_colors[led], 3);
 
     sendRumbleLedState(controller);
 }
@@ -197,5 +197,5 @@ void controllerInit_dualshock4(Controller_t* controller)
     controller->isCharging = 0;
 
     controller->additionalData = IOS_Alloc(0xcaff, sizeof(Dualshock4Data_t));
-    _memset(controller->additionalData, 0, sizeof(Dualshock4Data_t));
+    memset(controller->additionalData, 0, sizeof(Dualshock4Data_t));
 }

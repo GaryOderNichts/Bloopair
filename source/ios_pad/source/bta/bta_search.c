@@ -31,7 +31,7 @@ void bta_search_callback(uint8_t event, void *p_data)
         if (res->result == 0 && !isOfficialName((const char*) res->bd_name)) {
             DEBUG("%s is non official, replacing name...\n", res->bd_name);
             // replace device name
-            _memcpy(res->bd_name, PRO_CONTROLLER_NAME, sizeof(PRO_CONTROLLER_NAME));
+            memcpy(res->bd_name, PRO_CONTROLLER_NAME, sizeof(PRO_CONTROLLER_NAME));
         }
         break;
     }

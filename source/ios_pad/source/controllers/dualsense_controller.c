@@ -67,7 +67,7 @@ static void sendRumbleLedState(Controller_t* controller)
     DualsenseData_t* ds_data = (DualsenseData_t*) controller->additionalData;
 
     uint8_t data[79];
-    _memset(data, 0, sizeof(data));
+    memset(data, 0, sizeof(data));
     data[0] = 0xa2;
     data[1] = 0x31;
     data[2] = 0x02;
@@ -83,7 +83,7 @@ static void sendRumbleLedState(Controller_t* controller)
     data[49] = ds_data->led_color[2];
 
     uint32_t crc = bswap32(~crc32(0xffffffff, data, sizeof(data) - 4));
-    _memcpy(&data[75], &crc, 4);
+    memcpy(&data[75], &crc, 4);
 
     sendOutputData(controller->handle, data + 1, sizeof(data) - 1);
 }
@@ -103,7 +103,7 @@ void controllerSetLed_dualsense(Controller_t* controller, uint8_t led)
 
     ds_data->led_flags = led_flags[led];
     
-    _memcpy(ds_data->led_color, &led_colors[led], 3);
+    memcpy(ds_data->led_color, &led_colors[led], 3);
 
     sendRumbleLedState(controller);
 }
@@ -214,5 +214,5 @@ void controllerInit_dualsense(Controller_t* controller)
     controller->isCharging = 0;
 
     controller->additionalData = IOS_Alloc(0xcaff, sizeof(DualsenseData_t));
-    _memset(controller->additionalData, 0, sizeof(DualsenseData_t));
+    memset(controller->additionalData, 0, sizeof(DualsenseData_t));
 }
