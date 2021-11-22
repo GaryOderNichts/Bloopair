@@ -120,7 +120,9 @@ void deinitReportThread(void);
 
 int isOfficialName(const char* name);
 
-int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t product_id);
+int isSwitchControllerName(const char* name);
+
+int initController(uint8_t* bda, uint8_t handle);
 
 void sendControllerInput(Controller_t* controller, uint32_t buttons, int16_t left_stick_x, int16_t right_stick_x, int16_t left_stick_y, int16_t right_stick_y);
 

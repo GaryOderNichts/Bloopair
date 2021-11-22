@@ -53,6 +53,9 @@ void name_read_cback(tBTM_REMOTE_DEV_NAME* name)
     if (isOfficialName((const char*) name->remote_bd_name)) {
         info->magic = MAGIC_OFFICIAL;
     }
+    else if (isSwitchControllerName((const char*) name->remote_bd_name)) {
+        info->magic = MAGIC_SWITCH;
+    }
     else {
         info->magic = MAGIC_BLOOPAIR;
     }

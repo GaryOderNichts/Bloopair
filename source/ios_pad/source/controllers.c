@@ -85,19 +85,26 @@ void deinitReportThread(void)
     IOS_Free(0xcaff, report_thread_stack_base);
 }
 
+#define COMPARE_NAME(x) (memcmp(name, x, sizeof(x) - 1) == 0)
 int isOfficialName(const char* name)
 {
-    // wii remote / pro controller
-    if (memcmp(name, "Nintendo RVL-CNT", 0x10) == 0) {
-        return 1;
-    }
-    // balance board
-    else if (memcmp(name, "Nintendo RVL-WBC", 0x10) == 0) {
-        return 1;
-    }
-
-    return 0;
+    return COMPARE_NAME("Nintendo RVL-CNT") || // wii remote / pro controller
+           COMPARE_NAME("Nintendo RVL-WBC"); // balance board
 }
+
+int isSwitchControllerName(const char* name)
+{
+    return COMPARE_NAME("NintendoGamepad") ||
+           COMPARE_NAME("Joy-Con") ||
+           COMPARE_NAME("Pro Controller") ||
+           COMPARE_NAME("Lic Pro Controller") ||
+           COMPARE_NAME("NES Controller") ||
+           COMPARE_NAME("HVC Controller") ||
+           COMPARE_NAME("SNES Controller") ||
+           COMPARE_NAME("N64 Controller") ||
+           COMPARE_NAME("MD/Gen Control Pad");
+}
+#undef COMPARE_NAME
 
 void controllerInit_switch(Controller_t* controller);
 void controllerInit_xbox_one(Controller_t* controller);
@@ -105,8 +112,18 @@ void controllerInit_dualsense(Controller_t* controller);
 void controllerInit_dualshock4(Controller_t* controller);
 void controllerInit_dualshock3(Controller_t* controller);
 
-int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t product_id)
+int initController(uint8_t* bda, uint8_t handle)
 {
+    StoredInfo_t* info = store_get_device_info(bda);
+    if (!info) {
+        DEBUG("Failed to get info for device\n");
+        return -1;
+    }
+
+    uint8_t magic = info->magic;
+    uint16_t vendor_id = info->vendor_id;
+    uint16_t product_id = info->product_id;
+
     DEBUG("initController handle %u magic %x vid %x pid %x\n", handle, magic, vendor_id, product_id);
 
     if (!report_thread_running) {
@@ -139,6 +156,10 @@ int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t p
             (vendor_id == 0x057e && product_id == 0x2017) || // snes controller
             (vendor_id == 0x057e && product_id == 0x2019) || // n64 controller
             (vendor_id == 0x057e && product_id == 0x201a)) { // genesis/megadrive controller
+
+            // switch controllers paired with older bloopair version won't use MAGIC_SWITCH yet
+            info->magic = MAGIC_SWITCH;
+
             controllerInit_switch(controller);
             return 0;
         }
@@ -166,6 +187,10 @@ int initController(uint8_t handle, uint8_t magic, uint16_t vendor_id, uint16_t p
             controllerInit_dualshock3(controller);
             return 0;
         }
+    }
+    else if (magic == MAGIC_SWITCH) {
+        controllerInit_switch(controller);
+        return 0;
     }
 
     // We don't support this device, close connection

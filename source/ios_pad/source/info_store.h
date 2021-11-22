@@ -24,6 +24,7 @@ enum {
     MAGIC_EMPTY    = 0,
     MAGIC_OFFICIAL = 0xB0,
     MAGIC_BLOOPAIR = 0xB1,
+    MAGIC_SWITCH   = 0xB2,
     MAGIC_UNKNOWN  = 0xFF,
 };
 

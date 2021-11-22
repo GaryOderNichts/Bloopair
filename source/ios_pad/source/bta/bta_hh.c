@@ -32,10 +32,7 @@ void bta_hh_event(uint8_t event, void *p_data)
         DEBUG("open event for handle %u\n", conn_data->handle);
 
         if (conn_data->handle != BTA_HH_INVALID_HANDLE) {
-            StoredInfo_t* info = store_get_device_info(conn_data->bda);
-            DEBUG("found info for device %p\n", info);
-
-            if (!info || initController(conn_data->handle, info->magic, info->vendor_id, info->product_id) != 0) {
+            if (initController(conn_data->bda, conn_data->handle) != 0) {
                 // close connection
                 BTA_HhClose(conn_data->handle);
                 return;

@@ -45,7 +45,7 @@ INCLUDES	:= source
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-CFLAGS	:= -Wall -std=gnu11 -Os $(MACHDEP) $(INCLUDE) -Wno-array-bounds
+CFLAGS	:= -Wall -std=gnu11 -Os $(MACHDEP) $(INCLUDE) -Wno-array-bounds -fno-builtin
 
 ifeq ($(LOGGING), 1)
 	CFLAGS += -DLOGGING -DVPRINTF_HOOK
