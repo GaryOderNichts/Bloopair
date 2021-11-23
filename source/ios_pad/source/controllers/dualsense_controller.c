@@ -19,33 +19,35 @@
 #include "utils.h"
 
 typedef struct {
-    uint8_t led_flags;
+    uint8_t player_leds;
     uint8_t led_color[3];
     uint8_t rumble;
 } DualsenseData_t;
 
-static const uint8_t led_flags[] = {
+// the dualsense has 5 leds, with one in the center
+// we'll use the same pattern the Wii U uses on the 4 outer ones
+static const uint8_t player_leds[] = {
     0,
-    0x01, // player 1
-    0x03, // player 2
-    0,
-    0x0b, // player 3
-    0,
-    0,
-    0,
-    0x1b, // player 4
+    0b00001,
+    0b00010,
+    0b01000,
+    0b10000,
+    0b00011,
+    0b01001,
+    0b10001,
 };
 
 static const uint8_t led_colors[][3] = {
     {0},
-    {0x00, 0x00, 0x40}, // player 1
-    {0x40, 0x00, 0x00}, // player 2
-    {0},
-    {0x00, 0x40, 0x00}, // player 3
-    {0},
-    {0},
-    {0},
-    {0x20, 0x00, 0x20}, // player 4
+    // same colors as used on ps4/ps5
+    {0x00, 0x00, 0x40}, // blue
+    {0x40, 0x00, 0x00}, // red
+    {0x00, 0x40, 0x00}, // green
+    {0x20, 0x00, 0x20}, // pink
+    // for 5-7 we'll use the same colors missioncontrol is using
+    {0x00, 0x20, 0x20}, // cyan
+    {0x30, 0x10, 0x00}, // orange
+    {0x20, 0x20, 0x00}, // yellow
 };
 
 static const uint32_t dpad_map[9] = {
@@ -77,7 +79,7 @@ static void sendRumbleLedState(Controller_t* controller)
     data[6] = ds_data->rumble;
     data[41] = 0x02;
     data[44] = 0x02;
-    data[46] = ds_data->led_flags;
+    data[46] = ds_data->player_leds;
     data[47] = ds_data->led_color[0];
     data[48] = ds_data->led_color[1];
     data[49] = ds_data->led_color[2];
@@ -101,9 +103,11 @@ void controllerSetLed_dualsense(Controller_t* controller, uint8_t led)
 {
     DualsenseData_t* ds_data = (DualsenseData_t*) controller->additionalData;
 
-    ds_data->led_flags = led_flags[led];
-    
-    memcpy(ds_data->led_color, &led_colors[led], 3);
+    uint8_t player_num = ledMaskToPlayerNum(led); 
+
+    ds_data->player_leds = player_leds[player_num];
+
+    memcpy(ds_data->led_color, &led_colors[player_num], 3);
 
     sendRumbleLedState(controller);
 }

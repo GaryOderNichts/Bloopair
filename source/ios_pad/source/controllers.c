@@ -245,3 +245,18 @@ void deinitContinuousReports(Controller_t* controller)
     IOS_Free(0xcaff, controller->reportData);
     controller->reportData = NULL;
 }
+
+uint8_t ledMaskToPlayerNum(uint8_t mask)
+{
+    switch (mask & 0xf) {
+    case 0b0001: return 1;
+    case 0b0010: return 2;
+    case 0b0100: return 3;
+    case 0b1000: return 4;
+    case 0b0011: return 5;
+    case 0b0101: return 6;
+    case 0b1001: return 7;
+    }
+
+    return 0;
+}

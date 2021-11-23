@@ -25,14 +25,15 @@ typedef struct {
 
 static const uint8_t led_colors[][3] = {
     {0},
-    {0x00, 0x00, 0x40}, // player 1
-    {0x40, 0x00, 0x00}, // player 2
-    {0},
-    {0x00, 0x40, 0x00}, // player 3
-    {0},
-    {0},
-    {0},
-    {0x20, 0x00, 0x20}, // player 4
+    // same colors as used on ps4/ps5
+    {0x00, 0x00, 0x40}, // blue
+    {0x40, 0x00, 0x00}, // red
+    {0x00, 0x40, 0x00}, // green
+    {0x20, 0x00, 0x20}, // pink
+    // for 5-7 we'll use the same colors missioncontrol is using
+    {0x00, 0x20, 0x20}, // cyan
+    {0x30, 0x10, 0x00}, // orange
+    {0x20, 0x20, 0x00}, // yellow
 };
 
 static const uint32_t dpad_map[9] = {
@@ -86,7 +87,8 @@ void controllerSetLed_dualshock4(Controller_t* controller, uint8_t led)
 {
     Dualshock4Data_t* ds_data = (Dualshock4Data_t*) controller->additionalData;
     
-    memcpy(ds_data->led_color, &led_colors[led], 3);
+    uint8_t player_num = ledMaskToPlayerNum(led); 
+    memcpy(ds_data->led_color, &led_colors[player_num], 3);
 
     sendRumbleLedState(controller);
 }

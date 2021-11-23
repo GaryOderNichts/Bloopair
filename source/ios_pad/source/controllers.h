@@ -129,3 +129,5 @@ void sendControllerInput(Controller_t* controller, uint32_t buttons, int16_t lef
 void initContinuousReports(Controller_t* controller);
 
 void deinitContinuousReports(Controller_t* controller);
+
+uint8_t ledMaskToPlayerNum(uint8_t mask);

@@ -4,7 +4,7 @@ Bloopair allows connecting controllers from other consoles like native Wii U Pro
 It temporarily applies patches to the IOS-PAD module responsible for Bluetooth controller connections.
 
 ## Features
-- Connect up to 4 controllers wirelessly via Bluetooth
+- Connect up to 7 controllers wirelessly via Bluetooth
 - Rumble support
 - Battery levels
 
