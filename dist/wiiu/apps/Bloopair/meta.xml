@@ -2,8 +2,8 @@
 <app version="1">
   <name>Bloopair</name>
   <coder>GaryOderNichts</coder>
-  <version>v0.4.1</version>
-  <release_date>20211107120000</release_date>
+  <version>v0.5.0</version>
+  <release_date>20211124120000</release_date>
   <short_description>Connect other controllers to your Wii U</short_description> 
   <long_description>
 Allows connecting controllers from other consoles like native Wii U Pro Controllers on the Wii U.  
