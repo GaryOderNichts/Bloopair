@@ -47,7 +47,7 @@ void bta_hh_event(uint8_t event, void *p_data)
         if (cb_data->handle != BTA_HH_INVALID_HANDLE) {
             Controller_t* controller = &controllers[cb_data->handle];
             if (!controller->isInitialized) {
-                return;
+                break;
             }
 
             if (controller->deinit) {
