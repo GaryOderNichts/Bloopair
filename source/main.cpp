@@ -33,7 +33,6 @@
 
 #include "ios_exploit.h"
 #include "ipc.hpp"
-#include "pair_menu.hpp"
 
 std::mutex padscore_load_mtx;
 std::condition_variable padscore_load_cv;
@@ -55,9 +54,6 @@ void load_callback(OSDynLoad_Module module, void *userContext, OSDynLoad_NotifyR
 
 int main(int argc, char **argv)
 {
-    // init procui
-    ProcUIInit(&OSSavesDone_ReadyToRelease);
-
     IOSHandle btrmHandle = openBtrm();
     if (btrmHandle < 0) {
         OSFatal("Can't open btrm");
@@ -100,26 +96,7 @@ int main(int argc, char **argv)
         OSDynLoad_DelNotifyCallback(load_callback, nullptr);
     }
 
-    closeBtrm(btrmHandle);
-
-    handle_pairing_menu();
-
-    // exit to the menu as soon as possible
-    ProcUIStatus status;
-    while ((status = ProcUIProcessMessages(TRUE)) != PROCUI_STATUS_EXITING) {
-        if(status == PROCUI_STATUS_RELEASE_FOREGROUND) {
-            ProcUIDrawDoneRelease();
-        }
-
-        if(status != PROCUI_STATUS_IN_FOREGROUND) {
-            continue;
-        }
-
-        SYSLaunchMenu();
-    }
-
-    // shutdown procui
-    ProcUIShutdown();
+    closeBtrm(btrmHandle);  
 
     return 0;
 }

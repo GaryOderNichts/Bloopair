@@ -17,7 +17,7 @@
 
 #include "ipc.h"
 #include "info_store.h"
-#include "../../bloopair_ipc.h"
+#include "bloopair_ipc.h"
 
 static int bloopairFunc(BtrmRequest_t* request, BtrmResponse_t* response)
 {

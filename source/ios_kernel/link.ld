@@ -1,7 +1,7 @@
 OUTPUT_ARCH(arm)
 
 SECTIONS {
-    . = (0x08135000);
+    . = (0x08139200);
 
     __KERNEL_CODE_START = .;
     .text : {
@@ -23,3 +23,5 @@ SECTIONS {
         *(*);
     }
 }
+
+ASSERT((SIZEOF(.text) + SIZEOF(.rodata) + SIZEOF(.data)  + SIZEOF(.bss)) < 0x800, "ios_kernel is too big");

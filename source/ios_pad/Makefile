@@ -40,7 +40,7 @@ SOURCES		:= source \
 	source/controllers \
 	source/stack
 DATA		:= data
-INCLUDES	:= source
+INCLUDES	:= source ../../common
 
 #---------------------------------------------------------------------------------
 # options for code generation

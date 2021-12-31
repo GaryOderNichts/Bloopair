@@ -15,17 +15,13 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "pair_menu.hpp"
 #include "ipc.hpp"
 
 #include <unistd.h>
 #include <cstring>
-#include <coreinit/dynload.h>
 #include <nsyshid/hid.h>
-#include <vpad/input.h>
-#include <padscore/kpad.h>
-#include <padscore/wpad.h>
 
+#include <whb/proc.h>
 #include <whb/log.h>
 #include <whb/log_console.h>
 
@@ -99,69 +95,15 @@ int32_t hidAttachCallback(HIDClient* client, HIDDevice* device, HIDAttachEvent e
     return HID_DEVICE_DETACH;
 }
 
-void handle_pairing_menu()
+int main()
 {
-    void (*KPADInit)() = nullptr;
-    void (*KPADShutdown)() = nullptr;
-    void (*WPADEnableURCC)(int32_t enable) = nullptr;
-    int32_t (*KPADRead)(KPADChan chan, KPADStatus *data, uint32_t size) = nullptr;
-
-    // we can't link against padscore directly or else the load callback won't be called on acquiring
-    OSDynLoad_Module module;
-    OSDynLoad_Acquire("padscore.rpl", &module);
-
-    OSDynLoad_FindExport(module, FALSE, "KPADInit", (void**) &KPADInit);
-    OSDynLoad_FindExport(module, FALSE, "KPADShutdown", (void**) &KPADShutdown);
-    OSDynLoad_FindExport(module, FALSE, "WPADEnableURCC", (void**) &WPADEnableURCC);
-    OSDynLoad_FindExport(module, FALSE, "KPADRead", (void**) &KPADRead);
-
-    VPADInit();
-    KPADInit();
-    WPADEnableURCC(1);
-
-    bool openMenu = false;
-    for (int i = 0; i < 5; i++) {
-        VPADStatus status{};
-        VPADRead(VPAD_CHAN_0, &status, 1, nullptr);
-
-        if (status.hold & VPAD_BUTTON_A) {
-            openMenu = true;
-            break;
-        }
-
-        for (int i = 0; i < 4; i++) {
-            KPADStatus kpad_status{};
-            KPADRead((KPADChan) i, &kpad_status, 1);
-
-            if (kpad_status.extensionType == WPAD_EXT_CLASSIC ||
-                kpad_status.extensionType == WPAD_EXT_PRO_CONTROLLER ||
-                kpad_status.extensionType == WPAD_EXT_MPLUS_CLASSIC) {
-                
-                if (kpad_status.pro.hold & WPAD_PRO_BUTTON_A) {
-                    openMenu = true;
-                    break;
-                }
-            }
-            else {
-                if (kpad_status.hold & WPAD_BUTTON_A) {
-                    openMenu = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    if (!openMenu) {
-        VPADShutdown();
-        KPADShutdown();
-        return;
-    }
+    WHBProcInit();
 
     WHBLogConsoleInit();
     WHBLogConsoleSetColor(0);
     WHBLogPrintf("=== Bloopair USB Controller pairing ===");
     WHBLogPrintf("Connect a DualShock 3 using a USB cable to pair it");
-    WHBLogPrintf("Press B to exit");
+    WHBLogPrintf("Press HOME to exit");
     WHBLogConsoleDraw();
 
     btrmHandle = openBtrm();
@@ -169,18 +111,14 @@ void handle_pairing_menu()
         WHBLogPrintf("Failed to open btrm");
         WHBLogConsoleDraw();
         sleep(2);
-        VPADShutdown();
-        KPADShutdown();
-        return;
+        goto main_loop;
     }
 
     if (readControllerBDAddr(btrmHandle, controller_bda) < 0) {
-        WHBLogPrintf("Failed to read local bda");
+        WHBLogPrintf("Failed to read local bda (Make sure Bloopair is active!)");
         WHBLogConsoleDraw();
         sleep(2);
-        VPADShutdown();
-        KPADShutdown();
-        return;
+        goto main_loop;
     }
 
     WHBLogPrintf("Local BDA is: %02x:%02x:%02x:%02x:%02x:%02x",
@@ -192,8 +130,7 @@ void handle_pairing_menu()
         WHBLogPrintf("Failed to setup HID");
         WHBLogConsoleDraw();
         sleep(2);
-        VPADShutdown();
-        return;
+        goto main_loop;
     }
 
     HIDClient client;
@@ -201,42 +138,11 @@ void handle_pairing_menu()
         WHBLogPrintf("Failed to add HID client");
         WHBLogConsoleDraw();
         sleep(2);
-        VPADShutdown();
-        KPADShutdown();
-        return;
+        goto main_loop;
     }
 
-    bool menuOpened = true;
-    while (menuOpened) {
-        VPADStatus status{};
-        VPADRead(VPAD_CHAN_0, &status, 1, nullptr);
-
-        if (status.hold & VPAD_BUTTON_B) {
-            menuOpened = false;
-            break;
-        }
-
-        for (int i = 0; i < 4; i++) {
-            KPADStatus kpad_status{};
-            KPADRead((KPADChan) i, &kpad_status, 1);
-
-            if (kpad_status.extensionType == WPAD_EXT_CLASSIC ||
-                kpad_status.extensionType == WPAD_EXT_PRO_CONTROLLER ||
-                kpad_status.extensionType == WPAD_EXT_MPLUS_CLASSIC) {
-                
-                if (kpad_status.pro.hold & WPAD_PRO_BUTTON_B) {
-                    menuOpened = false;
-                    break;
-                }
-            }
-            else {
-                if (kpad_status.hold & WPAD_BUTTON_B) {
-                    menuOpened = false;
-                    break;
-                }
-            }
-        }
-    }
+main_loop: ;
+    while (WHBProcIsRunning());
 
     HIDDelClient(&client);
     HIDTeardown();
@@ -245,10 +151,6 @@ void handle_pairing_menu()
 
     WHBLogConsoleFree();
 
-    VPADShutdown();
-    
-    WPADEnableURCC(0);
-    KPADShutdown();
-
-    // we should release the module too but that crashes for some reason?
+    WHBProcShutdown();
+    return 0;
 }

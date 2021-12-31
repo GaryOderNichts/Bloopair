@@ -17,24 +17,24 @@ include $(DEVKITPRO)/wut/share/wut_rules
 # DATA is a list of directories containing data files
 # INCLUDES is a list of directories containing header files
 #-------------------------------------------------------------------------------
-TARGET		:=	30_bloopair
+TARGET		:=	Bloopair_pair_menu
 BUILD		:=	build
-SOURCES		:=	source common
+SOURCES		:=	. ../common
 DATA		:=	data
-INCLUDES	:=	include common
+INCLUDES	:=	../common
 
 #-------------------------------------------------------------------------------
 # options for code generation
 #-------------------------------------------------------------------------------
 CFLAGS	:=	-g -Wall -O2 -ffunction-sections \
-			$(MACHDEP) -Wno-array-bounds -Wno-stringop-overflow
+			$(MACHDEP)
 
 CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__
 
 CXXFLAGS	:= $(CFLAGS)
 
 ASFLAGS	:=	-g $(ARCH)
-LDFLAGS	=	-g $(ARCH) $(RPXSPECS) --entry=_start -Wl,-Map,$(notdir $*.map)
+LDFLAGS	=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map)
 
 LIBS	:= -lwut
 
@@ -95,28 +95,14 @@ export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 #-------------------------------------------------------------------------------
 all: $(BUILD)
 
-$(BUILD): $(CURDIR)/source/ios_kernel/ios_kernel.bin.h
+$(BUILD):
 	@[ -d $@ ] || mkdir -p $@
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
-	@$(MAKE) --no-print-directory -C $(CURDIR)/pair_menu -f $(CURDIR)/pair_menu/Makefile
-
-$(CURDIR)/source/ios_kernel/ios_kernel.bin.h: $(CURDIR)/source/ios_usb/ios_usb.bin.h $(CURDIR)/source/ios_pad/ios_pad.bin.h 
-	@$(MAKE) -j1 --no-print-directory -C $(CURDIR)/source/ios_kernel -f $(CURDIR)/source/ios_kernel/Makefile
-
-$(CURDIR)/source/ios_usb/ios_usb.bin.h: 
-	@$(MAKE) -j1 --no-print-directory -C $(CURDIR)/source/ios_usb -f $(CURDIR)/source/ios_usb/Makefile
-
-$(CURDIR)/source/ios_pad/ios_pad.bin.h: 
-	@$(MAKE) -j1 --no-print-directory -C $(CURDIR)/source/ios_pad -f $(CURDIR)/source/ios_pad/Makefile
 
 #-------------------------------------------------------------------------------
 clean:
 	@echo clean ...
 	@rm -fr $(BUILD) $(TARGET).rpx $(TARGET).elf
-	@$(MAKE) --no-print-directory -C $(CURDIR)/pair_menu -f $(CURDIR)/pair_menu/Makefile clean
-	@$(MAKE) --no-print-directory -C $(CURDIR)/source/ios_kernel -f  $(CURDIR)/source/ios_kernel/Makefile clean
-	@$(MAKE) --no-print-directory -C $(CURDIR)/source/ios_usb -f  $(CURDIR)/source/ios_usb/Makefile clean
-	@$(MAKE) --no-print-directory -C $(CURDIR)/source/ios_pad -f  $(CURDIR)/source/ios_pad/Makefile clean
 
 #-------------------------------------------------------------------------------
 else
