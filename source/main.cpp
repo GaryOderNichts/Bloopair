@@ -20,37 +20,20 @@
 #include <string>
 
 #include <coreinit/foreground.h>
-#include <proc_ui/procui.h>
-
 #include <coreinit/cache.h>
 #include <coreinit/memorymap.h>
 #include <coreinit/dynload.h>
 #include <coreinit/debug.h>
+#include <proc_ui/procui.h>
 #include <sysapp/launch.h>
+#include <padscore/wpad.h>
 
 #include <chrono>
 #include <condition_variable>
 
 #include "ios_exploit.h"
 #include "ipc.hpp"
-
-std::mutex padscore_load_mtx;
-std::condition_variable padscore_load_cv;
-bool padscore_loaded = false;
-
-void load_callback(OSDynLoad_Module module, void *userContext, OSDynLoad_NotifyReason notifyReason, OSDynLoad_NotifyData *infos)
-{
-    // make sure this is actually padscore
-    if (notifyReason == OS_DYNLOAD_NOTIFY_LOADED && strcmp("bin\\ghs\\cafe\\cos\\pads\\padscore\\NDEBUG\\padscore.rpl", infos->name) == 0) {
-        // save the address of the data section
-        *(uint32_t*) 0xF4158000 = OSEffectiveToPhysical((uint32_t) infos->dataAddr);
-        DCStoreRange((void *) 0xF4158000, 4);
-
-        // notify that we're done
-        padscore_loaded = true;
-        padscore_load_cv.notify_one();
-    }
-}
+#include "kernel.hpp"
 
 int main(int argc, char **argv)
 {
@@ -60,40 +43,45 @@ int main(int argc, char **argv)
     }
 
     if (!isBloopairRunning(btrmHandle)) {
-        // set a callback
-        OSDynLoad_AddNotifyCallback(load_callback, nullptr);
-        
-        // load padscore
-        OSDynLoad_Module module;
-        OSDynLoad_Acquire("padscore.rpl", &module);
+        KernelSetup();
 
-        if (!padscore_loaded) {
-            // wait until padscore is loaded
-            std::unique_lock<std::mutex> lck(padscore_load_mtx);
-            if (padscore_load_cv.wait_until(lck, std::chrono::system_clock::now() + std::chrono::milliseconds(1000))
-                == std::cv_status::timeout) {
-                OSFatal("padscore load timed out\n");
+        // nop out security level checks
+        KernelWriteU32(((uint32_t) &OSDynLoad_GetRPLInfo) + (22 * 4), 0x60000000);
+        KernelWriteU32(((uint32_t) &OSDynLoad_GetNumberOfRPLs) + (6 * 4), 0x60000000);
+
+        int numRpls = OSDynLoad_GetNumberOfRPLs();
+        if (numRpls <= 0) {
+            OSFatal("OSDynLoad_GetNumberOfRPLs failed");
+        }
+
+        OSDynLoad_NotifyData moduleInfos[numRpls];
+        if (!OSDynLoad_GetRPLInfo(0, numRpls, moduleInfos)) {
+            OSFatal("OSDynLoad_GetRPLInfo failed");
+        }
+
+        bool found = false;
+        for (int i = 0; i < numRpls; i++) {
+            if (strcmp("bin\\ghs\\cafe\\cos\\pads\\padscore\\NDEBUG\\padscore.rpl", moduleInfos[i].name) == 0) {
+                // save the address of the data section
+                *(uint32_t*) 0xF4158000 = OSEffectiveToPhysical((uint32_t) moduleInfos[i].dataAddr);
+                DCStoreRange((void *) 0xF4158000, 4);
+
+                found = true;
+                break;
             }
         }
 
-        void (*WPADInit)(void) = nullptr;
-        void (*WPADDisconnect)(uint32_t chan) = nullptr;
-        OSDynLoad_FindExport(module, FALSE, "WPADInit", (void**) &WPADInit);
-        OSDynLoad_FindExport(module, FALSE, "WPADDisconnect", (void**) &WPADDisconnect);
+        if (!found) {
+            OSFatal("padscore not loaded");
+        }
 
         WPADInit();
         for (uint32_t i = 0; i < 4; i++) {
-            WPADDisconnect(i);
+            WPADDisconnect((WPADChan) i);
         }
 
         // run the ios exploit
         ExecuteIOSExploit();
-
-        // release padscore
-        OSDynLoad_Release(module);
-
-        // delete callback
-        OSDynLoad_DelNotifyCallback(load_callback, nullptr);
     }
 
     closeBtrm(btrmHandle);  
