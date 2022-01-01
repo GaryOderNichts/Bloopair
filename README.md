@@ -23,23 +23,20 @@ To pair a DualShock 3 to the console, see the [Pairing a DualShock 3](#pairing-a
 - Download the latest .zip from the [releases page](https://github.com/GaryOderNichts/Bloopair/releases)
 - Extract it to the root of your SD Card
 
-## Usage
-- Run Bloopair from the Homebrew Launcher  
-Once launched, the Wii U menu should open
-- Once back in the Wii U menu, press the SYNC button on your console and controller
-- Wait until the Controller is connected
+Make sure you're using Tiramisu. Follow https://wiiu.hacks.guide/#/ to setup Tiramisu.  
+More info about Tiramisu here: https://maschell.github.io/homebrew/2021/12/31/tiramisu.html
 
-If a controller had been paired in the past, simply turn it on again and it should reconnect.  
-After rebooting the console or exiting System Settings, relaunch Bloopair.
+## Usage
+- Once you're booted into Tiramisu and are in the Wii U menu, press the SYNC button on your console and controller
+- Wait until the Controller is connected
 
 ## Pairing a DualShock 3
 The DualShock 3 needs to be paired using a USB cable. After the initial pairing it can be used like any other wireless Bluetooth controller.  
-- While launching Bloopair from the Homebrew Launcher, hold down the A button on the Gamepad.  
-You should now be in the USB pairing menu.
+- Open the Bloopair pairing app from the Homebrew Launcher. You should now be in the USB pairing menu.
 - Connect the DualShock 3 using a USB cable to the front or back ports of the console.
 - The screen will say "Paired!" once the controller has been successfully paired.  
-You can now remove the USB cable from the controller. Press the PS button to connect it to the console.
-- Press the B button to exit to the Home Menu
+You can now remove the USB cable from the controller. Press the PS button once back on the Wii U menu to connect it to the console.
+- Press the HOME button to exit to the HBL
 
 The DualShock 3 is now ready to use with the console.
 
@@ -54,10 +51,6 @@ You can also try [clearing controller syncs](https://en-americas-support.nintend
 ### Will you add support for controller xyz?
 Possibly, I've for now added support for all the controllers I currently own. Maybe I can get a few more controllers which I could add support for.  
 Pull requests for different controllers are always welcome.
-
-### My console gets stuck on the Wii U Menu screen
-There seems to be an issue with the Homebrew Launcher Channel. This isn't something that can be fixed in Bloopair itself.  
-See the following [issue comment](https://github.com/GaryOderNichts/Bloopair/issues/17#issuecomment-932974462) for more info.
 
 ## To-Do
 - Support more controllers
