@@ -173,9 +173,9 @@ void controllerData_dualshock4(Controller_t* controller, uint8_t* buf, uint16_t 
         if (buf[9] & 0x01)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
 
-        uint8_t battery_level = (buf[32] & 0xf) >> 1;
-        controller->battery = battery_level > 4 ? 4 : battery_level;
-        controller->isCharging = (buf[32] & 0x10) && (buf[32] & 0xf) <= 10;
+        uint8_t battery_level = buf[32] & 0xf;
+        controller->battery = CLAMP(battery_level >> 1, 0, 4);
+        controller->isCharging = (buf[32] & 0x10) && battery_level <= 10;
     }
 }
 

@@ -192,9 +192,24 @@ void controllerData_dualsense(Controller_t* controller, uint8_t* buf, uint16_t l
         if (buf[11] & 0x01)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
 
-        uint8_t battery_level = (buf[53] & 0xf) >> 1;
-        controller->battery = battery_level > 4 ? 4 : battery_level;
-        controller->isCharging = (buf[53] & 0x10) && !(buf[53] & 0x20);
+        uint8_t battery_level = (buf[54] & 0xf) >> 1;
+        uint8_t battery_status = buf[54] >> 4;
+        if (battery_status == 0) { // discharging
+            controller->battery = CLAMP(battery_level, 0, 4);
+            controller->isCharging = 0;
+        }
+        else if (battery_status == 1) { // charging
+            controller->battery = CLAMP(battery_level, 0, 4);
+            controller->isCharging = 1;
+        }
+        else if (battery_status == 2) { // full
+            controller->battery = 4;
+            controller->isCharging = 0;
+        }
+        else { // everything else indicates an error
+            controller->battery = 0;
+            controller->isCharging = 0;
+        }
     }
 }
 
