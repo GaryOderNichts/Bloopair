@@ -36,7 +36,7 @@ static IOSHandle btrmHandle = -1;
 
 int ds3ReadBDA(uint32_t handle, uint8_t* outBDA)
 {
-    __attribute__ ((aligned (0x20))) uint8_t buf[18]{};
+    __attribute__ ((aligned (0x20))) uint8_t buf[17]{};
     int res = HIDGetReport(handle, HID_REPORT_FEATURE, 0xf2, buf, sizeof(buf), nullptr, nullptr);
     if (res >= 0) {
         memcpy(outBDA, buf + 4, 6);

@@ -30,6 +30,8 @@ More info about Tiramisu here: https://maschell.github.io/homebrew/2021/12/31/ti
 - Once you're booted into Tiramisu and are in the Wii U menu, press the SYNC button on your console and controller
 - Wait until the Controller is connected
 
+If a controller had been paired in the past, simply turn it on again and it should reconnect.
+
 ## Pairing a DualShock 3
 The DualShock 3 needs to be paired using a USB cable. After the initial pairing it can be used like any other wireless Bluetooth controller.  
 - Open the Bloopair pairing app from the Homebrew Launcher. You should now be in the USB pairing menu.
