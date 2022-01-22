@@ -22,6 +22,7 @@ typedef struct {
     uint8_t player_leds;
     uint8_t led_color[3];
     uint8_t rumble;
+    uint8_t output_seq;
 } DualsenseData_t;
 
 // the dualsense has 5 leds, with one in the center
@@ -70,19 +71,22 @@ static void sendRumbleLedState(Controller_t* controller)
 
     uint8_t data[79];
     memset(data, 0, sizeof(data));
-    data[0] = 0xa2;
-    data[1] = 0x31;
-    data[2] = 0x02;
-    data[3] = 0x03;
-    data[4] = 0x14;
-    data[5] = ds_data->rumble;
+    data[0] = 0xa2; // seed
+    data[1] = 0x31; // report_id
+    data[2] = ((ds_data->output_seq++ & 0xf) << 4) | 0x0; // seq_tag
+    data[3] = 0x10; // tag
+
+    data[4] = 0x03; // flag 0
+    data[5] = 0x14; // flag 1
     data[6] = ds_data->rumble;
-    data[41] = 0x02;
-    data[44] = 0x02;
-    data[46] = ds_data->player_leds;
-    data[47] = ds_data->led_color[0];
-    data[48] = ds_data->led_color[1];
-    data[49] = ds_data->led_color[2];
+    data[7] = ds_data->rumble;
+
+    data[42] = 0x02; // flag 2
+    data[45] = 0x02; // lightbar setup
+    data[47] = ds_data->player_leds;
+    data[48] = ds_data->led_color[0];
+    data[49] = ds_data->led_color[1];
+    data[50] = ds_data->led_color[2];
 
     uint32_t crc = bswap32(~crc32(0xffffffff, data, sizeof(data) - 4));
     memcpy(&data[75], &crc, 4);
@@ -94,7 +98,7 @@ void controllerRumble_dualsense(Controller_t* controller, uint8_t rumble)
 {
     DualsenseData_t* ds_data = (DualsenseData_t*) controller->additionalData;
 
-    ds_data->rumble = rumble ? 6 : 0;
+    ds_data->rumble = rumble ? 25 : 0;
 
     sendRumbleLedState(controller);
 }
