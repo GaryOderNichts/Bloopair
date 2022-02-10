@@ -1,0 +1,19 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build-binary:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - name: build binary
+      run: |
+        docker build . -t builder
+        docker run --rm -v ${PWD}:/project builder make dist
+    - uses: actions/upload-artifact@v2
+      with:
+       name: Bloopair_nightly
+       path: dist/*

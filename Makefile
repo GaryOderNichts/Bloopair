@@ -90,10 +90,17 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
-.PHONY: $(BUILD) clean all
+.PHONY: $(BUILD) clean all dist
 
 #-------------------------------------------------------------------------------
 all: $(BUILD)
+
+dist: all
+	mkdir -p dist/wiiu/apps/Bloopair_pair_menu/
+	cp pair_menu/Bloopair_pair_menu.rpx dist/wiiu/apps/Bloopair_pair_menu/
+
+	mkdir -p dist/wiiu/environments/tiramisu/modules/setup/
+	cp 30_bloopair.rpx dist/wiiu/environments/tiramisu/modules/setup/
 
 $(BUILD): $(CURDIR)/source/ios_kernel/ios_kernel.bin.h
 	@[ -d $@ ] || mkdir -p $@
