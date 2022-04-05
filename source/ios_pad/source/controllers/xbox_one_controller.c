@@ -124,20 +124,18 @@ void controllerData_xbox_one(Controller_t* controller, uint8_t* buf, uint16_t le
 
 void controllerRumble_xbox_one(Controller_t* controller, uint8_t rumble)
 {
-    if (rumble) {
-        uint8_t data[9];
-        data[0] = 0x03;
-        data[1] = RUMBLE_MOTOR_RIGHT | RUMBLE_MOTOR_LEFT; // motors
-        data[2] = 0; // left trigger force
-        data[3] = 0; // right trigger force
-        data[4] = 35; // left force
-        data[5] = 35; // right force
-        data[6] = 1; // duration
-        data[7] = 0; // delay
-        data[8] = 0; // loop
+    uint8_t data[9];
+    data[0] = 0x03;
+    data[1] = RUMBLE_MOTOR_RIGHT | RUMBLE_MOTOR_LEFT; // motors
+    data[2] = 0; // left trigger force
+    data[3] = 0; // right trigger force
+    data[4] = rumble ? 35 : 0; // left force
+    data[5] = rumble ? 35 : 0; // right force
+    data[6] = 1; // duration
+    data[7] = 0; // delay
+    data[8] = 0; // loop
 
-        sendOutputData(controller->handle, data, sizeof(data));
-    }
+    sendOutputData(controller->handle, data, sizeof(data));
 }
 
 void controllerDeinit_xbox_one(Controller_t* controller)
