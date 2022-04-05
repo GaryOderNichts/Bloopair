@@ -13,7 +13,7 @@ It temporarily applies patches to the IOS-PAD module responsible for Bluetooth c
 - Nintendo Switch Joy-Con
 - Nintendo Switch Online SNES / N64 Controller
 - Microsoft Xbox One S/X Controller  
-Note: The Series S/X Controllers are currently not supported due to missing Bluetooth LE support
+Note: The latest firmware versions and all Series S/X Controllers are currently not supported due to missing Bluetooth LE support
 - Sony DualShock 3 Controller  
 To pair a DualShock 3 to the console, see the [Pairing a DualShock 3](#pairing-a-dualshock-3) section
 - Sony DualShock 4 Controller
