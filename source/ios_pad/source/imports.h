@@ -58,8 +58,8 @@ int IOS_Ioctlv(int fd, uint32_t request, uint32_t vector_count_in, uint32_t vect
 int IOS_ResourceReply(void *ipc_handle, int result);
 int IOS_CreateSemaphore(int32_t maxCount, int32_t initialCount);
 int IOS_WaitSemaphore(int id, uint32_t tryWait);
-int IOS_SignalSempahore(int id);
-int IOS_DestroySempahore(int id);
+int IOS_SignalSemaphore(int id);
+int IOS_DestroySemaphore(int id);
 uint32_t IOS_VirtToPhys(uint32_t address);
 void* IOS_Alloc(uint32_t heap, uint32_t size);
 void* IOS_AllocAligned(uint32_t heap, uint32_t size, uint32_t alignment);
