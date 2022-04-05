@@ -2,8 +2,8 @@
 <app version="1">
   <name>Bloopair Pairing Menu</name>
   <coder>GaryOderNichts</coder>
-  <version>v0.5.1</version>
-  <release_date>20220118120000</release_date>
+  <version>v0.5.2</version>
+  <release_date>20220405120000</release_date>
   <short_description>DS3 Pairing Menu for Bloopair</short_description> 
   <long_description>
 Pairs DualShock 3 controllers using USB to the console.
