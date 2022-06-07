@@ -38,6 +38,12 @@ typedef struct {
 #define AXIS_NORMALIZE_VALUE               3000
 #define DPAD_EMULATION_DEAD_ZONE           500
 
+// These values are based on https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md
+#define RUMBLE_HIGH_FREQUENCY 0x7400 // 150 Hz
+#define RUMBLE_HIGH_AMPLITUDE 0xc8 // 1.003
+#define RUMBLE_LOW_FREQUENCY 0x3d // 150 Hz
+#define RUMBLE_LOW_AMPLITUDE 0x0072 // 1.003
+
 #define SWITCH_FACTORY_CALIBRATION_ADDRESS 0x603d
 #define SWITCH_FACTORY_CALIBRATION_SIZE    0x12
 
@@ -197,7 +203,6 @@ static void setPlayerLeds(Controller_t* controller)
     sendOutputData(controller->handle, data, sizeof(data));
 }
 
-// These values are hardcoded based on https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md
 void controllerRumble_switch(Controller_t* controller, uint8_t rumble)
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
@@ -211,15 +216,15 @@ void controllerRumble_switch(Controller_t* controller, uint8_t rumble)
     data[1] = (sdata->report_count++) & 0xf;
 
     if (rumble) {
-        data[2] = (0x5000 >> 8) & 0xff;
-        data[3] = (0x5000 & 0xFF) + 0x8a;
-        data[4] = 0x34 + ((0x8062 >> 8) & 0xff);
-        data[5] = 0x8062 & 0xff;
+        data[2] = (RUMBLE_HIGH_FREQUENCY >> 8) & 0xff;
+        data[3] = (RUMBLE_HIGH_FREQUENCY & 0xff) + RUMBLE_HIGH_AMPLITUDE;
+        data[4] = RUMBLE_LOW_FREQUENCY + ((RUMBLE_LOW_AMPLITUDE >> 8) & 0xff);
+        data[5] = RUMBLE_LOW_AMPLITUDE & 0xff;
 
-        data[6] = (0x5000 >> 8) & 0xff;
-        data[7] = (0x5000 & 0xFF) + 0x8a;
-        data[8] = 0x34 + ((0x8062 >> 8) & 0xff);
-        data[9] = 0x8062 & 0xff;
+        data[6] = (RUMBLE_HIGH_FREQUENCY >> 8) & 0xff;
+        data[7] = (RUMBLE_HIGH_FREQUENCY & 0xff) + RUMBLE_HIGH_AMPLITUDE;
+        data[8] = RUMBLE_LOW_FREQUENCY + ((RUMBLE_LOW_AMPLITUDE >> 8) & 0xff);
+        data[9] = RUMBLE_LOW_AMPLITUDE & 0xff;
     }
     else {
         data[2] = 0x00;
