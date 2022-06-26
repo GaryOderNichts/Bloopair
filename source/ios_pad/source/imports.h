@@ -25,6 +25,9 @@
 
 #include "utils.h"
 
+#define LOCAL_PROCESS_HEAP_ID 0xcafe
+#define CROSS_PROCESS_HEAP_ID 0xcaff
+
 typedef struct {
     uint16_t event;
     uint16_t len;

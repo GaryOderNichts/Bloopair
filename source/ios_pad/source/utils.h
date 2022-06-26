@@ -22,6 +22,13 @@
 
 #define CLAMP(x, low, high) (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 
+#define DEFINE_REAL(addr, instr) \
+    ((const uint32_t[]) { \
+    instr, \
+    0xe51ff004, /* ldr pc, [pc, #-4] */ \
+    addr, \
+    });
+
 uint32_t crc32(uint32_t seed, const void* data, size_t len);
 
 void dumpHex(const void *data, size_t size);

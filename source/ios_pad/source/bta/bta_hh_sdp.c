@@ -93,7 +93,7 @@ void bta_hh_di_sdp_callback(uint16_t result)
 
     retry = 0;
 
-    ReportMessage_t* message = IOS_Alloc(0xcaff, sizeof(ReportMessage_t) + sdp_db_size);
+    ReportMessage_t* message = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(ReportMessage_t) + sdp_db_size);
     if (message) {
         message->type = MESSAGE_TYPE_DI_RECORD;
         // copy bdaddr to the buffer

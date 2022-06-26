@@ -224,7 +224,7 @@ void processSmdMessages(void)
         return;
     }
 
-    while(smdIopReceive(smdIopIndex, output_buf) != -0xc0005) {
+    while (smdIopReceive(smdIopIndex, output_buf) != -0xc0005) {
         DEBUG("output request for handle %u size %u, cmd: 0x%X\n", output_buf->dev_handle, output_buf->length, output_buf->data[0]);
 
         Controller_t* controller = &controllers[output_buf->dev_handle];

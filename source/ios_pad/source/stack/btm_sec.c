@@ -18,9 +18,7 @@
 #include <bt_api.h>
 #include "info_store.h"
 
-// executable memory which gets populated by the kernel
-uint32_t __btm_sec_execute_procedure_hook_buf[3] __attribute__ ((section (".fn_hook_bufs")));
-uint8_t (*const real_btm_sec_execute_procedure)(tBTM_SEC_DEV_REC *p_dev_rec) = (void*) __btm_sec_execute_procedure_hook_buf;
+uint8_t (*const real_btm_sec_execute_procedure)(tBTM_SEC_DEV_REC *p_dev_rec) = (void*) DEFINE_REAL(0x11f14f04, 0xe92d41f0);
 
 uint8_t btm_sec_execute_procedure_hook(tBTM_SEC_DEV_REC *p_dev_rec)
 {

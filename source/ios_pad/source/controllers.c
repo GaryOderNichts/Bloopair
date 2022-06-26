@@ -22,15 +22,15 @@
 Controller_t controllers[BTA_HH_MAX_KNOWN];
 
 static void* report_thread_stack_base;
-static int report_thread;
+static int report_thread_id;
 static uint8_t report_thread_running = 0;
 
-#define CONTINUOUS_REPORT_THREAD_STACK_SIZE 1024
+#define REPORT_THREAD_STACK_SIZE 1024
 
 // send a report every 10 ms
 #define REPORT_INTERVAL (10 * 1000)
 
-static int continuous_report_thread(void* arg)
+static int report_thread(void* arg)
 {
     // create a message queue and timer
     uint32_t message_buf;
@@ -63,14 +63,14 @@ void initReportThread(void)
     report_thread_running = 1;
 
     // allocate a stack
-    report_thread_stack_base = IOS_AllocAligned(0xcaff, CONTINUOUS_REPORT_THREAD_STACK_SIZE, 0x20);
+    report_thread_stack_base = IOS_AllocAligned(LOCAL_PROCESS_HEAP_ID, REPORT_THREAD_STACK_SIZE, 0x20);
 
     // create the thread (priority needs to be lower than the current thread)
-    report_thread = IOS_CreateThread(continuous_report_thread, NULL, (uint32_t*) ((uint8_t*) report_thread_stack_base + CONTINUOUS_REPORT_THREAD_STACK_SIZE),
-        CONTINUOUS_REPORT_THREAD_STACK_SIZE, IOS_GetThreadPriority(0), 1);
+    report_thread_id = IOS_CreateThread(report_thread, NULL, (uint32_t*) ((uint8_t*) report_thread_stack_base + REPORT_THREAD_STACK_SIZE),
+        REPORT_THREAD_STACK_SIZE, IOS_GetThreadPriority(0), 1);
     
     // start the thread
-    IOS_StartThread(report_thread);
+    IOS_StartThread(report_thread_id);
 }
 
 void deinitReportThread(void)
@@ -79,10 +79,10 @@ void deinitReportThread(void)
     report_thread_running = 0;
 
     // wait until it finished
-    IOS_JoinThread(report_thread, NULL);
+    IOS_JoinThread(report_thread_id, NULL);
 
     // free stack
-    IOS_Free(0xcaff, report_thread_stack_base);
+    IOS_Free(LOCAL_PROCESS_HEAP_ID, report_thread_stack_base);
 }
 
 #define COMPARE_NAME(x) (memcmp(name, x, sizeof(x) - 1) == 0)
@@ -206,15 +206,21 @@ void sendControllerInput(Controller_t* controller, uint32_t buttons, int16_t lef
     uint8_t data[22];
     memset(data, 0, sizeof(data));
 
-    left_stick_x = bswap16(left_stick_x + AXIS_BASE);
-    right_stick_x = bswap16(right_stick_x + AXIS_BASE);
-    left_stick_y = bswap16(left_stick_y * -1 + AXIS_BASE);
-    right_stick_y = bswap16(right_stick_y * -1 + AXIS_BASE);
+    left_stick_x = left_stick_x + AXIS_BASE;
+    right_stick_x = right_stick_x + AXIS_BASE;
+    left_stick_y = left_stick_y * -1 + AXIS_BASE;
+    right_stick_y = right_stick_y * -1 + AXIS_BASE;
 
-    memcpy(&data[1], &left_stick_x, 2);
-    memcpy(&data[3], &right_stick_x, 2);
-    memcpy(&data[5], &left_stick_y, 2);
-    memcpy(&data[7], &right_stick_y, 2);
+    data[0] = 0x3d;
+
+    data[1] = left_stick_x & 0xff;
+    data[2] = left_stick_x >> 8;
+    data[3] = right_stick_x & 0xff;
+    data[4] = right_stick_x >> 8;
+    data[5] = left_stick_y & 0xff;
+    data[6] = left_stick_y >> 8;
+    data[7] = right_stick_y & 0xff;
+    data[8] = right_stick_y >> 8;
 
     data[9] = ~((buttons >> 8) & 0xff);
     data[10] = ~(buttons & 0xff);
@@ -228,21 +234,20 @@ void sendControllerInput(Controller_t* controller, uint32_t buttons, int16_t lef
 
     data[11] |= controller->battery << 4;
 
-    data[0] = 0x3d;
     encrypt(&controller->crypto, &data[1], &data[1], 0, sizeof(data) - 1);
     sendInputData(controller->handle, data, sizeof(data));
 }
 
 void initContinuousReports(Controller_t* controller)
 {
-    ReportBuffer_t* report_buf = IOS_Alloc(0xcaff, sizeof(ReportBuffer_t));
+    ReportBuffer_t* report_buf = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(ReportBuffer_t));
     memset(report_buf, 0, sizeof(ReportBuffer_t));
     controller->reportData = report_buf;
 }
 
 void deinitContinuousReports(Controller_t* controller)
 {
-    IOS_Free(0xcaff, controller->reportData);
+    IOS_Free(LOCAL_PROCESS_HEAP_ID, controller->reportData);
     controller->reportData = NULL;
 }
 

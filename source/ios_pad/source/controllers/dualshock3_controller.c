@@ -136,7 +136,7 @@ void controllerDeinit_dualshock3(Controller_t* controller)
 {
     deinitContinuousReports(controller);
 
-    IOS_Free(0xcaff, controller->additionalData);
+    IOS_Free(LOCAL_PROCESS_HEAP_ID, controller->additionalData);
 }
 
 void controllerInit_dualshock3(Controller_t* controller)
@@ -151,7 +151,7 @@ void controllerInit_dualshock3(Controller_t* controller)
     controller->battery = 4;
     controller->isCharging = 0;
 
-    controller->additionalData = IOS_Alloc(0xcaff, sizeof(Dualshock3Data_t));
+    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(Dualshock3Data_t));
     memset(controller->additionalData, 0, sizeof(Dualshock3Data_t));
 
     // enable the controller so it sends reports

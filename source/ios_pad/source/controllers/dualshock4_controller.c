@@ -183,7 +183,7 @@ void controllerDeinit_dualshock4(Controller_t* controller)
 {
     deinitContinuousReports(controller);
 
-    IOS_Free(0xcaff, controller->additionalData);
+    IOS_Free(LOCAL_PROCESS_HEAP_ID, controller->additionalData);
 }
 
 void controllerInit_dualshock4(Controller_t* controller)
@@ -198,6 +198,6 @@ void controllerInit_dualshock4(Controller_t* controller)
     controller->battery = 4;
     controller->isCharging = 0;
 
-    controller->additionalData = IOS_Alloc(0xcaff, sizeof(Dualshock4Data_t));
+    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(Dualshock4Data_t));
     memset(controller->additionalData, 0, sizeof(Dualshock4Data_t));
 }

@@ -19,22 +19,6 @@
 #include "imports.h"
 #include "../../ios_pad/ios_pad_syms.h"
 
-static void create_function_hook(uint32_t _buf, uint32_t address, uint32_t new_address)
-{
-    if (_buf) {
-        // save the instruction we overwrite
-        uint32_t restore_instruction = *(uint32_t*) address;
-
-        uint32_t* buf = (uint32_t*) _buf;
-        *buf = restore_instruction;    buf++;
-        *buf = 0xe51ff004;             buf++; // ldr pc, [pc, #-4]
-        *buf = (uint32_t) address + 4;
-    }
-
-    // replace the first instruction with a jump to our code
-    *(volatile uint32_t*) address = ARM_B(address, new_address);
-}
-
 void run_ios_pad_patches(void)
 {
     // map memory for our custom ios-pad code
@@ -84,13 +68,13 @@ void run_ios_pad_patches(void)
     *(volatile uint32_t *) 0x11f06ef8 = bta_hh_di_sdp_callback;
 
     // hook writeDevInfo so we can write our custom data too
-    create_function_hook(__writeDevInfo_hook_buf, 0x11f4181c, writeDevInfo_hook);
+    *(volatile uint32_t *) 0x11f4181c = ARM_B(0x11f4181c, writeDevInfo_hook);
 
     // ppc smd messages hook
-    create_function_hook(0, 0x11f01a10, processSmdMessages);
+    *(volatile uint32_t *) 0x11f01a10 = ARM_B(0x11f01a10, processSmdMessages);
 
     // hook security procedures
-    create_function_hook(__btm_sec_execute_procedure_hook_buf, 0x11f14f00, btm_sec_execute_procedure_hook);
+    *(volatile uint32_t *) 0x11f14f00 = ARM_B(0x11f14f00, btm_sec_execute_procedure_hook);
 
     // hook btrm messages so we can have custom ipc calls
     *(volatile uint32_t *) 0x11f0274c = ARM_BL(0x11f0274c, btrm_receive_message_hook);

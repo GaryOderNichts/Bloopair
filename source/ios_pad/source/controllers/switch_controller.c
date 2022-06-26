@@ -561,7 +561,7 @@ void controllerDeinit_switch(Controller_t* controller)
 {
     deinitContinuousReports(controller);
 
-    IOS_Free(0xcaff, controller->additionalData);
+    IOS_Free(LOCAL_PROCESS_HEAP_ID, controller->additionalData);
 }
 
 void controllerInit_switch(Controller_t* controller)
@@ -576,7 +576,7 @@ void controllerInit_switch(Controller_t* controller)
     controller->battery = 4;
     controller->isCharging = 0;
 
-    SwitchData_t* data = IOS_Alloc(0xcaff, sizeof(SwitchData_t));
+    SwitchData_t* data = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(SwitchData_t));
     memset(data, 0, sizeof(SwitchData_t));
     data->first_report = 1;
 

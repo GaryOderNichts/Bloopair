@@ -137,7 +137,6 @@ $(OUTPUT)_syms.h:
 	@echo "#define $(TARGETNAME)_SYMS_H" >> $@
 	@$(OBJDUMP) -EB -t -marm $(OUTPUT).elf | grep 'g     F .text' | grep -v '.hidden' | awk '{print "#define " $$6 " 0x" $$1}' >> $@
 	@$(OBJDUMP) -EB -t -marm $(OUTPUT).elf | grep -e 'g       .text' -e '_bss_' | awk '{print "#define " $$5 " 0x" $$1}' >> $@
-	@$(OBJDUMP) -EB -t -marm $(OUTPUT).elf | grep 'g     O .fn_hook_bufs' | awk '{print "#define " $$6 " 0x" $$1}' >> $@
 	@echo "#endif" >> $@
 
 $(OFILES_SRC) : $(HFILES_BIN)

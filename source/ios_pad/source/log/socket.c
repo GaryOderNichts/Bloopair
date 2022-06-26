@@ -30,7 +30,7 @@ int socketExit(void)
 
 static void *allocIobuf(uint32_t size)
 {
-    void *ptr = IOS_Alloc(0xcaff, size);
+    void *ptr = IOS_Alloc(CROSS_PROCESS_HEAP_ID, size);
 
     if (ptr) {
         memset(ptr, 0, size);
@@ -41,7 +41,7 @@ static void *allocIobuf(uint32_t size)
 
 static void freeIobuf(void *ptr)
 {
-    IOS_Free(0xcaff, ptr);
+    IOS_Free(CROSS_PROCESS_HEAP_ID, ptr);
 }
 
 int socket(int domain, int type, int protocol)
@@ -168,7 +168,7 @@ ssize_t recv(int sockfd, void *buf, size_t len, int flags)
     if (!len) return -101;
 
     // TODO : size checks, split up data into multiple vectors if necessary
-    void *data_buf = IOS_AllocAligned(0xcaff, len, 0x40);
+    void *data_buf = IOS_AllocAligned(CROSS_PROCESS_HEAP_ID, len, 0x40);
     if (!data_buf) return -100;
 
     uint8_t *iobuf = allocIobuf(0x38);
@@ -199,7 +199,7 @@ ssize_t send(int sockfd, const void *buf, size_t len, int flags)
     if (!buf || !len) return -101;
 
     // TODO : size checks, split up data into multiple vectors if necessary
-    void *data_buf = IOS_AllocAligned(0xcaff, len, 0x40);
+    void *data_buf = IOS_AllocAligned(CROSS_PROCESS_HEAP_ID, len, 0x40);
     if (!data_buf) return -100;
 
     uint8_t *iobuf = allocIobuf(0x38);

@@ -72,9 +72,7 @@ void readDevInfo(void)
     }
 }
 
-// executable memory which gets populated by the kernel
-uint32_t __writeDevInfo_hook_buf[3] __attribute__ ((section (".fn_hook_bufs")));
-int (*const real_writeDevInfo)(void* callback) = (void*) __writeDevInfo_hook_buf;
+int (*const real_writeDevInfo)(void* callback) = (void*) DEFINE_REAL(0x11f41820, 0xe92d4ff0);
 int writeDevInfo_hook(void* callback)
 {
     DEBUG("writeDevInfo_hook %p\n", callback);
@@ -169,7 +167,7 @@ static int info_thread_function(void* arg)
             break;
         }
 
-        IOS_Free(0xcaff, message);
+        IOS_Free(LOCAL_PROCESS_HEAP_ID, message);
     }
 
     return 0;
@@ -187,7 +185,7 @@ void start_info_thread(void)
     thread_running = 1;
 
     // allocate a stack
-    thread_stack_base = IOS_AllocAligned(0xcaff, THREAD_STACK_SIZE, 0x20);
+    thread_stack_base = IOS_AllocAligned(LOCAL_PROCESS_HEAP_ID, THREAD_STACK_SIZE, 0x20);
 
     // create the thread (priority needs to be lower than or equal the current thread)
     thread_id = IOS_CreateThread(info_thread_function, NULL, (uint32_t*) ((uint8_t*) thread_stack_base + THREAD_STACK_SIZE),
@@ -209,5 +207,5 @@ void stop_info_thread(void)
     IOS_JoinThread(thread_id, NULL);
 
     // free stack
-    IOS_Free(0xcaff, thread_stack_base);
+    IOS_Free(LOCAL_PROCESS_HEAP_ID, thread_stack_base);
 }
