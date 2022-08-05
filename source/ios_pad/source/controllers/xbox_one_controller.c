@@ -62,13 +62,13 @@ void controllerData_xbox_one(Controller_t* controller, uint8_t* buf, uint16_t le
         if (len >= 17) {
             // new format
             if (buf[14] & 0x01)
-                rep->buttons |= WPAD_PRO_BUTTON_B;
-            if (buf[14] & 0x02)
                 rep->buttons |= WPAD_PRO_BUTTON_A;
+            if (buf[14] & 0x02)
+                rep->buttons |= WPAD_PRO_BUTTON_B;
             if (buf[14] & 0x08)
-                rep->buttons |= WPAD_PRO_BUTTON_Y;
-            if (buf[14] & 0x10)
                 rep->buttons |= WPAD_PRO_BUTTON_X;
+            if (buf[14] & 0x10)
+                rep->buttons |= WPAD_PRO_BUTTON_Y;
             if (buf[14] & 0x40)
                 rep->buttons |= WPAD_PRO_TRIGGER_L;
             if (buf[14] & 0x80)
