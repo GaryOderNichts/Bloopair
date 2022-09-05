@@ -20,10 +20,13 @@ To pair a DualShock 3 to the console, see the [Pairing a DualShock 3](#pairing-a
 - Sony DualSense Controller
 
 ## Installation
-- Download the latest .zip from the [releases page](https://github.com/GaryOderNichts/Bloopair/releases)
-- Extract it to the root of your SD Card
+- Download and extract the latest .zip from the [releases page](https://github.com/GaryOderNichts/Bloopair/releases).
+- Copy the `30_bloopair.rpx` from the .zip file to the `modules/setup/` folder of your target environment on the SD Card.  
+  This would be `wiiu/environments/tiramisu/modules/setup/` for Tiramisu.
+- Copy the `wiiu` folder from the .zip and copy it to the root of your SD Card.  
+  If you're using aroma you can delete the `Bloopair_pair_menu.rpx` in the `wiiu/apps` folder and use the .wuhb instead.
 
-Make sure you're using Tiramisu. Follow https://wiiu.hacks.guide/#/ to setup Tiramisu.  
+Make sure you're using Tiramisu or Aroma. Follow https://wiiu.hacks.guide/#/ to setup Tiramisu.  
 More info about Tiramisu here: https://maschell.github.io/homebrew/2021/12/31/tiramisu.html
 
 ## Usage
@@ -34,11 +37,11 @@ If a controller had been paired in the past, simply turn it on again and it shou
 
 ## Pairing a DualShock 3
 The DualShock 3 needs to be paired using a USB cable. After the initial pairing it can be used like any other wireless Bluetooth controller.  
-- Open the Bloopair pairing app from the Homebrew Launcher. You should now be in the USB pairing menu.
+- Open the Bloopair pairing app from the Wii U menu or Homebrew Launcher. You should now be in the USB pairing menu.
 - Connect the DualShock 3 using a USB cable to the front or back ports of the console.
 - The screen will say "Paired!" once the controller has been successfully paired.  
 You can now remove the USB cable from the controller. Press the PS button once back on the Wii U menu to connect it to the console.
-- Press the HOME button to exit to the HBL
+- Press the HOME button to exit.
 
 The DualShock 3 is now ready to use with the console.
 

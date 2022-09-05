@@ -98,9 +98,8 @@ all: $(BUILD)
 dist: all
 	mkdir -p dist/wiiu/apps/Bloopair_pair_menu/
 	cp pair_menu/Bloopair_pair_menu.rpx dist/wiiu/apps/Bloopair_pair_menu/
-
-	mkdir -p dist/wiiu/environments/tiramisu/modules/setup/
-	cp 30_bloopair.rpx dist/wiiu/environments/tiramisu/modules/setup/
+	cp pair_menu/Bloopair_pair_menu.wuhb dist/wiiu/apps/Bloopair_pair_menu/
+	cp 30_bloopair.rpx dist/
 
 $(BUILD): $(CURDIR)/source/ios_kernel/ios_kernel.bin.h
 	@[ -d $@ ] || mkdir -p $@

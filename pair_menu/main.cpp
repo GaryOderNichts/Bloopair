@@ -142,7 +142,9 @@ int main()
     }
 
 main_loop: ;
-    while (WHBProcIsRunning());
+    while (WHBProcIsRunning()) {
+        WHBLogConsoleDraw();
+    }
 
     HIDDelClient(&client);
     HIDTeardown();
