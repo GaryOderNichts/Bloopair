@@ -67,8 +67,8 @@ void initReportThread(void)
 
     // create the thread (priority needs to be lower than the current thread)
     report_thread_id = IOS_CreateThread(report_thread, NULL, (uint32_t*) ((uint8_t*) report_thread_stack_base + REPORT_THREAD_STACK_SIZE),
-        REPORT_THREAD_STACK_SIZE, IOS_GetThreadPriority(0), 1);
-    
+        REPORT_THREAD_STACK_SIZE, IOS_GetThreadPriority(0), 0);
+
     // start the thread
     IOS_StartThread(report_thread_id);
 }

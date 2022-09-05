@@ -189,7 +189,7 @@ void start_info_thread(void)
 
     // create the thread (priority needs to be lower than or equal the current thread)
     thread_id = IOS_CreateThread(info_thread_function, NULL, (uint32_t*) ((uint8_t*) thread_stack_base + THREAD_STACK_SIZE),
-        THREAD_STACK_SIZE, IOS_GetThreadPriority(0), 1);
+        THREAD_STACK_SIZE, IOS_GetThreadPriority(0), 0);
     
     // start the thread
     IOS_StartThread(thread_id);
