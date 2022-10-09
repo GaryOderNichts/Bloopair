@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 
@@ -47,8 +48,7 @@ static inline uint32_t bswap32(uint32_t val)
 }
 
 #ifdef LOGGING
-#include "log/logger.h"
-#define DEBUG(x, ...) log_printf(x, ##__VA_ARGS__)
+#define DEBUG(x, ...) printf(x, ##__VA_ARGS__)
 #else
 #define DEBUG(x, ...)
 #endif

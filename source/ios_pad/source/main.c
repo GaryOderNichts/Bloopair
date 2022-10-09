@@ -132,7 +132,7 @@ static void sendReadResponse(uint8_t dev_handle, uint8_t result, uint32_t addres
 
 static void writeMemory(uint8_t dev_handle, uint32_t address, uint8_t* data, uint8_t len)
 {
-    DEBUG("writing to 0x%08X size %u\n", address, len);
+    DEBUG("writing to 0x%08lX size %d\n", address, len);
     Controller_t* controller = &controllers[dev_handle];
 
     switch (address) {
@@ -175,13 +175,13 @@ static void writeMemory(uint8_t dev_handle, uint32_t address, uint8_t* data, uin
         return;
     }
 
-    DEBUG("invalid write to 0x%x\n", address);
+    DEBUG("invalid write to 0x%lx\n", address);
     sendAcknowledgeReport(dev_handle, 0x16, 3);
 }
 
 static void readMemory(uint8_t dev_handle, uint32_t address, uint16_t len)
 {
-    DEBUG("reading from 0x%08X size %u\n", address, len);
+    DEBUG("reading from 0x%08lx size %d\n", address, len);
     Controller_t* controller = &controllers[dev_handle];
 
     switch (address) {
@@ -213,7 +213,7 @@ static void readMemory(uint8_t dev_handle, uint32_t address, uint16_t len)
         break;
     }
 
-    DEBUG("invalid read from 0x%08X\n", address);
+    DEBUG("invalid read from 0x%08lx\n", address);
     sendReadResponse(dev_handle, 8, address, NULL, 0);
 }
 

@@ -1,4 +1,4 @@
-/*PROVIDE(printf = 0x11f7efd0);*/
+PROVIDE(printf = 0x11f7ef98);
 PROVIDE(usleep = 0x11f84134);
 PROVIDE(memcpy = 0x11f833ec);
 PROVIDE(memset = 0x11f83488);
@@ -20,6 +20,7 @@ PROVIDE(IOS_SendMessage = 0x11f82ed8);
 PROVIDE(IOS_ReceiveMessage = 0x11f82ee8);
 PROVIDE(IOS_CreateTimer = 0x11f82f00);
 PROVIDE(IOS_DestroyTimer = 0x11f82f18);
+PROVIDE(IOS_GetUpTime64 = 0x11f82f38);
 PROVIDE(IOS_Open = 0x11f83000);
 PROVIDE(IOS_Close = 0x11f83008);
 PROVIDE(IOS_Ioctl = 0x11f83028);

@@ -80,11 +80,7 @@ void run_ios_pad_patches(void)
     *(volatile uint32_t *) 0x11f0274c = ARM_BL(0x11f0274c, btrm_receive_message_hook);
 
 #ifdef MORE_LOGS
-#ifdef vprintf_hook
-    *(volatile uint32_t *) 0x11f7efec = ARM_BL(0x11f7efec, vprintf_hook);
-#endif
-
-    //Set bta_sys_cfg.trace_level to BT_TRACE_LEVEL_DEBUG
+    // Set bta_sys_cfg.trace_level to BT_TRACE_LEVEL_DEBUG
     *(volatile uint8_t *) 0x11fca8d4 = 5;
 
     // Set appl_trace_level to BT_TRACE_LEVEL_DEBUG

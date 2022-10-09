@@ -1,5 +1,3 @@
-LOGGING := 0
-
 #-------------------------------------------------------------------------------
 .SUFFIXES:
 #-------------------------------------------------------------------------------
@@ -48,8 +46,7 @@ INCLUDES	:= source ../../common
 CFLAGS	:= -Wall -std=gnu11 -Os $(MACHDEP) $(INCLUDE) -Wno-array-bounds -fno-builtin
 
 ifeq ($(LOGGING), 1)
-	CFLAGS += -DLOGGING -DVPRINTF_HOOK
-	SOURCES += source/log
+	CFLAGS += -DLOGGING
 endif
 
 ASFLAGS	:= $(MACHDEP)

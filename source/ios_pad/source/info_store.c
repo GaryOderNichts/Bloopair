@@ -152,11 +152,11 @@ static int info_thread_function(void* arg)
 
     while (thread_running) {
         if (IOS_ReceiveMessage(info_message_queue, (uint32_t*) &message, 0) < 0) {
-            DEBUG("IOS_ReceiveMessage returned %d\n");
+            DEBUG("IOS_ReceiveMessage failed\n");
             continue;
         }
 
-        DEBUG("report thread: received message %d\n", message->type);
+        DEBUG("report thread: received message %ld\n", message->type);
 
         switch (message->type) {
         case MESSAGE_TYPE_DI_RECORD: {

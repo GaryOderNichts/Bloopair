@@ -54,6 +54,7 @@ int IOS_SendMessage(int queueid, uint32_t message, uint32_t flags);
 int IOS_ReceiveMessage(int queueid, uint32_t *message, uint32_t flags);
 int IOS_CreateTimer(int time_us, int repeat_time_us, int queueid, uint32_t message);
 int IOS_DestroyTimer(int timerid);
+int IOS_GetUpTime64(uint64_t* outTime);
 int IOS_Open(const char* device, int mode);
 int IOS_Close(int fd);
 int IOS_Ioctl(int fd, uint32_t request, void *input_buffer, uint32_t input_buffer_len, void *output_buffer, uint32_t output_buffer_len);

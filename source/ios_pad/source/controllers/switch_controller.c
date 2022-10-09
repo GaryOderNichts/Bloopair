@@ -322,7 +322,7 @@ static void handle_report_0x21(Controller_t* controller, uint8_t* buf, uint16_t 
             // TODO user calibration
             break;
         default:
-            DEBUG("switch: unknown SPI read from %x size %d\n", address, size);
+            DEBUG("switch: unknown SPI read from %lx size %ld\n", address, size);
             break;
         }
     }
