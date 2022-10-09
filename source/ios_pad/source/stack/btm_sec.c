@@ -24,8 +24,8 @@ uint8_t btm_sec_execute_procedure_hook(tBTM_SEC_DEV_REC *p_dev_rec)
 {
     DEBUG("btm_sec_execute_procedure_hook\n");
 
-    // make sure the info thread is running so persisted device info has been read
-    start_info_thread();
+    // make sure the device info has been read
+    store_read_device_info();
 
     StoredInfo_t* info = store_get_device_info(p_dev_rec->bd_addr);
 

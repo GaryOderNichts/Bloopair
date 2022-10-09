@@ -22,6 +22,39 @@ bt_devInfo_t* bt_devInfo = (bt_devInfo_t*) 0x12157778;
 
 StoredInfo_t stored_infos[BTA_HH_MAX_KNOWN] = { 0 };
 
+int devInfo_read = 0;
+
+void store_read_device_info(void)
+{
+    // we only need to do this once, after that bloopair keeps track of device info
+    if (devInfo_read) {
+        return;
+    }
+    devInfo_read = 1;
+
+    for (int i = 0; i < bt_devInfo->num_entries; i++) {
+        bt_devInfo_entry_t* entry = &bt_devInfo->entries[i];
+
+        StoredInfo_t* info = store_get_device_info(entry->address);
+        if (!info) {
+            info = store_allocate_device_info(entry->address);
+            if (!info) {
+                break;
+            }
+        }
+
+        if (entry->magic == MAGIC_EMPTY) {
+            info->magic = MAGIC_UNKNOWN;
+        }
+        else {
+            info->magic = entry->magic;
+            info->vendor_id = entry->vendor_id;
+            info->product_id = entry->product_id;
+        }
+    }
+}
+
+
 StoredInfo_t* store_get_device_info(uint8_t* address)
 {
     for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
@@ -48,30 +81,6 @@ StoredInfo_t* store_allocate_device_info(uint8_t* address)
     return NULL;
 }
 
-void readDevInfo(void)
-{
-    for (int i = 0; i < bt_devInfo->num_entries; i++) {
-        bt_devInfo_entry_t* entry = &bt_devInfo->entries[i];
-
-        StoredInfo_t* info = store_get_device_info(entry->address);
-        if (!info) {
-            info = store_allocate_device_info(entry->address);
-            if (!info) {
-                break;
-            }
-        }
-
-        if (entry->magic == MAGIC_EMPTY) {
-            info->magic = MAGIC_UNKNOWN;
-        }
-        else {
-            info->magic = entry->magic;
-            info->vendor_id = entry->vendor_id;
-            info->product_id = entry->product_id;
-        }
-    }
-}
-
 int (*const real_writeDevInfo)(void* callback) = (void*) DEFINE_REAL(0x11f41820, 0xe92d4ff0);
 int writeDevInfo_hook(void* callback)
 {
@@ -95,22 +104,7 @@ int writeDevInfo_hook(void* callback)
     return real_writeDevInfo(callback);
 }
 
-/*
-We need to handle a few things in a seperate thread or else we're blocking other threads,
-which will result in crashes. 
-This thread will read those requests from a message queue.
-This is mostly for parsing big di records which take too long
-*/
-
-#define THREAD_STACK_SIZE 1024
-#define MESSAGE_BUF_SIZE 8
-
-static uint8_t thread_running = 0;
-static void* thread_stack_base = NULL;
-static int thread_id = -1;
-int info_message_queue = -1;
-
-static void read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db)
+void store_read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db)
 {
     uint16_t vendor_id = 0xffff;
     uint16_t product_id = 0xffff;
@@ -141,71 +135,4 @@ static void read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db)
 
     info->vendor_id = vendor_id;
     info->product_id = product_id;
-}
-
-static int info_thread_function(void* arg)
-{
-    uint32_t message_buf[MESSAGE_BUF_SIZE];
-    info_message_queue = IOS_CreateMessageQueue(message_buf, MESSAGE_BUF_SIZE);
-
-    ReportMessage_t* message = NULL;
-
-    while (thread_running) {
-        if (IOS_ReceiveMessage(info_message_queue, (uint32_t*) &message, 0) < 0) {
-            DEBUG("IOS_ReceiveMessage failed\n");
-            continue;
-        }
-
-        DEBUG("report thread: received message %ld\n", message->type);
-
-        switch (message->type) {
-        case MESSAGE_TYPE_DI_RECORD: {
-            read_DI_record(message->addr, (tSDP_DISCOVERY_DB*) message->data);
-            break;
-        }
-        default:
-            break;
-        }
-
-        IOS_Free(LOCAL_PROCESS_HEAP_ID, message);
-    }
-
-    return 0;
-}
-
-void start_info_thread(void)
-{
-    if (thread_running) {
-        return;
-    }
-
-    // read dev info and add it to our stored infos
-    readDevInfo();
-
-    thread_running = 1;
-
-    // allocate a stack
-    thread_stack_base = IOS_AllocAligned(LOCAL_PROCESS_HEAP_ID, THREAD_STACK_SIZE, 0x20);
-
-    // create the thread (priority needs to be lower than or equal the current thread)
-    thread_id = IOS_CreateThread(info_thread_function, NULL, (uint32_t*) ((uint8_t*) thread_stack_base + THREAD_STACK_SIZE),
-        THREAD_STACK_SIZE, IOS_GetThreadPriority(0), 0);
-    
-    // start the thread
-    IOS_StartThread(thread_id);
-
-    // make sure the thread is in a "waiting for message" state
-    usleep(2500);
-}
-
-void stop_info_thread(void)
-{
-    // tell the thread to stop
-    thread_running = 0;
-
-    // wait until it finished
-    IOS_JoinThread(thread_id, NULL);
-
-    // free stack
-    IOS_Free(LOCAL_PROCESS_HEAP_ID, thread_stack_base);
 }

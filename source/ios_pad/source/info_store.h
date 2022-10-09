@@ -38,19 +38,29 @@ typedef struct __attribute__ ((__packed__)) {
     that way we don't have to create a custom userconfig entry and don't leave back
     any traces on the console
 */
-    uint8_t name[59];
+    uint8_t name[56];
+    uint8_t reserved[3];
     uint8_t magic;
     uint16_t vendor_id;
     uint16_t product_id;
 } bt_devInfo_entry_t;
+static_assert(sizeof(bt_devInfo_entry_t) == 0x46);
+
+typedef struct __attribute__ ((__packed__)) {
+    BD_ADDR address;
+    uint8_t name[20];
+    uint8_t link_key[16];
+} bt_devInfo_wbc_entry_t;
+static_assert(sizeof(bt_devInfo_wbc_entry_t) == 0x2a);
 
 typedef struct __attribute__ ((__packed__)) {
     uint8_t num_entries;
     bt_devInfo_entry_t entries[10];
     bt_devInfo_entry_t controller_order[4];
-    uint8_t wbc_pairing[42]; // wii balance board pairing information?
+    bt_devInfo_wbc_entry_t wbc;
     uint8_t unk[98]; // unused
 } bt_devInfo_t;
+static_assert(sizeof(bt_devInfo_t) == 0x461);
 
 typedef struct {
     uint8_t magic;
@@ -59,23 +69,14 @@ typedef struct {
     uint16_t product_id;
 } StoredInfo_t;
 
+// read the device info and add it to the store
+void store_read_device_info(void);
+
+// get the info for the specified address
 StoredInfo_t* store_get_device_info(uint8_t* address);
 
+// allocate a new info for the specified address
 StoredInfo_t* store_allocate_device_info(uint8_t* address);
 
-extern int info_message_queue;
-
-enum {
-    MESSAGE_TYPE_DI_RECORD,
-};
-
-typedef struct {
-    uint32_t type;
-    BD_ADDR addr;
-    uint8_t __padding[2];
-    uint8_t data[0];
-} ReportMessage_t;
-
-void start_info_thread(void);
-
-void stop_info_thread(void);
+// read and store info from the DI record for the specified device
+void store_read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db);

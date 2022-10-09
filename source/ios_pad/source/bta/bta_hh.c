@@ -90,7 +90,6 @@ void bta_hh_api_disable(void)
     }
 
     deinitReportThread();
-    stop_info_thread();
 
     real_bta_hh_api_disable();    
 }

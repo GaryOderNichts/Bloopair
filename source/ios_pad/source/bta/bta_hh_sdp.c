@@ -72,8 +72,8 @@ void bta_hh_di_sdp_callback(uint16_t result)
 {
     DEBUG("bta_hh_di_sdp_callback called res: %u\n", result);
 
-    // make sure our info thread is running
-    start_info_thread();
+    // make sure the device info has been read
+    store_read_device_info();
 
     static int retry = 0;
     if (result != 0) {
@@ -93,17 +93,10 @@ void bta_hh_di_sdp_callback(uint16_t result)
 
     retry = 0;
 
-    ReportMessage_t* message = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(ReportMessage_t) + sdp_db_size);
-    if (message) {
-        message->type = MESSAGE_TYPE_DI_RECORD;
-        // copy bdaddr to the buffer
-        memcpy(message->addr, bta_hh_cb->p_cur->addr, BD_ADDR_LEN);
-        // copy our db to the buffer
-        memcpy(message->data, bta_hh_cb->p_disc_db, sdp_db_size);
-        // send the message
-        IOS_SendMessage(info_message_queue, (uint32_t) message, 0);
-    }
+    // add info from the read DI record
+    store_read_DI_record(bta_hh_cb->p_cur->addr, bta_hh_cb->p_disc_db);
 
+    // proceed with reading the name
     BTM_ReadRemoteDeviceName(bta_hh_cb->p_cur->addr, name_read_cback);
 }
 
@@ -134,8 +127,8 @@ void bta_hh_open_act(tBTA_HH_DEV_CB *p_cb, void *p_data)
 
     DEBUG("bta_hh_open_act handle %d %d\n", p_cb->hid_handle, p_cb->app_id);
 
-    // make sure our info thread is running
-    start_info_thread();
+    // make sure the device info has been read
+    store_read_device_info();
 
     /* SDP has been done */
     if (p_cb->app_id != 0) {
