@@ -68,6 +68,7 @@ typedef void (*ControllerDeinitFn)(Controller_t* controller);
 typedef void (*ControllerDataFn)(Controller_t* controller, uint8_t* data, uint16_t len);
 typedef void (*ControllerSetPlayerLedFn)(Controller_t* controller, uint8_t led);
 typedef void (*ControllerRumbleFn)(Controller_t* controller, uint8_t rumble);
+typedef void (*ControllerUpdateFn)(Controller_t* controller);
 
 // report data for continuous reports
 typedef struct {
@@ -100,6 +101,8 @@ struct Controller_t {
     ControllerSetPlayerLedFn setPlayerLed;
     // called when rumble state changes
     ControllerRumbleFn rumble;
+    // called every time input is updated (requires continous reports)
+    ControllerUpdateFn update;
     // encryption state
     uint8_t key[16];
     CryptoState crypto;

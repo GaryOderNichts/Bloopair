@@ -44,11 +44,21 @@ static int report_thread(void* arg)
 
         for (uint32_t i = 0; i < BTA_HH_MAX_KNOWN; i++) {
             Controller_t* controller = &controllers[i];
-            ReportBuffer_t* report_buf = controller->reportData;
-            // make sure the controller is initialized, has the reporting mode set, and has a report buf
-            if (controller->isInitialized && controller->dataReportingMode == 0x3d && report_buf) {
-                // send the current state
-                sendControllerInput(controller, report_buf->buttons, report_buf->left_stick_x, report_buf->right_stick_x, report_buf->left_stick_y, report_buf->right_stick_y);
+            // make sure the controller is initialized
+            if (controller->isInitialized) {
+                // update the controller
+                if (controller->update) {
+                    controller->update(controller);
+                }
+
+                ReportBuffer_t* report_buf = controller->reportData;
+                // make sure the controller has the reporting mode set and has a report buf
+                if (controller->dataReportingMode == 0x3d && report_buf) {
+                    // send the current state
+                    sendControllerInput(controller, report_buf->buttons, 
+                        report_buf->left_stick_x, report_buf->right_stick_x, 
+                        report_buf->left_stick_y, report_buf->right_stick_y);
+                }
             }
         }
     }
