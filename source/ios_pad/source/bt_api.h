@@ -157,10 +157,18 @@ typedef struct
     tBTA_DM_INQ_COND    filter_cond;    /* Filter condition data. */
 } tBTA_DM_INQ;
 
+/* minor device class field for Peripheral Major Class */
+#define BTM_COD_MINOR_GAMEPAD               0x08
+
 /***************************
 ** major device class field
 ****************************/
 #define BTM_COD_MAJOR_PERIPHERAL            0x05
+
+/* the COD masks */
+#define BTM_COD_FORMAT_TYPE_MASK      0x03
+#define BTM_COD_MINOR_CLASS_MASK      0xFC
+#define BTM_COD_MAJOR_CLASS_MASK      0x1F
 
 /* Search callback events */
 #define BTA_DM_INQ_RES_EVT              0       /* Inquiry result for a peer device. */

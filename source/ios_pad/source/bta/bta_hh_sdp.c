@@ -33,8 +33,7 @@ void name_read_cback(tBTM_REMOTE_DEV_NAME* name)
         if (retry++ < 4) {
             // retry until we succeed
             BTM_ReadRemoteDeviceName(bta_hh_cb->p_cur->addr, name_read_cback);
-        }
-        else {
+        } else {
             retry = 0;
             utl_freebuf((void **)&bta_hh_cb->p_disc_db);
             uint8_t status = 7;
@@ -45,18 +44,16 @@ void name_read_cback(tBTM_REMOTE_DEV_NAME* name)
 
     retry = 0;
 
-    StoredInfo_t* info = store_get_device_info(bta_hh_cb->p_cur->addr);
+    StoredInfo* info = store_get_device_info(bta_hh_cb->p_cur->addr);
     if (!info) {
         info = store_allocate_device_info(bta_hh_cb->p_cur->addr);
     }
 
     if (isOfficialName((const char*) name->remote_bd_name)) {
         info->magic = MAGIC_OFFICIAL;
-    }
-    else if (isSwitchControllerName((const char*) name->remote_bd_name)) {
+    } else if (isSwitchControllerName((const char*) name->remote_bd_name)) {
         info->magic = MAGIC_SWITCH;
-    }
-    else {
+    } else {
         info->magic = MAGIC_BLOOPAIR;
     }
 
@@ -80,8 +77,7 @@ void bta_hh_di_sdp_callback(uint16_t result)
         if (retry++ < 4) {
             // retry until we succeed
             SDP_DiDiscover(bta_hh_cb->p_cur->addr, bta_hh_cb->p_disc_db, sdp_db_size, bta_hh_di_sdp_callback);
-        }
-        else {
+        } else {
             retry = 0;
             utl_freebuf((void **)&bta_hh_cb->p_disc_db);
             /* send SDP_CMPL_EVT into state machine */
@@ -105,15 +101,14 @@ void name_read_cback_open(tBTM_REMOTE_DEV_NAME* name)
     DEBUG("open: got name %s status %d\n", name->remote_bd_name, name->status);
 
     if (name->status == 0) {
-        StoredInfo_t* info = store_get_device_info(bta_hh_cb->p_cur->addr);
+        StoredInfo* info = store_get_device_info(bta_hh_cb->p_cur->addr);
         if (!info) {
             info = store_allocate_device_info(bta_hh_cb->p_cur->addr);
         }
 
         if (isOfficialName((const char*) name->remote_bd_name)) {
             info->magic = MAGIC_OFFICIAL;
-        }
-        else {
+        } else {
             info->magic = MAGIC_BLOOPAIR;
         }
     }
@@ -132,14 +127,13 @@ void bta_hh_open_act(tBTA_HH_DEV_CB *p_cb, void *p_data)
 
     /* SDP has been done */
     if (p_cb->app_id != 0) {
-        StoredInfo_t* info = store_get_device_info(p_cb->addr);
+        StoredInfo* info = store_get_device_info(p_cb->addr);
 
         // controllers paired without bloopair running have an unknown entry in the store
         if (info && info->magic == MAGIC_UNKNOWN) {
             bta_hh_cb->p_cur = p_cb;
             BTM_ReadRemoteDeviceName(p_cb->addr, name_read_cback_open);
-        }
-        else {
+        } else {
             bta_hh_sm_execute(p_cb, BTA_HH_OPEN_CMPL_EVT, p_data);
         }
     }

@@ -17,6 +17,11 @@
 
 #include <controllers.h>
 
+// Information about the reports can be found here:
+// - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-nintendo.c>
+// - <https://github.com/ndeadly/MissionControl/blob/master/mc_mitm/source/controllers/switch_controller.hpp>
+// - <https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering>
+
 typedef struct {
     int16_t max;
     int16_t center;
@@ -24,7 +29,6 @@ typedef struct {
 } SwitchCalibration_t;
 
 typedef struct {
-    uint8_t first_report;
     uint8_t report_count;
     uint8_t device;
     uint8_t led;
@@ -35,7 +39,7 @@ typedef struct {
     SwitchCalibration_t right_calib_y;
 } SwitchData_t;
 
-#define AXIS_NORMALIZE_VALUE               3000
+#define AXIS_NORMALIZE_VALUE               1140
 #define DPAD_EMULATION_DEAD_ZONE           500
 
 // These values are based on https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md
@@ -88,22 +92,21 @@ static const uint32_t dpad_map[9] = {
     0,
 };
 
-static int16_t calibrateStickAxis(SwitchCalibration_t* calib, int16_t value)
+static int16_t calibrateStickAxis(SwitchCalibration_t* calib, uint32_t value)
 {
-    int16_t ret;
+    int32_t calibrated;
     if (value > calib->center) {
-        ret = ((value - calib->center) * AXIS_NORMALIZE_VALUE / 2) 
-            / (calib->max - calib->center);
-    }
-    else {
-        ret = ((calib->center - value) * -AXIS_NORMALIZE_VALUE / 2) 
-            / (calib->center - calib->min);
+        calibrated = (value - calib->center) * AXIS_NORMALIZE_VALUE;
+        calibrated /= calib->max - calib->center;
+    } else {
+        calibrated = (calib->center - value) * -AXIS_NORMALIZE_VALUE;
+        calibrated /= calib->center - calib->min;
     }
 
-    return CLAMP(ret, -AXIS_NORMALIZE_VALUE / 2, AXIS_NORMALIZE_VALUE / 2);
+    return (int16_t) CLAMP(calibrated, -AXIS_NORMALIZE_VALUE, AXIS_NORMALIZE_VALUE);
 }
 
-static void requestDeviceInfo(Controller_t* controller)
+static void requestDeviceInfo(Controller* controller)
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
@@ -116,7 +119,7 @@ static void requestDeviceInfo(Controller_t* controller)
     sendOutputData(controller->handle, data, sizeof(data));
 }
 
-static void requestFactoryCalibration(Controller_t* controller)
+static void requestFactoryCalibration(Controller* controller)
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
@@ -135,7 +138,7 @@ static void requestFactoryCalibration(Controller_t* controller)
     sendOutputData(controller->handle, data, sizeof(data));
 }
 
-static void requestUserCalibration(Controller_t* controller)
+static void requestUserCalibration(Controller* controller)
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
@@ -154,7 +157,7 @@ static void requestUserCalibration(Controller_t* controller)
     sendOutputData(controller->handle, data, sizeof(data));
 }
 
-static void setFullInputReportMode(Controller_t* controller)
+static void setFullInputReportMode(Controller* controller)
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
@@ -168,7 +171,7 @@ static void setFullInputReportMode(Controller_t* controller)
     sendOutputData(controller->handle, data, sizeof(data));
 }
 
-static void enableVibration(Controller_t* controller)
+static void enableVibration(Controller* controller)
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
@@ -182,7 +185,7 @@ static void enableVibration(Controller_t* controller)
     sendOutputData(controller->handle, data, sizeof(data));
 }
 
-static void setPlayerLeds(Controller_t* controller)
+static void setPlayerLeds(Controller* controller)
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
@@ -203,7 +206,7 @@ static void setPlayerLeds(Controller_t* controller)
     sendOutputData(controller->handle, data, sizeof(data));
 }
 
-void controllerRumble_switch(Controller_t* controller, uint8_t rumble)
+void controllerRumble_switch(Controller* controller, uint8_t rumble)
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
     if (sdata->device == SWITCH_DEVICE_UNKNOWN) {
@@ -225,8 +228,7 @@ void controllerRumble_switch(Controller_t* controller, uint8_t rumble)
         data[7] = (RUMBLE_HIGH_FREQUENCY & 0xff) + RUMBLE_HIGH_AMPLITUDE;
         data[8] = RUMBLE_LOW_FREQUENCY + ((RUMBLE_LOW_AMPLITUDE >> 8) & 0xff);
         data[9] = RUMBLE_LOW_AMPLITUDE & 0xff;
-    }
-    else {
+    } else {
         data[2] = 0x00;
         data[3] = 0x01;
         data[4] = 0x40;
@@ -241,7 +243,7 @@ void controllerRumble_switch(Controller_t* controller, uint8_t rumble)
     sendOutputData(controller->handle, data, sizeof(data));
 }
 
-void controllerSetLed_switch(Controller_t* controller, uint8_t led)
+void controllerSetLed_switch(Controller* controller, uint8_t led)
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
@@ -255,7 +257,7 @@ void controllerSetLed_switch(Controller_t* controller, uint8_t led)
 }
 
 // subcmd response
-static void handle_report_0x21(Controller_t* controller, uint8_t* buf, uint16_t len)
+static void handle_report_0x21(Controller* controller, uint8_t* buf, uint16_t len)
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
 
@@ -286,9 +288,12 @@ static void handle_report_0x21(Controller_t* controller, uint8_t* buf, uint16_t 
             (sdata->device == SWITCH_DEVICE_N64_CONTROLLER)) {
             // read the factory calibration
             requestFactoryCalibration(controller);
+        } else {
+            // Don't need to wait for calibration, controller is ready now
+            if (!controller->isReady)
+                controller->isReady = 1;
         }
-    }
-    else if (buf[14] == SWITCH_SUBCMD_SPI_FLASH_READ) {
+    } else if (buf[14] == SWITCH_SUBCMD_SPI_FLASH_READ) {
         uint32_t size = buf[19];
         uint32_t address = buf[15] | buf[16] << 8 | buf[17] << 16 | buf[18] << 24;
 
@@ -328,10 +333,10 @@ static void handle_report_0x21(Controller_t* controller, uint8_t* buf, uint16_t 
     }
 }
 
-static void handle_report_0x30(Controller_t* controller, uint8_t* buf, uint16_t len)
+static void handle_report_0x30(Controller* controller, uint8_t* buf, uint16_t len)
 {
     SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
-    ReportBuffer_t* rep = controller->reportData;
+    ReportBuffer* rep = &controller->reportBuffer;
 
     uint8_t battery = buf[2] >> 4;
     controller->battery = battery >> 1;
@@ -370,8 +375,7 @@ static void handle_report_0x30(Controller_t* controller, uint8_t* buf, uint16_t 
             rep->buttons |= WPAD_PRO_TRIGGER_R;
         if (buf[5] & 0x20)
             rep->buttons |= WPAD_PRO_TRIGGER_L;
-    }
-    else if (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT) {
+    } else if (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT) {
         int16_t right_stick_x = calibrateStickAxis(&sdata->right_calib_x, buf[9] | ((buf[10] & 0xf) << 8));
         int16_t right_stick_y = calibrateStickAxis(&sdata->right_calib_y, (buf[10] >> 4) | (buf[11] << 4));
 
@@ -400,8 +404,7 @@ static void handle_report_0x30(Controller_t* controller, uint8_t* buf, uint16_t 
             rep->buttons |= WPAD_PRO_BUTTON_PLUS;
         if (buf[4] & 0x10)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
-    }
-    else if (sdata->device == SWITCH_DEVICE_PRO_CONTROLLER) {
+    } else if (sdata->device == SWITCH_DEVICE_PRO_CONTROLLER) {
         rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, buf[6] | (buf[7] & 0xf) << 8);
         rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, (buf[7] >> 4) | (buf[8] << 4));
         rep->right_stick_x = calibrateStickAxis(&sdata->right_calib_x, buf[9] | ((buf[10] & 0xf) << 8));
@@ -444,8 +447,7 @@ static void handle_report_0x30(Controller_t* controller, uint8_t* buf, uint16_t 
             rep->buttons |= WPAD_PRO_TRIGGER_L;
         if (buf[5] & 0x80)
             rep->buttons |= WPAD_PRO_TRIGGER_ZL;
-    }
-    else if (sdata->device == SWITCH_DEVICE_N64_CONTROLLER) {
+    } else if (sdata->device == SWITCH_DEVICE_N64_CONTROLLER) {
         rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, buf[6] | (buf[7] & 0xf) << 8);
         rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, (buf[7] >> 4) | (buf[8] << 4));
         rep->right_stick_y = 0;
@@ -453,13 +455,13 @@ static void handle_report_0x30(Controller_t* controller, uint8_t* buf, uint16_t 
 
         // map the C buttons to the right analog stick
         if (buf[3] & 0x01)
-            rep->right_stick_y -= 1140;
+            rep->right_stick_y -= AXIS_NORMALIZE_VALUE;
         if (buf[3] & 0x02)
-            rep->right_stick_x -= 1140;
+            rep->right_stick_x -= AXIS_NORMALIZE_VALUE;
         if (buf[4] & 0x01)
-            rep->right_stick_x += 1140;
+            rep->right_stick_x += AXIS_NORMALIZE_VALUE;
         if (buf[3] & 0x80)
-            rep->right_stick_y += 1140;
+            rep->right_stick_y += AXIS_NORMALIZE_VALUE;
 
         if (buf[3] & 0x04)
             rep->buttons |= WPAD_PRO_BUTTON_B;
@@ -489,24 +491,19 @@ static void handle_report_0x30(Controller_t* controller, uint8_t* buf, uint16_t 
         if (buf[5] & 0x80)
             rep->buttons |= WPAD_PRO_TRIGGER_ZL;
     }
+
+    if (!controller->isReady)
+        controller->isReady = 1;
 }
 
-static void handle_report_0x3f(Controller_t* controller, uint8_t* buf, uint16_t len)
+static void handle_report_0x3f(Controller* controller, uint8_t* buf, uint16_t len)
 {
-    SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
-    ReportBuffer_t* rep = controller->reportData;
+    ReportBuffer* rep = &controller->reportBuffer;
 
-    // the pro controller sends weird stick data in the first report
-    // which completely messes with the start calibration, so we drop that report
-    if (sdata->first_report) {
-        sdata->first_report = 0;
-        return;
-    }
-
-    rep->left_stick_x = ((buf[5] << 8) | buf[4]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
-    rep->right_stick_x = ((buf[9] << 8) | buf[8]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
-    rep->left_stick_y = ((buf[7] << 8) | buf[6]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
-    rep->right_stick_y = ((buf[11] << 8) | buf[10]) * AXIS_NORMALIZE_VALUE / 65536 - AXIS_NORMALIZE_VALUE / 2;
+    rep->left_stick_x = scaleStickAxis((buf[5] << 8) | buf[4], 65536);
+    rep->right_stick_x = scaleStickAxis((buf[9] << 8) | buf[8], 65536);
+    rep->left_stick_y = scaleStickAxis((buf[7] << 8) | buf[6], 65536);
+    rep->right_stick_y = scaleStickAxis((buf[11] << 8) | buf[10], 65536);
 
     rep->buttons = 0;
 
@@ -544,41 +541,35 @@ static void handle_report_0x3f(Controller_t* controller, uint8_t* buf, uint16_t 
     //     rep->buttons |= WPAD_PRO_BUTTON_;
 }
 
-void controllerData_switch(Controller_t* controller, uint8_t* buf, uint16_t len)
+void controllerData_switch(Controller* controller, uint8_t* buf, uint16_t len)
 {
     if (buf[0] == 0x21) {
         handle_report_0x21(controller, buf, len);
-    }
-    else if (buf[0] == 0x30) {
+    } else if (buf[0] == 0x30) {
         handle_report_0x30(controller, buf, len);
-    }
-    else if (buf[0] == 0x3f) {
+    } else if (buf[0] == 0x3f) {
         handle_report_0x3f(controller, buf, len);
     }
 }
 
-void controllerDeinit_switch(Controller_t* controller)
+void controllerDeinit_switch(Controller* controller)
 {
-    deinitContinuousReports(controller);
-
     IOS_Free(LOCAL_PROCESS_HEAP_ID, controller->additionalData);
 }
 
-void controllerInit_switch(Controller_t* controller)
+void controllerInit_switch(Controller* controller)
 {
-    initContinuousReports(controller);
-
     controller->data = controllerData_switch;
     controller->setPlayerLed = controllerSetLed_switch;
     controller->rumble = controllerRumble_switch;
     controller->deinit = controllerDeinit_switch;
+    controller->update = NULL;
 
     controller->battery = 4;
     controller->isCharging = 0;
 
     SwitchData_t* data = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(SwitchData_t));
     memset(data, 0, sizeof(SwitchData_t));
-    data->first_report = 1;
 
     controller->additionalData = data;
 

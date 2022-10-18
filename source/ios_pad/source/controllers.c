@@ -19,18 +19,21 @@
 #include "utils.h"
 #include "info_store.h"
 
-Controller_t controllers[BTA_HH_MAX_KNOWN];
-
-static void* report_thread_stack_base;
-static int report_thread_id;
-static uint8_t report_thread_running = 0;
+#define WPAD_PRO_AXIS_BASE 0x800
+#define WPAD_PRO_AXIS_NORMALIZE_RANGE (1140 * 2)
 
 #define REPORT_THREAD_STACK_SIZE 1024
 
 // send a report every 10 ms
 #define REPORT_INTERVAL (10 * 1000)
 
-static int report_thread(void* arg)
+Controller controllers[BTA_HH_MAX_KNOWN] = { 0 };
+
+static void* report_thread_stack_base;
+static int report_thread_id;
+static uint8_t report_thread_running = 0;
+
+static int reportThread(void* arg)
 {
     // create a message queue and timer
     uint32_t message_buf;
@@ -43,7 +46,7 @@ static int report_thread(void* arg)
         IOS_ReceiveMessage(queue_id, &message, 0);
 
         for (uint32_t i = 0; i < BTA_HH_MAX_KNOWN; i++) {
-            Controller_t* controller = &controllers[i];
+            Controller* controller = &controllers[i];
             // make sure the controller is initialized
             if (controller->isInitialized) {
                 // update the controller
@@ -51,13 +54,11 @@ static int report_thread(void* arg)
                     controller->update(controller);
                 }
 
-                ReportBuffer_t* report_buf = controller->reportData;
-                // make sure the controller has the reporting mode set and has a report buf
-                if (controller->dataReportingMode == 0x3d && report_buf) {
+                // make sure the controller has the reporting mode set and is ready to send data
+                if (controller->dataReportingMode == WM_REPORT_ID_EXTENSION_DATA_REPORT && 
+                    controller->isReady) {
                     // send the current state
-                    sendControllerInput(controller, report_buf->buttons, 
-                        report_buf->left_stick_x, report_buf->right_stick_x, 
-                        report_buf->left_stick_y, report_buf->right_stick_y);
+                    sendControllerInput(controller);
                 }
             }
         }
@@ -76,7 +77,7 @@ void initReportThread(void)
     report_thread_stack_base = IOS_AllocAligned(LOCAL_PROCESS_HEAP_ID, REPORT_THREAD_STACK_SIZE, 0x20);
 
     // create the thread (priority needs to be lower than the current thread)
-    report_thread_id = IOS_CreateThread(report_thread, NULL, (uint32_t*) ((uint8_t*) report_thread_stack_base + REPORT_THREAD_STACK_SIZE),
+    report_thread_id = IOS_CreateThread(reportThread, NULL, (uint8_t*) report_thread_stack_base + REPORT_THREAD_STACK_SIZE,
         REPORT_THREAD_STACK_SIZE, IOS_GetThreadPriority(0), 0);
 
     // start the thread
@@ -95,7 +96,7 @@ void deinitReportThread(void)
     IOS_Free(LOCAL_PROCESS_HEAP_ID, report_thread_stack_base);
 }
 
-#define COMPARE_NAME(x) (memcmp(name, x, sizeof(x) - 1) == 0)
+#define COMPARE_NAME(x) (strncmp(name, x, sizeof(x) - 1) == 0)
 int isOfficialName(const char* name)
 {
     return COMPARE_NAME("Nintendo RVL-CNT") || // wii remote / pro controller
@@ -116,15 +117,15 @@ int isSwitchControllerName(const char* name)
 }
 #undef COMPARE_NAME
 
-void controllerInit_switch(Controller_t* controller);
-void controllerInit_xbox_one(Controller_t* controller);
-void controllerInit_dualsense(Controller_t* controller);
-void controllerInit_dualshock4(Controller_t* controller);
-void controllerInit_dualshock3(Controller_t* controller);
+void controllerInit_switch(Controller* controller);
+void controllerInit_xbox_one(Controller* controller);
+void controllerInit_dualsense(Controller* controller);
+void controllerInit_dualshock4(Controller* controller);
+void controllerInit_dualshock3(Controller* controller);
 
 int initController(uint8_t* bda, uint8_t handle)
 {
-    StoredInfo_t* info = store_get_device_info(bda);
+    StoredInfo* info = store_get_device_info(bda);
     if (!info) {
         DEBUG("Failed to get info for device\n");
         return -1;
@@ -140,7 +141,7 @@ int initController(uint8_t* bda, uint8_t handle)
         initReportThread();
     }
 
-    Controller_t* controller = &controllers[handle];
+    Controller* controller = &controllers[handle];
 
     // if this controller was already initialized, deinitialize it first
     if (controller->isInitialized) {
@@ -150,7 +151,7 @@ int initController(uint8_t* bda, uint8_t handle)
         controller->isInitialized = 0;
     }
 
-    memset(controller, 0, sizeof(Controller_t));
+    memset(controller, 0, sizeof(Controller));
 
     controller->handle = handle;
     controller->isInitialized = 1;
@@ -158,8 +159,7 @@ int initController(uint8_t* bda, uint8_t handle)
     if (magic == MAGIC_OFFICIAL) {
         controller->isOfficialController = 1;
         return 0;
-    }
-    else if (magic == MAGIC_BLOOPAIR) {
+    } else if (magic == MAGIC_BLOOPAIR) {
         if ((vendor_id == 0x057e && product_id == 0x2006) || // joycon l
             (vendor_id == 0x057e && product_id == 0x2007) || // joycon r
             (vendor_id == 0x057e && product_id == 0x2009) || // switch pro controller
@@ -172,33 +172,28 @@ int initController(uint8_t* bda, uint8_t handle)
 
             controllerInit_switch(controller);
             return 0;
-        }
-        else if ((vendor_id == 0x045e && product_id == 0x02e0) || // xbox one s controller
-                 (vendor_id == 0x045e && product_id == 0x02fd) || // xbox one s controller
-                 (vendor_id == 0x045e && product_id == 0x0b00) || // xbox one elite controller
-                 (vendor_id == 0x045e && product_id == 0x0b05) || // xbox one elite controller
-                 (vendor_id == 0x045e && product_id == 0x0b0a)) { // xbox one adaptive controller
+        } else if ((vendor_id == 0x045e && product_id == 0x02e0) || // xbox one s controller
+                   (vendor_id == 0x045e && product_id == 0x02fd) || // xbox one s controller
+                   (vendor_id == 0x045e && product_id == 0x0b00) || // xbox one elite controller
+                   (vendor_id == 0x045e && product_id == 0x0b05) || // xbox one elite controller
+                   (vendor_id == 0x045e && product_id == 0x0b0a)) { // xbox one adaptive controller
             controllerInit_xbox_one(controller);
             return 0;
-        }
-        else if (vendor_id == 0x054c && product_id == 0x0ce6) { // dualsense
+        } else if (vendor_id == 0x054c && product_id == 0x0ce6) { // dualsense
             controllerInit_dualsense(controller);
             return 0;
-        }
-        else if ((vendor_id == 0x054c && product_id == 0x05c4) || // dualshock 4 v1
-                 (vendor_id == 0x054c && product_id == 0x09cc) || // dualshock 4 v2
-                 (vendor_id == 0x0f0d && product_id == 0x00f6) || // hori onyx
-                 (vendor_id == 0x1532 && product_id == 0x100a) || // razer raiju tournament
-                 (vendor_id == 0x146b && product_id == 0x0d01)) { // nacon ps4
+        } else if ((vendor_id == 0x054c && product_id == 0x05c4) || // dualshock 4 v1
+                   (vendor_id == 0x054c && product_id == 0x09cc) || // dualshock 4 v2
+                   (vendor_id == 0x0f0d && product_id == 0x00f6) || // hori onyx
+                   (vendor_id == 0x1532 && product_id == 0x100a) || // razer raiju tournament
+                   (vendor_id == 0x146b && product_id == 0x0d01)) { // nacon ps4
             controllerInit_dualshock4(controller);
             return 0;
-        }
-        else if (vendor_id == 0x054c && product_id == 0x0268) { // dualshock 3
+        } else if (vendor_id == 0x054c && product_id == 0x0268) { // dualshock 3
             controllerInit_dualshock3(controller);
             return 0;
         }
-    }
-    else if (magic == MAGIC_SWITCH) {
+    } else if (magic == MAGIC_SWITCH) {
         controllerInit_switch(controller);
         return 0;
     }
@@ -209,57 +204,31 @@ int initController(uint8_t* bda, uint8_t handle)
     return -1;
 }
 
-#define AXIS_BASE 0x800
-
-void sendControllerInput(Controller_t* controller, uint32_t buttons, int16_t left_stick_x, int16_t right_stick_x, int16_t left_stick_y, int16_t right_stick_y)
+void sendControllerInput(Controller* controller)
 {
-    uint8_t data[22];
-    memset(data, 0, sizeof(data));
+    ReportBuffer* repBuf = &controller->reportBuffer;
 
-    left_stick_x = left_stick_x + AXIS_BASE;
-    right_stick_x = right_stick_x + AXIS_BASE;
-    left_stick_y = left_stick_y * -1 + AXIS_BASE;
-    right_stick_y = right_stick_y * -1 + AXIS_BASE;
+    WPADProReport report;
+    memset(&report, 0, sizeof(report));
 
-    data[0] = 0x3d;
+    report.report_id = WM_REPORT_ID_EXTENSION_DATA_REPORT;
+    report.data.left_stick_x = bswap16(repBuf->left_stick_x + WPAD_PRO_AXIS_BASE);
+    report.data.right_stick_x = bswap16(repBuf->right_stick_x + WPAD_PRO_AXIS_BASE);
+    report.data.left_stick_y = bswap16(WPAD_PRO_AXIS_BASE - repBuf->left_stick_y);
+    report.data.right_stick_y = bswap16(WPAD_PRO_AXIS_BASE - repBuf->right_stick_y);
 
-    data[1] = left_stick_x & 0xff;
-    data[2] = left_stick_x >> 8;
-    data[3] = right_stick_x & 0xff;
-    data[4] = right_stick_x >> 8;
-    data[5] = left_stick_y & 0xff;
-    data[6] = left_stick_y >> 8;
-    data[7] = right_stick_y & 0xff;
-    data[8] = right_stick_y >> 8;
+    // These bits are all low-active
+    report.data.buttons = ~repBuf->buttons & 0xffff;
+    report.data.stick_buttons = ~(repBuf->buttons >> 16) & 0x3;
+    report.data.usb_connected = report.data.charging = !controller->isCharging;
 
-    data[9] = ~((buttons >> 8) & 0xff);
-    data[10] = ~(buttons & 0xff);
-    data[11] = (buttons >> 16) & 0xff;
-    
-    if (controller->isCharging) {
-        data[11] |= 0xc;
-    }
+    report.data.battery = controller->battery;
 
-    data[11] = (~data[11]) & 0xf;
-
-    data[11] |= controller->battery << 4;
-
-    encrypt(&controller->crypto, &data[1], &data[1], 0, sizeof(data) - 1);
-    sendInputData(controller->handle, data, sizeof(data));
+    wiimoteEncrypt(&controller->cryptoState, &report.data, &report.data, 0, sizeof(report.data));
+    sendInputData(controller->handle, &report, sizeof(report));
 }
 
-void initContinuousReports(Controller_t* controller)
-{
-    ReportBuffer_t* report_buf = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(ReportBuffer_t));
-    memset(report_buf, 0, sizeof(ReportBuffer_t));
-    controller->reportData = report_buf;
-}
 
-void deinitContinuousReports(Controller_t* controller)
-{
-    IOS_Free(LOCAL_PROCESS_HEAP_ID, controller->reportData);
-    controller->reportData = NULL;
-}
 
 uint8_t ledMaskToPlayerNum(uint8_t mask)
 {
@@ -274,4 +243,9 @@ uint8_t ledMaskToPlayerNum(uint8_t mask)
     }
 
     return 0;
+}
+
+int16_t scaleStickAxis(uint32_t val, uint32_t range)
+{
+    return (int16_t) (((int32_t) val - (range / 2)) * WPAD_PRO_AXIS_NORMALIZE_RANGE / range);
 }

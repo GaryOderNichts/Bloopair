@@ -17,6 +17,9 @@
 
 #include <controllers.h>
 
+// Info about the reports can be found here:
+// - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-sony.c>
+
 typedef struct {
     uint8_t led_update;
     uint8_t led_mask;
@@ -27,7 +30,7 @@ static const uint8_t led_config[] = { 0xff, 0x27, 0x10, 0x00, 0x32 };
 
 static const uint8_t enable_payload[] = { 0xf4, 0x42, 0x03, 0x00, 0x00 };
 
-static void sendRumbleLedState(Controller_t* controller)
+static void sendRumbleLedState(Controller* controller)
 {
     Dualshock3Data_t* ds_data = (Dualshock3Data_t*) controller->additionalData;
 
@@ -50,7 +53,7 @@ static void sendRumbleLedState(Controller_t* controller)
     setReport(controller->handle, BTA_HH_RPTT_OUTPUT, data, sizeof(data));
 }
 
-void controllerRumble_dualshock3(Controller_t* controller, uint8_t rumble)
+void controllerRumble_dualshock3(Controller* controller, uint8_t rumble)
 {
     Dualshock3Data_t* ds_data = (Dualshock3Data_t*) controller->additionalData;
 
@@ -61,7 +64,7 @@ void controllerRumble_dualshock3(Controller_t* controller, uint8_t rumble)
     }
 }
 
-void controllerSetLed_dualshock3(Controller_t* controller, uint8_t led)
+void controllerSetLed_dualshock3(Controller* controller, uint8_t led)
 {
     Dualshock3Data_t* ds_data = (Dualshock3Data_t*) controller->additionalData;
 
@@ -71,9 +74,7 @@ void controllerSetLed_dualshock3(Controller_t* controller, uint8_t led)
     ds_data->led_update = 1;
 }
 
-#define AXIS_NORMALIZE_VALUE (1140 * 2)
-
-void controllerData_dualshock3(Controller_t* controller, uint8_t* buf, uint16_t len)
+void controllerData_dualshock3(Controller* controller, uint8_t* buf, uint16_t len)
 {
     Dualshock3Data_t* ds_data = (Dualshock3Data_t*) controller->additionalData;
 
@@ -83,12 +84,12 @@ void controllerData_dualshock3(Controller_t* controller, uint8_t* buf, uint16_t 
     }
 
     if (buf[0] == 0x01) {
-        ReportBuffer_t* rep = controller->reportData;
+        ReportBuffer* rep = &controller->reportBuffer;
 
-        rep->left_stick_x = (buf[6] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->left_stick_y = (buf[7] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->right_stick_x = (buf[8] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->right_stick_y = (buf[9] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+        rep->left_stick_x = scaleStickAxis(buf[6], 256);
+        rep->left_stick_y = scaleStickAxis(buf[7], 256);
+        rep->right_stick_x = scaleStickAxis(buf[8], 256);
+        rep->right_stick_y = scaleStickAxis(buf[9], 256);
 
         rep->buttons = 0;
 
@@ -129,24 +130,24 @@ void controllerData_dualshock3(Controller_t* controller, uint8_t* buf, uint16_t 
 
         controller->isCharging = buf[29] == 0x02;
         controller->battery = CLAMP(buf[30], 0, 4);
+
+        if (!controller->isReady)
+            controller->isReady = 1;
     }
 }
 
-void controllerDeinit_dualshock3(Controller_t* controller)
+void controllerDeinit_dualshock3(Controller* controller)
 {
-    deinitContinuousReports(controller);
-
     IOS_Free(LOCAL_PROCESS_HEAP_ID, controller->additionalData);
 }
 
-void controllerInit_dualshock3(Controller_t* controller)
+void controllerInit_dualshock3(Controller* controller)
 {
-    initContinuousReports(controller);
-
     controller->data = controllerData_dualshock3;
     controller->setPlayerLed = controllerSetLed_dualshock3;
     controller->rumble = controllerRumble_dualshock3;
     controller->deinit = controllerDeinit_dualshock3;
+    controller->update = NULL;
 
     controller->battery = 4;
     controller->isCharging = 0;

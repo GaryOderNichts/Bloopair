@@ -17,6 +17,10 @@
 
 #include <controllers.h>
 
+// Info about the reports can be found here:
+// - <https://github.com/atar-axis/xpadneo/blob/master/hid-xpadneo/src/hid-xpadneo.c>
+// - <https://github.com/atar-axis/xpadneo/blob/master/hid-xpadneo/src/xpadneo.h>
+
 static const uint32_t dpad_map[9] = {
     0,
     WPAD_PRO_BUTTON_UP,
@@ -36,17 +40,15 @@ enum {
     RUMBLE_MOTOR_TRIGGER_LEFT  = 1 << 3,
 };
 
-#define AXIS_NORMALIZE_VALUE (1140 * 2)
-
-void controllerData_xbox_one(Controller_t* controller, uint8_t* buf, uint16_t len)
+void controllerData_xbox_one(Controller* controller, uint8_t* buf, uint16_t len)
 {
-    ReportBuffer_t* rep = controller->reportData;
+    ReportBuffer* rep = &controller->reportBuffer;
 
     if (buf[0] == 0x01) {
-        rep->left_stick_x = (((buf[2] << 8) | buf[1]) - 65536 / 2) * AXIS_NORMALIZE_VALUE / 65536;
-        rep->left_stick_y = (((buf[4] << 8) | buf[3]) - 65536 / 2) * AXIS_NORMALIZE_VALUE / 65536;
-        rep->right_stick_x = (((buf[6] << 8) | buf[5]) - 65536 / 2) * AXIS_NORMALIZE_VALUE / 65536;
-        rep->right_stick_y = (((buf[8] << 8) | buf[7]) - 65536 / 2) * AXIS_NORMALIZE_VALUE / 65536;
+        rep->left_stick_x = scaleStickAxis((buf[2] << 8) | buf[1], 65536);
+        rep->left_stick_y = scaleStickAxis((buf[4] << 8) | buf[3], 65536);
+        rep->right_stick_x = scaleStickAxis((buf[6] << 8) | buf[5], 65536);
+        rep->right_stick_y = scaleStickAxis((buf[8] << 8) | buf[7], 65536);
 
         // clear all buttons besides home
         rep->buttons &= WPAD_PRO_BUTTON_HOME;
@@ -85,8 +87,7 @@ void controllerData_xbox_one(Controller_t* controller, uint8_t* buf, uint16_t le
                 rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
             if (buf[16] & 0x01)
                 rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-        }
-        else {
+        } else {
             // old format
             if (buf[14] & 0x01)
                 rep->buttons |= WPAD_PRO_BUTTON_B;
@@ -109,20 +110,21 @@ void controllerData_xbox_one(Controller_t* controller, uint8_t* buf, uint16_t le
             if (buf[15] & 0x02)
                 rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
         }
-    }
-    else if (buf[0] == 0x02) {
+
+        if (!controller->isReady)
+            controller->isReady = 1;
+    } else if (buf[0] == 0x02) {
         if (buf[1] & 0x01)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
         else
             rep->buttons &= ~WPAD_PRO_BUTTON_HOME;
-    }
-    else if (buf[0] == 0x04) {
+    } else if (buf[0] == 0x04) {
         controller->battery = (buf[1] & 0x3) + 1;
         controller->isCharging = buf[1] & 0x10;
     }
 }
 
-void controllerRumble_xbox_one(Controller_t* controller, uint8_t rumble)
+void controllerRumble_xbox_one(Controller* controller, uint8_t rumble)
 {
     uint8_t data[9];
     data[0] = 0x03;
@@ -138,19 +140,17 @@ void controllerRumble_xbox_one(Controller_t* controller, uint8_t rumble)
     sendOutputData(controller->handle, data, sizeof(data));
 }
 
-void controllerDeinit_xbox_one(Controller_t* controller)
+void controllerDeinit_xbox_one(Controller* controller)
 {
-    deinitContinuousReports(controller);
 }
 
-void controllerInit_xbox_one(Controller_t* controller)
+void controllerInit_xbox_one(Controller* controller)
 {
-    initContinuousReports(controller);
-
     controller->setPlayerLed = NULL;
     controller->rumble = controllerRumble_xbox_one;
     controller->data = controllerData_xbox_one;
     controller->deinit = controllerDeinit_xbox_one;
+    controller->update = NULL;
 
     controller->battery = 4;
     controller->isCharging = 0;

@@ -50,12 +50,14 @@ void BTA_DmSearch_hook(tBTA_DM_INQ *p_dm_inq, uint32_t services, void *p_cback)
 
     p_dm_inq->duration = 10;
 
-    // only search for peripherals (could probably filter this even further to only search for gamepads)
+    // only search for gamepad peripherals
     p_dm_inq->filter_type = BTM_FILTER_COND_DEVICE_CLASS;
     p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[0] = 0;
-    p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[1] = 0x1f;
-    p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[2] = 0;
+    p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[1] = BTM_COD_MAJOR_CLASS_MASK;
+    p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[2] = BTM_COD_MINOR_CLASS_MASK;
+    p_dm_inq->filter_cond.dev_class_cond.dev_class[0] = 0;
     p_dm_inq->filter_cond.dev_class_cond.dev_class[1] = BTM_COD_MAJOR_PERIPHERAL;
+    p_dm_inq->filter_cond.dev_class_cond.dev_class[2] = BTM_COD_MINOR_GAMEPAD;
 
     real_BTA_DmSearch(p_dm_inq, services, p_cback);
 }

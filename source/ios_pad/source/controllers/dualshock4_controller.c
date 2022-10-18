@@ -18,6 +18,9 @@
 #include <controllers.h>
 #include "utils.h"
 
+// Information about the reports can be found here:
+// - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-sony.c>
+
 typedef struct {
     uint8_t led_color[3];
     uint8_t rumble;
@@ -48,9 +51,7 @@ static const uint32_t dpad_map[9] = {
     0,
 };
 
-#define AXIS_NORMALIZE_VALUE (1140 * 2)
-
-static void sendRumbleLedState(Controller_t* controller)
+static void sendRumbleLedState(Controller* controller)
 {
     Dualshock4Data_t* ds_data = (Dualshock4Data_t*) controller->additionalData;
 
@@ -74,7 +75,7 @@ static void sendRumbleLedState(Controller_t* controller)
     sendOutputData(controller->handle, data + 1, sizeof(data) - 1);
 }
 
-void controllerRumble_dualshock4(Controller_t* controller, uint8_t rumble)
+void controllerRumble_dualshock4(Controller* controller, uint8_t rumble)
 {
     Dualshock4Data_t* ds_data = (Dualshock4Data_t*) controller->additionalData;
 
@@ -83,7 +84,7 @@ void controllerRumble_dualshock4(Controller_t* controller, uint8_t rumble)
     sendRumbleLedState(controller);
 }
 
-void controllerSetLed_dualshock4(Controller_t* controller, uint8_t led)
+void controllerSetLed_dualshock4(Controller* controller, uint8_t led)
 {
     Dualshock4Data_t* ds_data = (Dualshock4Data_t*) controller->additionalData;
     
@@ -93,15 +94,15 @@ void controllerSetLed_dualshock4(Controller_t* controller, uint8_t led)
     sendRumbleLedState(controller);
 }
 
-void controllerData_dualshock4(Controller_t* controller, uint8_t* buf, uint16_t len)
+void controllerData_dualshock4(Controller* controller, uint8_t* buf, uint16_t len)
 {
-    ReportBuffer_t* rep = controller->reportData;
+    ReportBuffer* rep = &controller->reportBuffer;
 
     if (buf[0] == 0x01) {
-        rep->left_stick_x = (buf[1] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->left_stick_y = (buf[2] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->right_stick_x = (buf[3] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->right_stick_y = (buf[4] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+        rep->left_stick_x = scaleStickAxis(buf[1], 256);
+        rep->left_stick_y = scaleStickAxis(buf[2], 256);
+        rep->right_stick_x = scaleStickAxis(buf[3], 256);
+        rep->right_stick_y = scaleStickAxis(buf[4], 256);
 
         rep->buttons = 0;
 
@@ -134,12 +135,14 @@ void controllerData_dualshock4(Controller_t* controller, uint8_t* buf, uint16_t 
             rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
         if (buf[7] & 0x01)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
-    }
-    else if (buf[0] == 0x11) {
-        rep->left_stick_x = (buf[3] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->left_stick_y = (buf[4] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->right_stick_x = (buf[5] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->right_stick_y = (buf[6] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+
+        if (!controller->isReady)
+            controller->isReady = 1;
+    } else if (buf[0] == 0x11) {
+        rep->left_stick_x = scaleStickAxis(buf[3], 256);
+        rep->left_stick_y = scaleStickAxis(buf[4], 256);
+        rep->right_stick_x = scaleStickAxis(buf[5], 256);
+        rep->right_stick_y = scaleStickAxis(buf[6], 256);
 
         rep->buttons = 0;
 
@@ -176,24 +179,24 @@ void controllerData_dualshock4(Controller_t* controller, uint8_t* buf, uint16_t 
         uint8_t battery_level = buf[32] & 0xf;
         controller->battery = CLAMP(battery_level >> 1, 0, 4);
         controller->isCharging = (buf[32] & 0x10) && battery_level <= 10;
+
+        if (!controller->isReady)
+            controller->isReady = 1;
     }
 }
 
-void controllerDeinit_dualshock4(Controller_t* controller)
+void controllerDeinit_dualshock4(Controller* controller)
 {
-    deinitContinuousReports(controller);
-
     IOS_Free(LOCAL_PROCESS_HEAP_ID, controller->additionalData);
 }
 
-void controllerInit_dualshock4(Controller_t* controller)
+void controllerInit_dualshock4(Controller* controller)
 {
-    initContinuousReports(controller);
-
     controller->data = controllerData_dualshock4;
     controller->setPlayerLed = controllerSetLed_dualshock4;
     controller->rumble = controllerRumble_dualshock4;
     controller->deinit = controllerDeinit_dualshock4;
+    controller->update = NULL;
 
     controller->battery = 4;
     controller->isCharging = 0;

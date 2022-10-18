@@ -52,7 +52,10 @@ endif
 ASFLAGS	:= $(MACHDEP)
 
 LDFLAGS := -nostartfiles -nodefaultlibs -mbig-endian \
-	-Wl,-L $(TOPDIR) -Wl,-Map,$(notdir $*.map),-T $(TOPDIR)/link.ld
+	-Wl,-L $(TOPDIR) \
+	-Wl,-Map,$(notdir $*.map) \
+	-Wl,-T $(TOPDIR)/link.ld \
+	-Wl,--no-warn-rwx-segments
 
 LIBS	:= -lgcc
 

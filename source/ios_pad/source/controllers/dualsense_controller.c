@@ -18,6 +18,9 @@
 #include <controllers.h>
 #include "utils.h"
 
+// Info about the reports can be found here:
+// - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-playstation.c>
+
 typedef struct {
     uint8_t player_leds;
     uint8_t led_color[3];
@@ -63,9 +66,7 @@ static const uint32_t dpad_map[9] = {
     0,
 };
 
-#define AXIS_NORMALIZE_VALUE (1140 * 2)
-
-static void sendRumbleLedState(Controller_t* controller)
+static void sendRumbleLedState(Controller* controller)
 {
     DualsenseData_t* ds_data = (DualsenseData_t*) controller->additionalData;
 
@@ -94,7 +95,7 @@ static void sendRumbleLedState(Controller_t* controller)
     sendOutputData(controller->handle, data + 1, sizeof(data) - 1);
 }
 
-void controllerRumble_dualsense(Controller_t* controller, uint8_t rumble)
+void controllerRumble_dualsense(Controller* controller, uint8_t rumble)
 {
     DualsenseData_t* ds_data = (DualsenseData_t*) controller->additionalData;
 
@@ -103,7 +104,7 @@ void controllerRumble_dualsense(Controller_t* controller, uint8_t rumble)
     sendRumbleLedState(controller);
 }
 
-void controllerSetLed_dualsense(Controller_t* controller, uint8_t led)
+void controllerSetLed_dualsense(Controller* controller, uint8_t led)
 {
     DualsenseData_t* ds_data = (DualsenseData_t*) controller->additionalData;
 
@@ -116,15 +117,15 @@ void controllerSetLed_dualsense(Controller_t* controller, uint8_t led)
     sendRumbleLedState(controller);
 }
 
-void controllerData_dualsense(Controller_t* controller, uint8_t* buf, uint16_t len)
+void controllerData_dualsense(Controller* controller, uint8_t* buf, uint16_t len)
 {
-    ReportBuffer_t* rep = controller->reportData;
+    ReportBuffer* rep = &controller->reportBuffer;
 
     if (buf[0] == 0x01) {
-        rep->left_stick_x = (buf[1] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->left_stick_y = (buf[2] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->right_stick_x = (buf[3] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->right_stick_y = (buf[4] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+        rep->left_stick_x = scaleStickAxis(buf[1], 256);
+        rep->left_stick_y = scaleStickAxis(buf[2], 256);
+        rep->right_stick_x = scaleStickAxis(buf[3], 256);
+        rep->right_stick_y = scaleStickAxis(buf[4], 256);
 
         rep->buttons = 0;
 
@@ -157,12 +158,14 @@ void controllerData_dualsense(Controller_t* controller, uint8_t* buf, uint16_t l
             rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
         if (buf[7] & 0x01)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
-    }
-    else if (buf[0] == 0x31) {
-        rep->left_stick_x = (buf[2] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->left_stick_y = (buf[3] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->right_stick_x = (buf[4] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
-        rep->right_stick_y = (buf[5] - 256 / 2) * AXIS_NORMALIZE_VALUE / 256;
+
+        if (!controller->isReady)
+            controller->isReady = 1;
+    } else if (buf[0] == 0x31) {
+        rep->left_stick_x = scaleStickAxis(buf[2], 256);
+        rep->left_stick_y = scaleStickAxis(buf[3], 256);
+        rep->right_stick_x = scaleStickAxis(buf[4], 256);
+        rep->right_stick_y = scaleStickAxis(buf[5], 256);
 
         rep->buttons = 0;
 
@@ -201,37 +204,34 @@ void controllerData_dualsense(Controller_t* controller, uint8_t* buf, uint16_t l
         if (battery_status == 0) { // discharging
             controller->battery = CLAMP(battery_level, 0, 4);
             controller->isCharging = 0;
-        }
-        else if (battery_status == 1) { // charging
+        } else if (battery_status == 1) { // charging
             controller->battery = CLAMP(battery_level, 0, 4);
             controller->isCharging = 1;
-        }
-        else if (battery_status == 2) { // full
+        } else if (battery_status == 2) { // full
             controller->battery = 4;
             controller->isCharging = 0;
-        }
-        else { // everything else indicates an error
+        } else { // everything else indicates an error
             controller->battery = 0;
             controller->isCharging = 0;
         }
+
+        if (!controller->isReady)
+            controller->isReady = 1;
     }
 }
 
-void controllerDeinit_dualsense(Controller_t* controller)
+void controllerDeinit_dualsense(Controller* controller)
 {
-    deinitContinuousReports(controller);
-
     IOS_Free(LOCAL_PROCESS_HEAP_ID, controller->additionalData);
 }
 
-void controllerInit_dualsense(Controller_t* controller)
+void controllerInit_dualsense(Controller* controller)
 {
-    initContinuousReports(controller);
-
     controller->data = controllerData_dualsense;
     controller->setPlayerLed = controllerSetLed_dualsense;
     controller->rumble = controllerRumble_dualsense;
     controller->deinit = controllerDeinit_dualsense;
+    controller->update = NULL;
 
     controller->battery = 4;
     controller->isCharging = 0;

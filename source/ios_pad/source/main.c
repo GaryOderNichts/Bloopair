@@ -16,37 +16,17 @@
  */
 
 #include "main.h"
-#include "crypto.h"
+#include "wiimote_crypto.h"
 #include "controllers.h"
 #include "utils.h"
 
-typedef struct __attribute__ ((__packed__)) {
-    uint8_t dev_handle;
-    uint8_t mode;
-    uint8_t sub_class;
-    uint8_t app_id;
-    uint16_t length;
-    uint8_t data[58];
-} padscore_input_data_t;
-
-typedef struct __attribute__ ((__packed__)) {
-    uint8_t __unk1[10];
-    uint16_t length;
-    uint16_t __unk2;
-    uint8_t dev_handle;
-    uint8_t __unk3;
-    uint8_t data[120];
-} padscore_output_data_t;
-
-padscore_output_data_t* output_buf = (padscore_output_data_t*) 0x11fd5184;
+#define HH_SEND_DATA_OFFSET 0x29
 
 const uint8_t wiiu_pro_controller_id[] = { 0x00, 0x00, 0xa4, 0x20, 0x01, 0x20 };
 
 const uint8_t wiiu_pro_controller_cert[] = { 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0x01, 0x00, 0x00, 0x20, 0x01, 0x00, 0xa4, 0x20, 0x00, 0x05 };
 
-#define HH_SEND_DATA_OFFSET 0x29
-
-void sendInputData(uint8_t dev_handle, const uint8_t* data, uint16_t len)
+void sendInputData(uint8_t dev_handle, const void* data, uint16_t len)
 {
     if (!len || len > 58) {
         return;
@@ -56,19 +36,18 @@ void sendInputData(uint8_t dev_handle, const uint8_t* data, uint16_t len)
         return;
     }
 
-    padscore_input_data_t msg;
+    SMDInputMessage msg;
     msg.dev_handle = dev_handle;
     msg.length = len;
     msg.mode = 0;
     msg.sub_class = 4;
     msg.app_id = 3;
-
     memcpy(msg.data, data, len);
 
-    smdIopSendMessage(smdIopIndex, &msg, sizeof(padscore_input_data_t));
+    smdIopSendMessage(smdIopIndex, &msg, sizeof(msg));
 }
 
-void sendOutputData(uint8_t dev_handle, const uint8_t* data, uint16_t len)
+void sendOutputData(uint8_t dev_handle, const void* data, uint16_t len)
 {
     BT_HDR* p_buf = GKI_getpoolbuf(3);
     if (!p_buf) {
@@ -81,7 +60,7 @@ void sendOutputData(uint8_t dev_handle, const uint8_t* data, uint16_t len)
     BTA_HhSendData(dev_handle, NULL, p_buf);
 }
 
-void setReport(uint8_t dev_handle, uint8_t type, const uint8_t* data, uint16_t len)
+void setReport(uint8_t dev_handle, uint8_t type, const void* data, uint16_t len)
 {
     BT_HDR* p_buf = GKI_getpoolbuf(3);
     if (!p_buf) {
@@ -96,70 +75,70 @@ void setReport(uint8_t dev_handle, uint8_t type, const uint8_t* data, uint16_t l
 
 static void sendAcknowledgeReport(uint8_t dev_handle, uint8_t report, uint8_t result)
 {
-    uint8_t data[5];
-    data[0] = 0x22;
-    data[1] = data[2] = 0;
-    data[3] = report;
-    data[4] = result;
-    sendInputData(dev_handle, data, sizeof(data));
+    WMAcknowledgeReport ack;
+    ack.report_id = WM_REPORT_ID_ACKNOWLEDGE;
+    ack.core_buttons = 0; // no need to set buttons here, we only send the extension buttons
+    ack.ack_report = report;
+    ack.result = result;
+    sendInputData(dev_handle, &ack, sizeof(ack));
 }
 
-static void sendReadResponse(uint8_t dev_handle, uint8_t result, uint32_t address, const uint8_t* _data, uint8_t size)
+static void sendReadResponse(uint8_t dev_handle, uint8_t result, uint32_t address, const void* data, uint8_t size)
 {
     if (size > 16) {
         return;
     }
 
-    if (!_data) {
+    if (!data || !size) {
         size = 1;
     }
 
-    uint8_t data[22];
-    memset(data, 0, sizeof(data));
+    WMMemoryDataReport report;
+    memset(&report, 0, sizeof(report));
 
-    data[0] = 0x21;
-    data[1] = data[2] = 0;
-    data[3] = ((size - 1) << 4) | result;
-    data[4] = (address >> 8) & 0xff;
-    data[5] = address & 0xff;
+    report.report_id = WM_REPORT_ID_MEMORY_DATA;
+    report.core_buttons = 0; // no need to set buttons here, we only send the extension buttons
+    report.size = size - 1;
+    report.result = result;
+    report.offset = address;
 
-    if (_data) {
-        memcpy(&data[6], _data, size);
+    if (data) {
+        memcpy(report.data, data, size);
     }
 
-    sendInputData(dev_handle, data, sizeof(data));
+    sendInputData(dev_handle, &report, sizeof(report));
 }
 
 static void writeMemory(uint8_t dev_handle, uint32_t address, uint8_t* data, uint8_t len)
 {
     DEBUG("writing to 0x%08lX size %d\n", address, len);
-    Controller_t* controller = &controllers[dev_handle];
+    Controller* controller = &controllers[dev_handle];
 
     switch (address) {
     case 0x04a40040: // key part 1
         if (len == 6) {
-            memcpy(controller->key, data, 6);
-            sendAcknowledgeReport(dev_handle, 0x16, 0);
+            memcpy(controller->extensionKey, data, 6);
+            sendAcknowledgeReport(dev_handle, WM_REPORT_ID_MEMORY_WRITE, 0);
             return;
         }
         break;
     case 0x04a40046: // key part 2
         if (len == 6) {
-            memcpy(controller->key + 6, data, 6);
-            sendAcknowledgeReport(dev_handle, 0x16, 0);
+            memcpy(controller->extensionKey + 6, data, 6);
+            sendAcknowledgeReport(dev_handle, WM_REPORT_ID_MEMORY_WRITE, 0);
             return;
         }
         break;
     case 0x04a4004c: // key part 3
         if (len == 4) {
-            memcpy(controller->key + 12, data, 4);
-            cryptoInit(&controller->crypto, controller->key);
-            sendAcknowledgeReport(dev_handle, 0x16, 0);
+            memcpy(controller->extensionKey + 12, data, 4);
+            wiimoteCryptoInit(&controller->cryptoState, controller->extensionKey);
+            sendAcknowledgeReport(dev_handle, WM_REPORT_ID_MEMORY_WRITE, 0);
             return;
         }
         break;
     case 0x04a20001:
-        sendAcknowledgeReport(dev_handle, 0x16, len == 1 ? 0 : 7);
+        sendAcknowledgeReport(dev_handle, WM_REPORT_ID_MEMORY_WRITE, len == 1 ? 0 : 7);
         return;
     case 0x04a400f0: // init extension
     case 0x04a400fb: // init extension 2
@@ -168,21 +147,21 @@ static void writeMemory(uint8_t dev_handle, uint32_t address, uint8_t* data, uin
     case 0x04b00033:
     case 0x04b00030:
     case 0x04a20009:
-        sendAcknowledgeReport(dev_handle, 0x16, 0);
+        sendAcknowledgeReport(dev_handle, WM_REPORT_ID_MEMORY_WRITE, 0);
         return;
     case 0x04a20008:
-        sendAcknowledgeReport(dev_handle, 0x16, 7);
+        sendAcknowledgeReport(dev_handle, WM_REPORT_ID_MEMORY_WRITE, 7);
         return;
     }
 
     DEBUG("invalid write to 0x%lx\n", address);
-    sendAcknowledgeReport(dev_handle, 0x16, 3);
+    sendAcknowledgeReport(dev_handle, WM_REPORT_ID_MEMORY_WRITE, 3);
 }
 
 static void readMemory(uint8_t dev_handle, uint32_t address, uint16_t len)
 {
     DEBUG("reading from 0x%08lx size %d\n", address, len);
-    Controller_t* controller = &controllers[dev_handle];
+    Controller* controller = &controllers[dev_handle];
 
     switch (address) {
     case 0x04a400fa: // extension
@@ -197,16 +176,18 @@ static void readMemory(uint8_t dev_handle, uint32_t address, uint16_t len)
             return;
         }
         break;
-    case 0x04a40020: // calibration
+    case 0x04a40020: // config / calibration
         if (len == 32) {
             uint8_t tmp[16];
             
+            // What is this calibration data used for exactly?
+            // Let's just send 0xff for now
             memset(tmp, 0xff, sizeof(tmp));
-            encrypt(&controller->crypto, tmp, tmp, address, 16);
+            wiimoteEncrypt(&controller->cryptoState, tmp, tmp, address, 16);
             sendReadResponse(dev_handle, 0, address, tmp, sizeof(tmp));
 
             memset(tmp, 0xff, sizeof(tmp));
-            encrypt(&controller->crypto, tmp, tmp, address + 16, 16);
+            wiimoteEncrypt(&controller->cryptoState, tmp, tmp, address + 16, 16);
             sendReadResponse(dev_handle, 0, address + 16, tmp, sizeof(tmp));
             return;
         }
@@ -224,113 +205,113 @@ void processSmdMessages(void)
         return;
     }
 
-    while (smdIopReceive(smdIopIndex, output_buf) != -0xc0005) {
-        DEBUG("output request for handle %u size %u, cmd: 0x%X\n", output_buf->dev_handle, output_buf->length, output_buf->data[0]);
+    SMDOutputMessage msg;
+    while (smdIopReceive(smdIopIndex, &msg) != -0xc0005) {
+        WMReport* report = &msg.report;
+        DEBUG("output request for handle %u size %u, cmd: 0x%X\n", msg.dev_handle, msg.length, report->report_id);
 
-        Controller_t* controller = &controllers[output_buf->dev_handle];
+        Controller* controller = &controllers[msg.dev_handle];
         if (!controller->isInitialized) {
             continue;
         }
 
         if (controller->isOfficialController) {
 #ifdef TESTING
-            if (output_buf->data[0] == 0x16) {
-                uint32_t address;
-                memcpy(&address, &output_buf->data[1], sizeof(address));
-
-                uint8_t len = output_buf->data[5];
-                uint8_t* data = &output_buf->data[6];
+            if (report->report_id == WM_REPORT_ID_MEMORY_WRITE) {
+                uint32_t address = report->memory_write.address;
+                uint8_t len = report->memory_write.size;
+                uint8_t* data = report->memory_write.data;
 
                 switch (address) {
                 case 0x04a40040: // key part 1
                     if (len == 6) {
-                        memcpy(controller->key, data, 6);
+                        memcpy(controller->extensionKey, data, 6);
                     }
                     break;
                 case 0x04a40046: // key part 2
                     if (len == 6) {
-                        memcpy(controller->key + 6, data, 6);
+                        memcpy(controller->extensionKey + 6, data, 6);
                     }
                     break;
                 case 0x04a4004c: // key part 3
                     if (len == 4) {
-                        memcpy(controller->key + 12, data, 4);
-                        cryptoInit(&controller->crypto, controller->key);
+                        memcpy(controller->extensionKey + 12, data, 4);
+                        wiimoteCryptoInit(&controller->cryptoState, controller->extensionKey);
                     }
                     break;
                 }
             }
 #endif
-            sendOutputData(output_buf->dev_handle, output_buf->data, output_buf->length);
-        }
-        else {
+            // we can just directly send the report to official controllers
+            sendOutputData(msg.dev_handle, report->data, msg.length);
+        } else {
+            // handle the rumble bit
             if (controller->rumble) {
-                controller->rumble(controller, output_buf->data[1] & 0x01);
+                controller->rumble(controller, report->rumble.rumble);
             }
 
             // clear the rumble bit
-            output_buf->data[1] &= ~0x01;
+            report->rumble.rumble = 0;
 
-            switch (output_buf->data[0]) {
-            case 0x10: { // rumble
-                sendAcknowledgeReport(output_buf->dev_handle, 0x10, 0);
+            switch (report->report_id) {
+            case WM_REPORT_ID_RUMBLE: {
+                // rumble will already be handled based on the rumble bit above, so just acknowledge the report
+                sendAcknowledgeReport(msg.dev_handle, WM_REPORT_ID_RUMBLE, 0);
                 break;
             }
-            case 0x11: { // leds
+            case WM_REPORT_ID_LED: {
                 if (controller->setPlayerLed) {
-                    controller->setPlayerLed(controller, output_buf->data[1] >> 4);
+                    controller->setPlayerLed(controller, report->led.led_mask);
                 }
-                sendAcknowledgeReport(output_buf->dev_handle, 0x11, 0);
+                sendAcknowledgeReport(msg.dev_handle, WM_REPORT_ID_LED, 0);
                 break;
             }
-            case 0x12: { // set report format
-                DEBUG("data reporting set to %x\n", output_buf->data[2]);
-                controller->dataReportingMode = output_buf->data[2];
-                sendAcknowledgeReport(output_buf->dev_handle, 0x12, 0);
+            case WM_REPORT_ID_REPORT_MODE: {
+                DEBUG("data reporting set to %x:%x\n", report->report_mode.continous, report->report_mode.mode);
+                controller->dataReportingMode = report->report_mode.mode;
+                sendAcknowledgeReport(msg.dev_handle, WM_REPORT_ID_REPORT_MODE, 0);
                 break;
             }
-            case 0x13: { // ir enable
+            case WM_REPORT_ID_IR_ENABLE_1: {
                 controller->irEnabled = 1;
-                sendAcknowledgeReport(output_buf->dev_handle, 0x13, 0);
+                sendAcknowledgeReport(msg.dev_handle, WM_REPORT_ID_IR_ENABLE_1, 0);
                 break;
             }
-            case 0x14: { // speaker enable
-                sendAcknowledgeReport(output_buf->dev_handle, 0x14, 7);
+            case WM_REPORT_ID_SPEAKER_ENABLE: {
+                // this always returns 7, since the pro controller doesn't have a speaker
+                sendAcknowledgeReport(msg.dev_handle, WM_REPORT_ID_SPEAKER_ENABLE, 7);
                 break;
             }
-            case 0x15: { // request status report
-                uint8_t data[7];
-                data[0] = 0x20;
-                data[1] = data[2] = 0;
-                data[3] = 0x10 | 0x2;
+            case WM_REPORT_ID_REQUEST_STATUS: {
+                WMStatusReport status;
+                status.report_id = WM_REPORT_ID_STATUS;
+                status.core_buttons = 0; // no need to set buttons here, we only send the extension buttons
+                // TODO
+                status.led_mask = 0x1;
+                status.flags = 0x2;
                 if (controller->irEnabled) {
-                    data[3] |= 0x8;
+                    status.flags |= 0x8;
                 }
-                data[4] = data[5] = 0;
-                data[6] = 0xff;
-                sendInputData(output_buf->dev_handle, data, sizeof(data));
+                status.unused = 0;
+                // TODO
+                status.battery_level = 0xff;
+                sendInputData(msg.dev_handle, &status, sizeof(status));
                 break;
             }
-            case 0x16: { // write memory
-                uint32_t address;
-                memcpy(&address, &output_buf->data[1], sizeof(address));
-                writeMemory(output_buf->dev_handle, address, &output_buf->data[6], output_buf->data[5]);
+            case WM_REPORT_ID_MEMORY_WRITE: {
+                writeMemory(msg.dev_handle, report->memory_write.address, report->memory_write.data, report->memory_write.size);
                 break;
             }
-            case 0x17: { // read memory
-                uint32_t address;
-                memcpy(&address, &output_buf->data[1], sizeof(address));
-                uint16_t len;
-                memcpy(&len, &output_buf->data[5], sizeof(len));
-                readMemory(output_buf->dev_handle, address, len);
+            case WM_REPORT_ID_MEMORY_READ: {
+                readMemory(msg.dev_handle, report->memory_read.address, report->memory_read.size);
                 break;
             }
-            case 0x19: { // speaker mute
-                sendAcknowledgeReport(output_buf->dev_handle, 0x19, output_buf->data[1] == 6 ? 7 : 0);
+            case WM_REPORT_ID_SPEAKER_MUTE: {
+                sendAcknowledgeReport(msg.dev_handle, WM_REPORT_ID_SPEAKER_MUTE, report->speaker_mute.mute == 6 ? 7 : 0);
                 break;
             }
-            case 0x1a: { // ir enable 2
-                sendAcknowledgeReport(output_buf->dev_handle, 0x1a, 0);
+            case WM_REPORT_ID_IR_ENABLE_2: {
+                sendAcknowledgeReport(msg.dev_handle, WM_REPORT_ID_IR_ENABLE_2, 0);
             }
             default:
                 break;
@@ -347,27 +328,27 @@ void bta_hh_co_data(uint8_t dev_handle, uint8_t *p_rpt, uint16_t len, uint8_t mo
         return;
     }
 
-    Controller_t* controller = &controllers[dev_handle];
+    Controller* controller = &controllers[dev_handle];
     if (!controller->isInitialized) {
         return;
     }
 
     if (controller->isOfficialController) {
+        // we can just pass received data from official controllers to padscore
         sendInputData(dev_handle, p_rpt, len);
 #ifdef TESTING
-        if (p_rpt[0] == 0x20) {
+        if (p_rpt[0] == WM_REPORT_ID_STATUS) {
             dumpHex(p_rpt, len);
-        }
-        else if (p_rpt[0] == 0x3d) {
+        } else if (p_rpt[0] == WM_REPORT_ID_EXTENSION_DATA_REPORT) {
             static int cnt = 0;
             if (cnt++ % 16 == 0) {
-                decrypt(&controller->crypto, p_rpt + 1, p_rpt + 1, 0, len - 1);
+                wiimoteDecrypt(&controller->cryptoState, p_rpt + 1, p_rpt + 1, 0, len - 1);
                 dumpHex(p_rpt, len);
             }
         }
 #endif
-    }
-    else {
+    } else {
+        // pass received data to the controller
         if (controller->data) {
             controller->data(controller, p_rpt, len);
         }

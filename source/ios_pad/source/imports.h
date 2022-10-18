@@ -22,7 +22,6 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <string.h>
-#include <assert.h>
 
 #include "utils.h"
 
@@ -42,7 +41,7 @@ typedef struct {
 	uint32_t unk;
 } IOSVec_t;
 
-int IOS_CreateThread(int (*fun)(void* arg), void* arg, uint32_t* stack_top, uint32_t stacksize, int priority, uint32_t flags);
+int IOS_CreateThread(int (*fun)(void* arg), void* arg, void* stack_top, uint32_t stacksize, int priority, uint32_t flags);
 int IOS_JoinThread(int threadid, uint32_t *returned_value);
 int IOS_CancelThread(int threadid, int return_value);
 int IOS_GetCurrentThreadID(void);
@@ -69,6 +68,7 @@ uint32_t IOS_VirtToPhys(uint32_t address);
 void* IOS_Alloc(uint32_t heap, uint32_t size);
 void* IOS_AllocAligned(uint32_t heap, uint32_t size, uint32_t alignment);
 void IOS_Free(uint32_t heap, void* ptr);
+
 void bdcpy(uint8_t* a, const uint8_t* b);
 void* GKI_getbuf(uint32_t size);
 void GKI_freebuf(void* p_buf);
@@ -89,6 +89,7 @@ int smdIopReceive(int idx, void* ptr);
 uint8_t btm_remove_acl(uint8_t* bd_addr);
 int deleteDevice(uint8_t* bd_addr);
 int registerNewDevice(uint8_t* addr, uint8_t* link_key, uint8_t* name);
+const char* bdaddr_to_string(uint8_t* bd_addr);
 
 extern uint32_t isSmdReady;
 extern uint32_t smdIopIndex;

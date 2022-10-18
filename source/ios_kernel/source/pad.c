@@ -80,22 +80,36 @@ void run_ios_pad_patches(void)
     *(volatile uint32_t *) 0x11f0274c = ARM_BL(0x11f0274c, btrm_receive_message_hook);
 
 #ifdef MORE_LOGS
-    // Set bta_sys_cfg.trace_level to BT_TRACE_LEVEL_DEBUG
-    *(volatile uint8_t *) 0x11fca8d4 = 5;
+/******************************************************************************
+**
+** Trace Levels
+**
+** The following values may be used for different levels:
+**      BT_TRACE_LEVEL_NONE    0        * No trace messages to be generated
+**      BT_TRACE_LEVEL_ERROR   1        * Error condition trace messages
+**      BT_TRACE_LEVEL_WARNING 2        * Warning condition trace messages
+**      BT_TRACE_LEVEL_API     3        * API traces
+**      BT_TRACE_LEVEL_EVENT   4        * Debug messages for events
+**      BT_TRACE_LEVEL_DEBUG   5        * Debug messages (general)
+******************************************************************************/
+#define TRACE_LEVEL 5
 
-    // Set appl_trace_level to BT_TRACE_LEVEL_DEBUG
-    *(volatile uint8_t *) 0x120fd085 = 5;
+    // bta_sys_cfg.trace_level
+    *(volatile uint8_t *) 0x11fca8d4 = TRACE_LEVEL;
 
-    // Set btm_cb.trace_level to BT_TRACE_LEVEL_DEBUG
-    *(volatile uint8_t *) 0x12150f88 = 5;
+    // appl_trace_level
+    *(volatile uint8_t *) 0x120fd085 = TRACE_LEVEL;
 
-    // Set hh_cb.trace_level to BT_TRACE_LEVEL_DEBUG
-    *(volatile uint8_t *) 0x12151475 = 5;
+    // btm_cb.trace_level
+    *(volatile uint8_t *) 0x12150f88 = TRACE_LEVEL;
 
-    // Set l2cb.l2cap_trace_level to BT_TRACE_LEVEL_DEBUG
-    *(volatile uint8_t *) 0x12151478 = 5;
+    // hh_cb.trace_level
+    *(volatile uint8_t *) 0x12151475 = TRACE_LEVEL;
 
-    // Set sdp_cb.trace_level to BT_TRACE_LEVEL_DEBUG
-    *(volatile uint8_t *) 0x12155454 = 5;
+    // l2cb.l2cap_trace_level
+    *(volatile uint8_t *) 0x12151478 = TRACE_LEVEL;
+
+    // sdp_cb.trace_level
+    *(volatile uint8_t *) 0x12155454 = TRACE_LEVEL;
 #endif
 }

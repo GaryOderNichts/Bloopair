@@ -4,6 +4,7 @@ PROVIDE(memcpy = 0x11f833ec);
 PROVIDE(memset = 0x11f83488);
 PROVIDE(memcmp = 0x11f83304);
 PROVIDE(strncmp = 0x11f83edc);
+PROVIDE(strnlen = 0x11f83f60);
 PROVIDE(strncpy = 0x11f83e80);
 PROVIDE(vsnprintf = 0x11f83e04);
 
@@ -55,6 +56,7 @@ PROVIDE(smdIopReceive = 0x11f7e154);
 PROVIDE(btm_remove_acl = 0x11f09b58);
 PROVIDE(deleteDevice = 0x11f04ec8);
 PROVIDE(registerNewDevice = 0x11f41370);
+PROVIDE(bdaddr_to_string = 0x11f40150);
 
 PROVIDE(bta_hh_sm_execute = 0x11f07a88);
 PROVIDE(bta_hh_start_sdp = 0x11f06d5c);

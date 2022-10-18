@@ -27,7 +27,7 @@ uint8_t btm_sec_execute_procedure_hook(tBTM_SEC_DEV_REC *p_dev_rec)
     // make sure the device info has been read
     store_read_device_info();
 
-    StoredInfo_t* info = store_get_device_info(p_dev_rec->bd_addr);
+    StoredInfo* info = store_get_device_info(p_dev_rec->bd_addr);
 
     // if this is a paired ds3, bypass security checks
     if (info && info->vendor_id == 0x054c && info->product_id == 0x0268) {

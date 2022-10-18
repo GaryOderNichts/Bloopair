@@ -18,9 +18,9 @@
 #include "info_store.h"
 #include "controllers.h"
 
-bt_devInfo_t* bt_devInfo = (bt_devInfo_t*) 0x12157778;
+BT_DevInfo* bt_devInfo = (BT_DevInfo*) 0x12157778;
 
-StoredInfo_t stored_infos[BTA_HH_MAX_KNOWN] = { 0 };
+StoredInfo stored_infos[BTA_HH_MAX_KNOWN] = { 0 };
 
 int devInfo_read = 0;
 
@@ -33,9 +33,9 @@ void store_read_device_info(void)
     devInfo_read = 1;
 
     for (int i = 0; i < bt_devInfo->num_entries; i++) {
-        bt_devInfo_entry_t* entry = &bt_devInfo->entries[i];
+        BT_DevInfo_Entry* entry = &bt_devInfo->entries[i];
 
-        StoredInfo_t* info = store_get_device_info(entry->address);
+        StoredInfo* info = store_get_device_info(entry->address);
         if (!info) {
             info = store_allocate_device_info(entry->address);
             if (!info) {
@@ -45,8 +45,7 @@ void store_read_device_info(void)
 
         if (entry->magic == MAGIC_EMPTY) {
             info->magic = MAGIC_UNKNOWN;
-        }
-        else {
+        } else {
             info->magic = entry->magic;
             info->vendor_id = entry->vendor_id;
             info->product_id = entry->product_id;
@@ -55,7 +54,7 @@ void store_read_device_info(void)
 }
 
 
-StoredInfo_t* store_get_device_info(uint8_t* address)
+StoredInfo* store_get_device_info(uint8_t* address)
 {
     for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
         if (stored_infos[i].magic != MAGIC_EMPTY &&
@@ -67,7 +66,7 @@ StoredInfo_t* store_get_device_info(uint8_t* address)
     return NULL;
 }
 
-StoredInfo_t* store_allocate_device_info(uint8_t* address)
+StoredInfo* store_allocate_device_info(uint8_t* address)
 {
     // look for a free entry
     for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
@@ -88,9 +87,9 @@ int writeDevInfo_hook(void* callback)
 
     // populate devInfo with our custom info before writing
     for (int i = 0; i < bt_devInfo->num_entries; i++) {
-        bt_devInfo_entry_t* entry = &bt_devInfo->entries[i];
+        BT_DevInfo_Entry* entry = &bt_devInfo->entries[i];
 
-        StoredInfo_t* info = store_get_device_info(entry->address);
+        StoredInfo* info = store_get_device_info(entry->address);
         if (!info) {
             // we don't have info for this entry, skip it
             continue;
@@ -128,7 +127,7 @@ void store_read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db)
     DEBUG("got vid %X and pid %X\n", vendor_id, product_id);
 
     // store the vid and pid
-    StoredInfo_t* info = store_get_device_info(bda);
+    StoredInfo* info = store_get_device_info(bda);
     if (!info) {
         info = store_allocate_device_info(bda);
     }

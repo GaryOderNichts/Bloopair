@@ -31,9 +31,10 @@ void bta_hh_event(uint8_t event, void *p_data)
         tBTA_HH_CONN* conn_data = (tBTA_HH_CONN*) p_data;
         DEBUG("open event for handle %u\n", conn_data->handle);
 
+        // initialize the controller
         if (conn_data->handle != BTA_HH_INVALID_HANDLE) {
             if (initController(conn_data->bda, conn_data->handle) != 0) {
-                // close connection
+                // close connection on failure
                 BTA_HhClose(conn_data->handle);
                 return;
             }
@@ -44,8 +45,9 @@ void bta_hh_event(uint8_t event, void *p_data)
         tBTA_HH_CBDATA* cb_data = (tBTA_HH_CBDATA*) p_data;
         DEBUG("close event handle %u status %x\n", cb_data->handle, cb_data->status);
 
+        // deinit the controller if it was initialized
         if (cb_data->handle != BTA_HH_INVALID_HANDLE) {
-            Controller_t* controller = &controllers[cb_data->handle];
+            Controller* controller = &controllers[cb_data->handle];
             if (!controller->isInitialized) {
                 break;
             }
@@ -58,6 +60,7 @@ void bta_hh_event(uint8_t event, void *p_data)
         }
         break;
     }
+    // TODO can this be removed?
     case BTA_HH_VC_UNPLUG_EVT: {
         tBTA_HH_CBDATA* cb_data = (tBTA_HH_CBDATA*) p_data;
         DEBUG("vc unplug %u\n", cb_data->handle);
@@ -80,6 +83,7 @@ void bta_hh_api_disable(void)
 {
     DEBUG("bta_hh_api_disable\n");
 
+    // deinitialize all controllers
     for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
         if (controllers[i].isInitialized) {
             if (controllers[i].deinit) {
@@ -89,6 +93,7 @@ void bta_hh_api_disable(void)
         }
     }
 
+    // stop report thread
     deinitReportThread();
 
     real_bta_hh_api_disable();    

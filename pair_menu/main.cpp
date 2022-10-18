@@ -25,6 +25,9 @@
 #include <whb/log.h>
 #include <whb/log_console.h>
 
+// Info about the reports can be found here:
+// - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-sony.c>
+
 #define DS3_VID 0x054c
 #define DS3_PID 0x0268
 

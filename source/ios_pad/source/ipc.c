@@ -44,7 +44,7 @@ static int bloopairFunc(BtrmRequest_t* request, BtrmResponse_t* response)
         BTM_WriteStoredLinkKey(1, data->bd_address, data->link_key, NULL);
 
         // add the info to our store
-        StoredInfo_t* info = store_get_device_info(data->bd_address);
+        StoredInfo* info = store_get_device_info(data->bd_address);
         if (!info) {
             info = store_allocate_device_info(data->bd_address);
             if (!info) {

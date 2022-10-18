@@ -28,7 +28,7 @@ enum {
     MAGIC_UNKNOWN  = 0xFF,
 };
 
-typedef struct __attribute__ ((__packed__)) {
+typedef struct PACKED {
     BD_ADDR address;
     //uint8_t name[64];
 
@@ -43,40 +43,40 @@ typedef struct __attribute__ ((__packed__)) {
     uint8_t magic;
     uint16_t vendor_id;
     uint16_t product_id;
-} bt_devInfo_entry_t;
-static_assert(sizeof(bt_devInfo_entry_t) == 0x46);
+} BT_DevInfo_Entry;
+CHECK_SIZE(BT_DevInfo_Entry, 0x46);
 
-typedef struct __attribute__ ((__packed__)) {
+typedef struct PACKED {
     BD_ADDR address;
     uint8_t name[20];
     uint8_t link_key[16];
-} bt_devInfo_wbc_entry_t;
-static_assert(sizeof(bt_devInfo_wbc_entry_t) == 0x2a);
+} BT_DevInfo_WBC_Entry;
+CHECK_SIZE(BT_DevInfo_WBC_Entry, 0x2a);
 
-typedef struct __attribute__ ((__packed__)) {
+typedef struct PACKED {
     uint8_t num_entries;
-    bt_devInfo_entry_t entries[10];
-    bt_devInfo_entry_t controller_order[4];
-    bt_devInfo_wbc_entry_t wbc;
+    BT_DevInfo_Entry entries[10];
+    BT_DevInfo_Entry controller_order[4];
+    BT_DevInfo_WBC_Entry wbc;
     uint8_t unk[98]; // unused
-} bt_devInfo_t;
-static_assert(sizeof(bt_devInfo_t) == 0x461);
+} BT_DevInfo;
+CHECK_SIZE(BT_DevInfo, 0x461);
 
 typedef struct {
     uint8_t magic;
     BD_ADDR address;
     uint16_t vendor_id;
     uint16_t product_id;
-} StoredInfo_t;
+} StoredInfo;
 
 // read the device info and add it to the store
 void store_read_device_info(void);
 
 // get the info for the specified address
-StoredInfo_t* store_get_device_info(uint8_t* address);
+StoredInfo* store_get_device_info(uint8_t* address);
 
 // allocate a new info for the specified address
-StoredInfo_t* store_allocate_device_info(uint8_t* address);
+StoredInfo* store_allocate_device_info(uint8_t* address);
 
 // read and store info from the DI record for the specified device
 void store_read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db);

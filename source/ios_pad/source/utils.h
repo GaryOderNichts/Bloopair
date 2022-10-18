@@ -20,9 +20,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <assert.h>
 
-#define CLAMP(x, low, high) (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
+#define PACKED __attribute__((__packed__))
 
+#define CHECK_SIZE(type, size) static_assert(sizeof(type) == size, #type " must be " #size " bytes")
+
+// This macro is somewhat hacky and relies on the fact that rodata is mapped as executable
 #define DEFINE_REAL(addr, instr) \
     ((const uint32_t[]) { \
     instr, \
@@ -30,22 +34,14 @@
     addr, \
     });
 
+#define CLAMP(x, low, high) (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
+
+#define bswap16 __builtin_bswap16
+#define bswap32 __builtin_bswap32
+
 uint32_t crc32(uint32_t seed, const void* data, size_t len);
 
 void dumpHex(const void *data, size_t size);
-
-static inline uint16_t bswap16(uint16_t val)
-{
-    return (val >> 8) | (val << 8);
-}
-
-static inline uint32_t bswap32(uint32_t val)
-{
-    return  ((val << 24) & 0xff000000) |
-            ((val <<  8) & 0x00ff0000) |
-            ((val >>  8) & 0x0000ff00) |
-            ((val >> 24) & 0x000000ff);
-}
 
 #ifdef LOGGING
 #define DEBUG(x, ...) printf(x, ##__VA_ARGS__)
