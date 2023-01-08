@@ -15,11 +15,7 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <controllers.h>
-
-// Info about the reports can be found here:
-// - <https://github.com/atar-axis/xpadneo/blob/master/hid-xpadneo/src/hid-xpadneo.c>
-// - <https://github.com/atar-axis/xpadneo/blob/master/hid-xpadneo/src/xpadneo.h>
+#include "xbox_one_controller.h"
 
 static const uint32_t dpad_map[9] = {
     0,
@@ -33,111 +29,111 @@ static const uint32_t dpad_map[9] = {
     WPAD_PRO_BUTTON_LEFT | WPAD_PRO_BUTTON_UP
 };
 
-enum {
-    RUMBLE_MOTOR_RIGHT         = 1 << 0,
-    RUMBLE_MOTOR_LEFT          = 1 << 1,
-    RUMBLE_MOTOR_TRIGGER_RIGHT = 1 << 2,
-    RUMBLE_MOTOR_TRIGGER_LEFT  = 1 << 3,
-};
-
 void controllerData_xbox_one(Controller* controller, uint8_t* buf, uint16_t len)
 {
     ReportBuffer* rep = &controller->reportBuffer;
 
-    if (buf[0] == 0x01) {
-        rep->left_stick_x = scaleStickAxis((buf[2] << 8) | buf[1], 65536);
-        rep->left_stick_y = scaleStickAxis((buf[4] << 8) | buf[3], 65536);
-        rep->right_stick_x = scaleStickAxis((buf[6] << 8) | buf[5], 65536);
-        rep->right_stick_y = scaleStickAxis((buf[8] << 8) | buf[7], 65536);
+    if (buf[0] == XBOX_ONE_INPUT_REPORT_ID) {
+        XboxOneInputReport* inRep = (XboxOneInputReport*) buf;
+
+        rep->left_stick_x = scaleStickAxis(bswap16(inRep->left_stick_x), 65536);
+        rep->left_stick_y = scaleStickAxis(bswap16(inRep->left_stick_y), 65536);
+        rep->right_stick_x = scaleStickAxis(bswap16(inRep->right_stick_x), 65536);
+        rep->right_stick_y = scaleStickAxis(bswap16(inRep->right_stick_y), 65536);
 
         // clear all buttons besides home
         rep->buttons &= WPAD_PRO_BUTTON_HOME;
 
-        if ((buf[13] & 0xf) < 9)
-            rep->buttons |= dpad_map[buf[13] & 0xf];
+        if (inRep->buttons.dpad < 9)
+            rep->buttons |= dpad_map[inRep->buttons.dpad];
 
-        if (buf[10])
+        if (inRep->left_trigger)
             rep->buttons |= WPAD_PRO_TRIGGER_ZL;
-        if (buf[12])
+        if (inRep->right_trigger)
             rep->buttons |= WPAD_PRO_TRIGGER_ZR;
 
         if (len >= 17) {
             // new format
-            if (buf[14] & 0x01)
+            if (inRep->buttons.a)
                 rep->buttons |= WPAD_PRO_BUTTON_B;
-            if (buf[14] & 0x02)
+            if (inRep->buttons.b)
                 rep->buttons |= WPAD_PRO_BUTTON_A;
-            if (buf[14] & 0x08)
+            if (inRep->buttons.x)
                 rep->buttons |= WPAD_PRO_BUTTON_Y;
-            if (buf[14] & 0x10)
+            if (inRep->buttons.y)
                 rep->buttons |= WPAD_PRO_BUTTON_X;
-            if (buf[14] & 0x40)
+            if (inRep->buttons.lb)
                 rep->buttons |= WPAD_PRO_TRIGGER_L;
-            if (buf[14] & 0x80)
+            if (inRep->buttons.rb)
                 rep->buttons |= WPAD_PRO_TRIGGER_R;
-            if (buf[15] & 0x08)
+            if (inRep->buttons.menu)
                 rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-            if (buf[15] & 0x10)
+            if (inRep->buttons.xbox)
                 rep->buttons |= WPAD_PRO_BUTTON_HOME;
             else
                 rep->buttons &= ~WPAD_PRO_BUTTON_HOME;
-            if (buf[15] & 0x20)
+            if (inRep->buttons.lstick)
                 rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
-            if (buf[15] & 0x40)
+            if (inRep->buttons.rstick)
                 rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
-            if (buf[16] & 0x01)
+            if (inRep->buttons.view)
                 rep->buttons |= WPAD_PRO_BUTTON_MINUS;
         } else {
             // old format
-            if (buf[14] & 0x01)
+            if (inRep->buttons.old.a)
                 rep->buttons |= WPAD_PRO_BUTTON_B;
-            if (buf[14] & 0x02)
+            if (inRep->buttons.old.b)
                 rep->buttons |= WPAD_PRO_BUTTON_A;
-            if (buf[14] & 0x04)
+            if (inRep->buttons.old.x)
                 rep->buttons |= WPAD_PRO_BUTTON_Y;
-            if (buf[14] & 0x08)
+            if (inRep->buttons.old.y)
                 rep->buttons |= WPAD_PRO_BUTTON_X;
-            if (buf[14] & 0x10)
+            if (inRep->buttons.old.lb)
                 rep->buttons |= WPAD_PRO_TRIGGER_L;
-            if (buf[14] & 0x20)
+            if (inRep->buttons.old.rb)
                 rep->buttons |= WPAD_PRO_TRIGGER_R;
-            if (buf[14] & 0x40)
+            if (inRep->buttons.old.view)
                 rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-            if (buf[14] & 0x80)
+            if (inRep->buttons.old.menu)
                 rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-            if (buf[15] & 0x01)
+            if (inRep->buttons.old.lstick)
                 rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
-            if (buf[15] & 0x02)
+            if (inRep->buttons.old.rstick)
                 rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
         }
 
-        if (!controller->isReady)
+        if (!controller->isReady) {
             controller->isReady = 1;
-    } else if (buf[0] == 0x02) {
-        if (buf[1] & 0x01)
+        }
+    } else if (buf[0] == XBOX_ONE_XB_BUTTON_INPUT_REPORT_ID) {
+        XboxOneXbButtonInputReport* inRep = (XboxOneXbButtonInputReport*) buf;
+
+        if (inRep->xbox_button)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
         else
             rep->buttons &= ~WPAD_PRO_BUTTON_HOME;
-    } else if (buf[0] == 0x04) {
-        controller->battery = (buf[1] & 0x3) + 1;
-        controller->isCharging = buf[1] & 0x10;
+    } else if (buf[0] == XBOX_ONE_BATTERY_INPUT_REPORT_ID) {
+        XboxOneBatteryInputReport* inRep = (XboxOneBatteryInputReport*) buf;
+
+        controller->battery = inRep->capacity + 1;
+        controller->isCharging = inRep->charging;
     }
 }
 
 void controllerRumble_xbox_one(Controller* controller, uint8_t rumble)
 {
-    uint8_t data[9];
-    data[0] = 0x03;
-    data[1] = RUMBLE_MOTOR_RIGHT | RUMBLE_MOTOR_LEFT; // motors
-    data[2] = 0; // left trigger force
-    data[3] = 0; // right trigger force
-    data[4] = rumble ? 35 : 0; // left force
-    data[5] = rumble ? 35 : 0; // right force
-    data[6] = 1; // duration
-    data[7] = 0; // delay
-    data[8] = 0; // loop
+    XboxOneOutputReport rep;
+    rep.report_id = XBOX_ONE_OUTPUT_REPORT_ID;
+    rep.motors_enable = XBOX_ONE_RUMBLE_MAIN;
+    rep.magnitude_left = 0;
+    rep.magnitude_right = 0;
+    rep.magnitude_strong = rumble ? 35 : 0;
+    rep.magnitude_weak = rumble ? 35 : 0;
+    rep.pulse_sustain_10ms = 1;
+    rep.pulse_release_10ms = 0;
+    rep.loop_count = 0;
 
-    sendOutputData(controller->handle, data, sizeof(data));
+    sendOutputData(controller->handle, &rep, sizeof(rep));
 }
 
 void controllerDeinit_xbox_one(Controller* controller)

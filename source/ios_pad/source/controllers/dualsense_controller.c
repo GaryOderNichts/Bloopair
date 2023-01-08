@@ -15,18 +15,8 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <controllers.h>
+#include "dualsense_controller.h"
 #include "utils.h"
-
-// Info about the reports can be found here:
-// - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-playstation.c>
-
-typedef struct {
-    uint8_t player_leds;
-    uint8_t led_color[3];
-    uint8_t rumble;
-    uint8_t output_seq;
-} DualsenseData_t;
 
 // the dualsense has 5 leds, with one in the center
 // we'll use the same pattern the Wii U uses on the 4 outer ones
@@ -68,36 +58,38 @@ static const uint32_t dpad_map[9] = {
 
 static void sendRumbleLedState(Controller* controller)
 {
-    DualsenseData_t* ds_data = (DualsenseData_t*) controller->additionalData;
+    DualsenseData* ds_data = (DualsenseData*) controller->additionalData;
 
-    uint8_t data[79];
-    memset(data, 0, sizeof(data));
-    data[0] = 0xa2; // seed
-    data[1] = 0x31; // report_id
-    data[2] = ((ds_data->output_seq++ & 0xf) << 4) | 0x0; // seq_tag
-    data[3] = 0x10; // tag
+    DualsenseOutputReport rep;
+    memset(&rep, 0, sizeof(rep));
+    rep.report_id = DUALSENSE_OUTPUT_REPORT_ID;
+    rep.seq_tag = (ds_data->output_seq++ & 0xf) << 4;
+    rep.tag = DUALSENSE_OUTPUT_REPORT_TAG;
 
-    data[4] = 0x03; // flag 0
-    data[5] = 0x14; // flag 1
-    data[6] = ds_data->rumble;
-    data[7] = ds_data->rumble;
+    rep.valid_flag0 = DUALSENSE_VF0_COMPATIBLE_VIBRATION | DUALSENSE_VF0_HAPTICS_SELECT;
+    rep.valid_flag1 = DUALSENSE_VF1_LIGHTBAR_CONTROL_ENABLE | DUALSENSE_VF1_PLAYER_INDICATOR_CONTROL_ENABLE;
+    rep.motor_right = ds_data->rumble;
+    rep.motor_left = ds_data->rumble;
 
-    data[42] = 0x02; // flag 2
-    data[45] = 0x02; // lightbar setup
-    data[47] = ds_data->player_leds;
-    data[48] = ds_data->led_color[0];
-    data[49] = ds_data->led_color[1];
-    data[50] = ds_data->led_color[2];
+    rep.valid_flag2 = DUALSENSE_VF2_COMPATIBLE_VIBRATION2;
+    rep.lightbar_setup = DUALSENSE_LIGHTBAR_SETUP_LIGHT_OUT;
+    rep.player_leds = ds_data->player_leds;
+    rep.lightbar_red = ds_data->led_color[0];
+    rep.lightbar_green = ds_data->led_color[1];
+    rep.lightbar_blue = ds_data->led_color[2];
 
-    uint32_t crc = bswap32(~crc32(0xffffffff, data, sizeof(data) - 4));
-    memcpy(&data[75], &crc, 4);
+    // seed and calculate crc
+    uint8_t seed = DUALSENSE_OUTPUT_REPORT_SEED;
+    uint32_t crc = crc32(0xffffffff, &seed, sizeof(seed));
+    crc = crc32(crc, &rep, sizeof(rep) - 4);
+    rep.crc = bswap32(~crc);
 
-    sendOutputData(controller->handle, data + 1, sizeof(data) - 1);
+    sendOutputData(controller->handle, &rep, sizeof(rep));
 }
 
 void controllerRumble_dualsense(Controller* controller, uint8_t rumble)
 {
-    DualsenseData_t* ds_data = (DualsenseData_t*) controller->additionalData;
+    DualsenseData* ds_data = (DualsenseData*) controller->additionalData;
 
     ds_data->rumble = rumble ? 25 : 0;
 
@@ -106,12 +98,10 @@ void controllerRumble_dualsense(Controller* controller, uint8_t rumble)
 
 void controllerSetLed_dualsense(Controller* controller, uint8_t led)
 {
-    DualsenseData_t* ds_data = (DualsenseData_t*) controller->additionalData;
+    DualsenseData* ds_data = (DualsenseData*) controller->additionalData;
 
     uint8_t player_num = ledMaskToPlayerNum(led); 
-
     ds_data->player_leds = player_leds[player_num];
-
     memcpy(ds_data->led_color, &led_colors[player_num], 3);
 
     sendRumbleLedState(controller);
@@ -119,104 +109,65 @@ void controllerSetLed_dualsense(Controller* controller, uint8_t led)
 
 void controllerData_dualsense(Controller* controller, uint8_t* buf, uint16_t len)
 {
-    ReportBuffer* rep = &controller->reportBuffer;
+    if (buf[0] == DUALSENSE_INPUT_REPORT_ID) {
+        ReportBuffer* rep = &controller->reportBuffer;
+        DualsenseInputReport* inRep = (DualsenseInputReport*) buf;
 
-    if (buf[0] == 0x01) {
-        rep->left_stick_x = scaleStickAxis(buf[1], 256);
-        rep->left_stick_y = scaleStickAxis(buf[2], 256);
-        rep->right_stick_x = scaleStickAxis(buf[3], 256);
-        rep->right_stick_y = scaleStickAxis(buf[4], 256);
-
-        rep->buttons = 0;
-
-        if ((buf[5] & 0xf) < 9)
-            rep->buttons |= dpad_map[buf[5] & 0xf];
-
-        if (buf[5] & 0x40)
-            rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (buf[5] & 0x20)
-            rep->buttons |= WPAD_PRO_BUTTON_B;
-        if (buf[5] & 0x80)
-            rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (buf[5] & 0x10)
-            rep->buttons |= WPAD_PRO_BUTTON_Y;
-        if (buf[6] & 0x01)
-            rep->buttons |= WPAD_PRO_TRIGGER_L;
-        if (buf[6] & 0x02)
-            rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (buf[6] & 0x04)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZL;
-        if (buf[6] & 0x08)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZR;
-        if (buf[6] & 0x10)
-            rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-        if (buf[6] & 0x20)
-            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (buf[6] & 0x40)
-            rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
-        if (buf[6] & 0x80)
-            rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
-        if (buf[7] & 0x01)
-            rep->buttons |= WPAD_PRO_BUTTON_HOME;
-
-        if (!controller->isReady)
-            controller->isReady = 1;
-    } else if (buf[0] == 0x31) {
-        rep->left_stick_x = scaleStickAxis(buf[2], 256);
-        rep->left_stick_y = scaleStickAxis(buf[3], 256);
-        rep->right_stick_x = scaleStickAxis(buf[4], 256);
-        rep->right_stick_y = scaleStickAxis(buf[5], 256);
+        rep->left_stick_x = scaleStickAxis(inRep->left_stick_x, 256);
+        rep->left_stick_y = scaleStickAxis(inRep->left_stick_y, 256);
+        rep->right_stick_x = scaleStickAxis(inRep->right_stick_x, 256);
+        rep->right_stick_y = scaleStickAxis(inRep->right_stick_y, 256);
 
         rep->buttons = 0;
 
-        if ((buf[9] & 0xf) < 9)
-            rep->buttons |= dpad_map[buf[9] & 0xf];
+        if (inRep->buttons.dpad < 9)
+            rep->buttons |= dpad_map[inRep->buttons.dpad];
 
-        if (buf[9] & 0x40)
+        if (inRep->buttons.circle)
             rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (buf[9] & 0x20)
+        if (inRep->buttons.cross)
             rep->buttons |= WPAD_PRO_BUTTON_B;
-        if (buf[9] & 0x80)
+        if (inRep->buttons.triangle)
             rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (buf[9] & 0x10)
+        if (inRep->buttons.square)
             rep->buttons |= WPAD_PRO_BUTTON_Y;
-        if (buf[10] & 0x01)
+        if (inRep->buttons.l1)
             rep->buttons |= WPAD_PRO_TRIGGER_L;
-        if (buf[10] & 0x02)
+        if (inRep->buttons.r1)
             rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (buf[10] & 0x04)
+        if (inRep->buttons.l2)
             rep->buttons |= WPAD_PRO_TRIGGER_ZL;
-        if (buf[10] & 0x08)
+        if (inRep->buttons.r2)
             rep->buttons |= WPAD_PRO_TRIGGER_ZR;
-        if (buf[10] & 0x10)
+        if (inRep->buttons.create)
             rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-        if (buf[10] & 0x20)
+        if (inRep->buttons.options)
             rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (buf[10] & 0x40)
+        if (inRep->buttons.l3)
             rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
-        if (buf[10] & 0x80)
+        if (inRep->buttons.r3)
             rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
-        if (buf[11] & 0x01)
+        if (inRep->buttons.ps_home)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
 
-        uint8_t battery_level = (buf[54] & 0xf) >> 1;
-        uint8_t battery_status = buf[54] >> 4;
-        if (battery_status == 0) { // discharging
-            controller->battery = CLAMP(battery_level, 0, 4);
+        switch (inRep->battery_status) {
+        case 0: // discharging
+            controller->battery = CLAMP(inRep->battery_level >> 1, 0, 4);
             controller->isCharging = 0;
-        } else if (battery_status == 1) { // charging
-            controller->battery = CLAMP(battery_level, 0, 4);
+            break;
+        case 1: // charging
+            controller->battery = CLAMP(inRep->battery_level >> 1, 0, 4);
             controller->isCharging = 1;
-        } else if (battery_status == 2) { // full
-            controller->battery = 4;
-            controller->isCharging = 0;
-        } else { // everything else indicates an error
+            break;
+        default: // everything else indicates an error
             controller->battery = 0;
             controller->isCharging = 0;
+            break;
         }
 
-        if (!controller->isReady)
+        if (!controller->isReady) {
             controller->isReady = 1;
+        }
     }
 }
 
@@ -236,6 +187,6 @@ void controllerInit_dualsense(Controller* controller)
     controller->battery = 4;
     controller->isCharging = 0;
 
-    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(DualsenseData_t));
-    memset(controller->additionalData, 0, sizeof(DualsenseData_t));
+    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(DualsenseData));
+    memset(controller->additionalData, 0, sizeof(DualsenseData));
 }

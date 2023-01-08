@@ -15,58 +15,47 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <controllers.h>
+#include "dualshock3_controller.h"
 
-// Info about the reports can be found here:
-// - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-sony.c>
-
-typedef struct {
-    uint8_t led_update;
-    uint8_t led_mask;
-    uint8_t rumble;
-} Dualshock3Data_t;
-
-static const uint8_t led_config[] = { 0xff, 0x27, 0x10, 0x00, 0x32 };
+static const Dualshock3LedConfig led_config = { 0xff, 0x27, 0x10, 0x00, 0x32 };
 
 static const uint8_t enable_payload[] = { 0xf4, 0x42, 0x03, 0x00, 0x00 };
 
 static void sendRumbleLedState(Controller* controller)
 {
-    Dualshock3Data_t* ds_data = (Dualshock3Data_t*) controller->additionalData;
+    Dualshock3Data* ds_data = (Dualshock3Data*) controller->additionalData;
 
-    uint8_t data[36];
-    memset(data, 0, 36);
+    Dualshock3OutputReport rep;
+    memset(&rep, 0, sizeof(rep));
 
-    data[0] = 0x01;
+    rep.report_id = DUALSHOCK3_OUTPUT_REPORT_ID;
 
-    data[2] = 1; // right rumble duration
-    data[3] = ds_data->rumble;
-    data[4] = 1; // left rumble duration
-    data[5] = ds_data->rumble * 64;
+    rep.right_motor_duration = 1;
+    rep.right_motor_force = ds_data->rumble;
+    rep.left_motor_duration = 1;
+    rep.left_motor_force = ds_data->rumble * 64;
 
-    data[10] = ds_data->led_mask << 1;
-    memcpy(&data[11], led_config, sizeof(led_config));
-    memcpy(&data[16], led_config, sizeof(led_config));
-    memcpy(&data[21], led_config, sizeof(led_config));
-    memcpy(&data[26], led_config, sizeof(led_config));
+    rep.led_mask = ds_data->led_mask << 1;
+    memcpy(&rep.leds[0], &led_config, sizeof(Dualshock3LedConfig));
+    memcpy(&rep.leds[1], &led_config, sizeof(Dualshock3LedConfig));
+    memcpy(&rep.leds[2], &led_config, sizeof(Dualshock3LedConfig));
+    memcpy(&rep.leds[3], &led_config, sizeof(Dualshock3LedConfig));
 
-    setReport(controller->handle, BTA_HH_RPTT_OUTPUT, data, sizeof(data));
+    setReport(controller->handle, BTA_HH_RPTT_OUTPUT, &rep, sizeof(rep));
 }
 
 void controllerRumble_dualshock3(Controller* controller, uint8_t rumble)
 {
-    Dualshock3Data_t* ds_data = (Dualshock3Data_t*) controller->additionalData;
+    Dualshock3Data* ds_data = (Dualshock3Data*) controller->additionalData;
 
     ds_data->rumble = rumble;
 
-    if (rumble) {
-        sendRumbleLedState(controller);
-    }
+    sendRumbleLedState(controller);
 }
 
 void controllerSetLed_dualshock3(Controller* controller, uint8_t led)
 {
-    Dualshock3Data_t* ds_data = (Dualshock3Data_t*) controller->additionalData;
+    Dualshock3Data* ds_data = (Dualshock3Data*) controller->additionalData;
 
     ds_data->led_mask = led;
 
@@ -76,7 +65,7 @@ void controllerSetLed_dualshock3(Controller* controller, uint8_t led)
 
 void controllerData_dualshock3(Controller* controller, uint8_t* buf, uint16_t len)
 {
-    Dualshock3Data_t* ds_data = (Dualshock3Data_t*) controller->additionalData;
+    Dualshock3Data* ds_data = (Dualshock3Data*) controller->additionalData;
 
     if (ds_data->led_update) {
         sendRumbleLedState(controller);
@@ -85,54 +74,56 @@ void controllerData_dualshock3(Controller* controller, uint8_t* buf, uint16_t le
 
     if (buf[0] == 0x01) {
         ReportBuffer* rep = &controller->reportBuffer;
+        Dualshock3InputReport* inRep = (Dualshock3InputReport*) buf;
 
-        rep->left_stick_x = scaleStickAxis(buf[6], 256);
-        rep->left_stick_y = scaleStickAxis(buf[7], 256);
-        rep->right_stick_x = scaleStickAxis(buf[8], 256);
-        rep->right_stick_y = scaleStickAxis(buf[9], 256);
+        rep->left_stick_x = scaleStickAxis(inRep->left_stick_x, 256);
+        rep->left_stick_y = scaleStickAxis(inRep->left_stick_y, 256);
+        rep->right_stick_x = scaleStickAxis(inRep->right_stick_x, 256);
+        rep->right_stick_y = scaleStickAxis(inRep->right_stick_y, 256);
 
         rep->buttons = 0;
 
-        if (buf[2] & 0x01)
+        if (inRep->buttons.select)
             rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-        if (buf[2] & 0x02)
+        if (inRep->buttons.l3)
             rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
-        if (buf[2] & 0x04)
+        if (inRep->buttons.r3)
             rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
-        if (buf[2] & 0x08)
+        if (inRep->buttons.start)
             rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (buf[2] & 0x10)
+        if (inRep->buttons.up)
             rep->buttons |= WPAD_PRO_BUTTON_UP;
-        if (buf[2] & 0x20)
+        if (inRep->buttons.right)
             rep->buttons |= WPAD_PRO_BUTTON_RIGHT;
-        if (buf[2] & 0x40)
+        if (inRep->buttons.down)
             rep->buttons |= WPAD_PRO_BUTTON_DOWN;
-        if (buf[2] & 0x80)
+        if (inRep->buttons.left)
             rep->buttons |= WPAD_PRO_BUTTON_LEFT;
-        if (buf[3] & 0x01)
+        if (inRep->buttons.l2)
             rep->buttons |= WPAD_PRO_TRIGGER_ZL;
-        if (buf[3] & 0x02)
+        if (inRep->buttons.r2)
             rep->buttons |= WPAD_PRO_TRIGGER_ZR;
-        if (buf[3] & 0x04)
+        if (inRep->buttons.l1)
             rep->buttons |= WPAD_PRO_TRIGGER_L;
-        if (buf[3] & 0x08)
+        if (inRep->buttons.r1)
             rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (buf[3] & 0x10)
+        if (inRep->buttons.triangle)
             rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (buf[3] & 0x20)
+        if (inRep->buttons.circle)
             rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (buf[3] & 0x40)
+        if (inRep->buttons.cross)
             rep->buttons |= WPAD_PRO_BUTTON_B;
-        if (buf[3] & 0x80)
+        if (inRep->buttons.square)
             rep->buttons |= WPAD_PRO_BUTTON_Y;
-        if (buf[4] & 0x01)
+        if (inRep->buttons.ps_home)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
 
-        controller->isCharging = buf[29] == 0x02;
-        controller->battery = CLAMP(buf[30], 0, 4);
+        controller->isCharging = inRep->battery_status == 0x02;
+        controller->battery = CLAMP(inRep->battery_level, 0, 4);
 
-        if (!controller->isReady)
+        if (!controller->isReady) {
             controller->isReady = 1;
+        }
     }
 }
 
@@ -152,8 +143,8 @@ void controllerInit_dualshock3(Controller* controller)
     controller->battery = 4;
     controller->isCharging = 0;
 
-    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(Dualshock3Data_t));
-    memset(controller->additionalData, 0, sizeof(Dualshock3Data_t));
+    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(Dualshock3Data));
+    memset(controller->additionalData, 0, sizeof(Dualshock3Data));
 
     // enable the controller so it sends reports
     setReport(controller->handle, BTA_HH_RPTT_FEATURE, enable_payload, sizeof(enable_payload));

@@ -15,16 +15,8 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <controllers.h>
+#include "dualshock4_controller.h"
 #include "utils.h"
-
-// Information about the reports can be found here:
-// - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-sony.c>
-
-typedef struct {
-    uint8_t led_color[3];
-    uint8_t rumble;
-} Dualshock4Data_t;
 
 static const uint8_t led_colors[][3] = {
     {0},
@@ -53,31 +45,35 @@ static const uint32_t dpad_map[9] = {
 
 static void sendRumbleLedState(Controller* controller)
 {
-    Dualshock4Data_t* ds_data = (Dualshock4Data_t*) controller->additionalData;
+    Dualshock4Data* ds_data = (Dualshock4Data*) controller->additionalData;
 
-    uint8_t data[79];
-    memset(data, 0, sizeof(data));
-    data[0] = 0xa2;
-    data[1] = 0x11; // report id
-    data[2] = 0xc8; // report rate (125Hz) 
-    data[3] = 0x20; 
-    data[4] = 0xf3;
-    data[5] = 0x04;
-    data[7] = ds_data->rumble;
-    data[8] = ds_data->rumble;
-    data[9] = ds_data->led_color[0];
-    data[10] = ds_data->led_color[1];
-    data[11] = ds_data->led_color[2];
+    Dualshock4OutputReport rep;
+    memset(&rep, 0, sizeof(rep));
 
-    uint32_t crc = bswap32(~crc32(0xffffffff, data, sizeof(data) - 4));
-    memcpy(&data[75], &crc, 4);
+    rep.report_id = DUALSHOCK4_OUTPUT_REPORT_ID;
+    rep.report_mode = 0xc; // HID + CRC
+    rep.report_rate = 10; // (1 / 10 ms) * 1000 = 100 Hz
+    rep.flags = DUALSHOCK4_OUTPUT_FLAG_MOTOR | DUALSHOCK4_OUTPUT_FLAG_LED_COLOR;
 
-    sendOutputData(controller->handle, data + 1, sizeof(data) - 1);
+    rep.motor_right = ds_data->rumble;
+    rep.motor_left = ds_data->rumble;
+
+    rep.led_red = ds_data->led_color[0];
+    rep.led_green = ds_data->led_color[1];
+    rep.led_blue = ds_data->led_color[2];
+
+    // seed and calculate crc
+    uint8_t seed = DUALSHOCK4_OUTPUT_REPORT_SEED;
+    uint32_t crc = crc32(0xffffffff, &seed, sizeof(seed));
+    crc = crc32(crc, &rep, sizeof(rep) - 4);
+    rep.crc = bswap32(~crc);
+
+    sendOutputData(controller->handle, &rep, sizeof(rep));
 }
 
 void controllerRumble_dualshock4(Controller* controller, uint8_t rumble)
 {
-    Dualshock4Data_t* ds_data = (Dualshock4Data_t*) controller->additionalData;
+    Dualshock4Data* ds_data = (Dualshock4Data*) controller->additionalData;
 
     ds_data->rumble = rumble ? 6 : 0;
 
@@ -86,7 +82,7 @@ void controllerRumble_dualshock4(Controller* controller, uint8_t rumble)
 
 void controllerSetLed_dualshock4(Controller* controller, uint8_t led)
 {
-    Dualshock4Data_t* ds_data = (Dualshock4Data_t*) controller->additionalData;
+    Dualshock4Data* ds_data = (Dualshock4Data*) controller->additionalData;
     
     uint8_t player_num = ledMaskToPlayerNum(led); 
     memcpy(ds_data->led_color, &led_colors[player_num], 3);
@@ -96,92 +92,53 @@ void controllerSetLed_dualshock4(Controller* controller, uint8_t led)
 
 void controllerData_dualshock4(Controller* controller, uint8_t* buf, uint16_t len)
 {
-    ReportBuffer* rep = &controller->reportBuffer;
+    if (buf[0] == DUALSHOCK4_INPUT_REPORT_ID) {
+        ReportBuffer* rep = &controller->reportBuffer;
+        Dualshock4InputReport* inRep = (Dualshock4InputReport*) buf;
 
-    if (buf[0] == 0x01) {
-        rep->left_stick_x = scaleStickAxis(buf[1], 256);
-        rep->left_stick_y = scaleStickAxis(buf[2], 256);
-        rep->right_stick_x = scaleStickAxis(buf[3], 256);
-        rep->right_stick_y = scaleStickAxis(buf[4], 256);
-
-        rep->buttons = 0;
-
-        if ((buf[5] & 0xf) < 9)
-            rep->buttons |= dpad_map[buf[5] & 0xf];
-
-        if (buf[5] & 0x40)
-            rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (buf[5] & 0x20)
-            rep->buttons |= WPAD_PRO_BUTTON_B;
-        if (buf[5] & 0x80)
-            rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (buf[5] & 0x10)
-            rep->buttons |= WPAD_PRO_BUTTON_Y;
-        if (buf[6] & 0x01)
-            rep->buttons |= WPAD_PRO_TRIGGER_L;
-        if (buf[6] & 0x02)
-            rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (buf[6] & 0x04)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZL;
-        if (buf[6] & 0x08)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZR;
-        if (buf[6] & 0x10)
-            rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-        if (buf[6] & 0x20)
-            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (buf[6] & 0x40)
-            rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
-        if (buf[6] & 0x80)
-            rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
-        if (buf[7] & 0x01)
-            rep->buttons |= WPAD_PRO_BUTTON_HOME;
-
-        if (!controller->isReady)
-            controller->isReady = 1;
-    } else if (buf[0] == 0x11) {
-        rep->left_stick_x = scaleStickAxis(buf[3], 256);
-        rep->left_stick_y = scaleStickAxis(buf[4], 256);
-        rep->right_stick_x = scaleStickAxis(buf[5], 256);
-        rep->right_stick_y = scaleStickAxis(buf[6], 256);
+        rep->left_stick_x = scaleStickAxis(inRep->left_stick_x, 256);
+        rep->left_stick_y = scaleStickAxis(inRep->left_stick_y, 256);
+        rep->right_stick_x = scaleStickAxis(inRep->right_stick_x, 256);
+        rep->right_stick_y = scaleStickAxis(inRep->right_stick_y, 256);
 
         rep->buttons = 0;
 
-        if ((buf[7] & 0xf) < 9)
-            rep->buttons |= dpad_map[buf[7] & 0xf];
+        if (inRep->buttons.dpad < 9)
+            rep->buttons |= dpad_map[inRep->buttons.dpad];
 
-        if (buf[7] & 0x40)
+        if (inRep->buttons.circle)
             rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (buf[7] & 0x20)
+        if (inRep->buttons.cross)
             rep->buttons |= WPAD_PRO_BUTTON_B;
-        if (buf[7] & 0x80)
+        if (inRep->buttons.triangle)
             rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (buf[7] & 0x10)
+        if (inRep->buttons.square)
             rep->buttons |= WPAD_PRO_BUTTON_Y;
-        if (buf[8] & 0x01)
+        if (inRep->buttons.l1)
             rep->buttons |= WPAD_PRO_TRIGGER_L;
-        if (buf[8] & 0x02)
+        if (inRep->buttons.r1)
             rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (buf[8] & 0x04)
+        if (inRep->buttons.l2)
             rep->buttons |= WPAD_PRO_TRIGGER_ZL;
-        if (buf[8] & 0x08)
+        if (inRep->buttons.r2)
             rep->buttons |= WPAD_PRO_TRIGGER_ZR;
-        if (buf[8] & 0x10)
+        if (inRep->buttons.create)
             rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-        if (buf[8] & 0x20)
+        if (inRep->buttons.options)
             rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (buf[8] & 0x40)
+        if (inRep->buttons.l3)
             rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
-        if (buf[8] & 0x80)
+        if (inRep->buttons.r3)
             rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
-        if (buf[9] & 0x01)
+        if (inRep->buttons.ps_home)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
 
-        uint8_t battery_level = buf[32] & 0xf;
-        controller->battery = CLAMP(battery_level >> 1, 0, 4);
-        controller->isCharging = (buf[32] & 0x10) && battery_level <= 10;
+        controller->battery = CLAMP(inRep->battery_level >> 1, 0, 4);
+        controller->isCharging = inRep->cable && inRep->battery_level <= 10;
 
-        if (!controller->isReady)
+        if (!controller->isReady) {
             controller->isReady = 1;
+        }
     }
 }
 
@@ -201,6 +158,6 @@ void controllerInit_dualshock4(Controller* controller)
     controller->battery = 4;
     controller->isCharging = 0;
 
-    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(Dualshock4Data_t));
-    memset(controller->additionalData, 0, sizeof(Dualshock4Data_t));
+    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(Dualshock4Data));
+    memset(controller->additionalData, 0, sizeof(Dualshock4Data));
 }

@@ -15,29 +15,7 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <controllers.h>
-
-// Information about the reports can be found here:
-// - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-nintendo.c>
-// - <https://github.com/ndeadly/MissionControl/blob/master/mc_mitm/source/controllers/switch_controller.hpp>
-// - <https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering>
-
-typedef struct {
-    int16_t max;
-    int16_t center;
-    int16_t min;
-} SwitchCalibration_t;
-
-typedef struct {
-    uint8_t report_count;
-    uint8_t device;
-    uint8_t led;
-
-    SwitchCalibration_t left_calib_x;
-    SwitchCalibration_t right_calib_x;
-    SwitchCalibration_t left_calib_y;
-    SwitchCalibration_t right_calib_y;
-} SwitchData_t;
+#include "switch_controller.h"
 
 #define AXIS_NORMALIZE_VALUE               1140
 #define DPAD_EMULATION_DEAD_ZONE           500
@@ -47,38 +25,6 @@ typedef struct {
 #define RUMBLE_HIGH_AMPLITUDE 0xc8 // 1.003
 #define RUMBLE_LOW_FREQUENCY 0x3d // 150 Hz
 #define RUMBLE_LOW_AMPLITUDE 0x0072 // 1.003
-
-#define SWITCH_FACTORY_CALIBRATION_ADDRESS 0x603d
-#define SWITCH_FACTORY_CALIBRATION_SIZE    0x12
-
-#define SWITCH_USER_CALIBRATION_ADDRESS    0x8010
-#define SWITCH_USER_CALIBRATION_SIZE       0x16
-
-enum {
-    SWITCH_SUBCMD_REQUEST_DEVICE_INFO   = 0x02,
-    SWITCH_SUBCMD_SET_INPUT_REPORT_MODE = 0x03,
-    SWITCH_SUBCMD_SPI_FLASH_READ        = 0x10,
-    SWITCH_SUBCMD_SET_PLAYER_LEDS       = 0x30,
-    SWITCH_SUBCMD_ENABLE_VIBRATION      = 0x48,
-};
-
-// https://switchbrew.org/wiki/Joy-Con_Firmware#Type
-enum {
-    SWITCH_DEVICE_UNKNOWN,
-    SWITCH_DEVICE_JOYCON_LEFT,
-    SWITCH_DEVICE_JOYCON_RIGHT,
-    SWITCH_DEVICE_PRO_CONTROLLER,
-    SWITCH_DEVICE_RESERVED_4,
-    SWITCH_DEVICE_RESERVED_5,
-    SWITCH_DEVICE_RESERVED_6,
-    SWITCH_DEVICE_FAMICON_LEFT,
-    SWITCH_DEVICE_FAMICON_RIGHT,
-    SWITCH_DEVICE_NES_LEFT,
-    SWITCH_DEVICE_NES_RIGHT,
-    SWITCH_DEVICE_SNES,
-    SWITCH_DEVICE_N64_CONTROLLER,
-    SWITCH_DEVICE_GENESIS_CONTROLLER,
-};
 
 static const uint32_t dpad_map[9] = {
     WPAD_PRO_BUTTON_UP,
@@ -92,7 +38,26 @@ static const uint32_t dpad_map[9] = {
     0,
 };
 
-static int16_t calibrateStickAxis(SwitchCalibration_t* calib, uint32_t value)
+static void parseRawStickCalibration(SwitchData* sdata, SwitchRawStickCalibration* raw)
+{
+    sdata->left_calib_x.center = SWITCH_AXIS_X(raw->left_stick_center);
+    sdata->left_calib_x.max = sdata->left_calib_x.center + SWITCH_AXIS_X(raw->left_stick_max);
+    sdata->left_calib_x.min = sdata->left_calib_x.center - SWITCH_AXIS_X(raw->left_stick_min);
+
+    sdata->left_calib_y.center = SWITCH_AXIS_Y(raw->left_stick_center);
+    sdata->left_calib_y.max = sdata->left_calib_y.center + SWITCH_AXIS_Y(raw->left_stick_max);
+    sdata->left_calib_y.min = sdata->left_calib_y.center - SWITCH_AXIS_Y(raw->left_stick_min);
+
+    sdata->right_calib_x.center = SWITCH_AXIS_X(raw->right_stick_center);
+    sdata->right_calib_x.max = sdata->right_calib_x.center + SWITCH_AXIS_X(raw->right_stick_max);
+    sdata->right_calib_x.min = sdata->right_calib_x.center - SWITCH_AXIS_X(raw->right_stick_min);
+
+    sdata->right_calib_y.center = SWITCH_AXIS_Y(raw->right_stick_center);
+    sdata->right_calib_y.max = sdata->right_calib_y.center + SWITCH_AXIS_Y(raw->right_stick_max);
+    sdata->right_calib_y.min = sdata->right_calib_y.center - SWITCH_AXIS_Y(raw->right_stick_min);
+}
+
+static int16_t calibrateStickAxis(SwitchStickCalibration* calib, uint32_t value)
 {
     int32_t calibrated;
     if (value > calib->center) {
@@ -106,88 +71,63 @@ static int16_t calibrateStickAxis(SwitchCalibration_t* calib, uint32_t value)
     return (int16_t) CLAMP(calibrated, -AXIS_NORMALIZE_VALUE, AXIS_NORMALIZE_VALUE);
 }
 
+static void sendCommand(Controller* controller, SwitchCommandRequest* req, uint32_t req_data_size)
+{
+    SwitchData* sdata = (SwitchData*) controller->additionalData;
+
+    SwitchCommandOutputReport rep;
+    memset(&rep, 0, sizeof(rep));
+    rep.output.report_id = SWITCH_COMMAND_OUTPUT_REPORT_ID;
+    rep.output.counter = (sdata->report_count++) & 0xf;
+
+    rep.request.command = req->command;
+    memcpy(rep.request.data, req->data, req_data_size);
+
+    sendOutputData(controller->handle, &rep, sizeof(rep.output) + sizeof(rep.request.command) + req_data_size);
+}
+
 static void requestDeviceInfo(Controller* controller)
 {
-    SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
+    SwitchCommandRequest req;
+    req.command = SWITCH_COMMAND_REQUEST_DEVICE_INFO;
 
-    uint8_t data[11];
-    memset(&data, 0, sizeof(data));
-    data[0] = 0x01;
-    data[1] = (sdata->report_count++) & 0xf;
-
-    data[10] = SWITCH_SUBCMD_REQUEST_DEVICE_INFO;
-    sendOutputData(controller->handle, data, sizeof(data));
+    sendCommand(controller, &req, 0);
 }
 
-static void requestFactoryCalibration(Controller* controller)
+static void readSpiFlash(Controller* controller, uint32_t address, uint8_t size)
 {
-    SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
+    SwitchCommandRequest req;
+    req.command = SWITCH_COMMAND_SPI_FLASH_READ;
 
-    uint8_t data[16];
-    memset(&data, 0, sizeof(data));
-    data[0] = 0x01;
-    data[1] = (sdata->report_count++) & 0xf;
+    req.spi_flash_read.address = bswap32(address);
+    req.spi_flash_read.size = size;
 
-    data[10] = SWITCH_SUBCMD_SPI_FLASH_READ;
-    data[11] = SWITCH_FACTORY_CALIBRATION_ADDRESS & 0xff;
-    data[12] = (SWITCH_FACTORY_CALIBRATION_ADDRESS >> 8) & 0xff;
-    data[13] = (SWITCH_FACTORY_CALIBRATION_ADDRESS >> 16) & 0xff;
-    data[14] = (SWITCH_FACTORY_CALIBRATION_ADDRESS >> 24) & 0xff;
-    data[15] = SWITCH_FACTORY_CALIBRATION_SIZE;
-
-    sendOutputData(controller->handle, data, sizeof(data));
+    sendCommand(controller, &req, sizeof(req.spi_flash_read));
 }
 
-static void requestUserCalibration(Controller* controller)
+static void setInputReportMode(Controller* controller, uint8_t report_mode)
 {
-    SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
+    SwitchCommandRequest req;
+    req.command = SWITCH_COMMAND_SET_INPUT_REPORT_MODE;
 
-    uint8_t data[16];
-    memset(&data, 0, sizeof(data));
-    data[0] = 0x01;
-    data[1] = (sdata->report_count++) & 0xf;
+    req.report_mode = report_mode;
 
-    data[10] = SWITCH_SUBCMD_SPI_FLASH_READ;
-    data[11] = SWITCH_USER_CALIBRATION_ADDRESS & 0xff;
-    data[12] = (SWITCH_USER_CALIBRATION_ADDRESS >> 8) & 0xff;
-    data[13] = (SWITCH_USER_CALIBRATION_ADDRESS >> 16) & 0xff;
-    data[14] = (SWITCH_USER_CALIBRATION_ADDRESS >> 24) & 0xff;
-    data[15] = SWITCH_USER_CALIBRATION_SIZE;
-
-    sendOutputData(controller->handle, data, sizeof(data));
+    sendCommand(controller, &req, sizeof(req.report_mode));
 }
 
-static void setFullInputReportMode(Controller* controller)
+static void setVibration(Controller* controller, uint8_t enabled)
 {
-    SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
+    SwitchCommandRequest req;
+    req.command = SWITCH_COMMAND_ENABLE_VIBRATION;
 
-    uint8_t data[12];
-    memset(&data, 0, sizeof(data));
-    data[0] = 0x01;
-    data[1] = (sdata->report_count++) & 0xf;
+    req.vibration_enabled = enabled;
 
-    data[10] = SWITCH_SUBCMD_SET_INPUT_REPORT_MODE;
-    data[11] = 0x30; // 0x30 full reports / 0x3f simple reports
-    sendOutputData(controller->handle, data, sizeof(data));
-}
-
-static void enableVibration(Controller* controller)
-{
-    SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
-
-    uint8_t data[12];
-    memset(&data, 0, sizeof(data));
-    data[0] = 0x01;
-    data[1] = (sdata->report_count++) & 0xf;
-
-    data[10] = SWITCH_SUBCMD_ENABLE_VIBRATION;
-    data[11] = 1; // 1 enable, 0 disable
-    sendOutputData(controller->handle, data, sizeof(data));
+    sendCommand(controller, &req, sizeof(req.vibration_enabled));
 }
 
 static void setPlayerLeds(Controller* controller)
 {
-    SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
+    SwitchData* sdata = (SwitchData*) controller->additionalData;
 
     uint8_t led = sdata->led;
 
@@ -196,56 +136,53 @@ static void setPlayerLeds(Controller* controller)
         led = ((led & 1) << 3) | ((led & 2) << 1) | ((led & 4) >> 1) | ((led & 8) >> 3);
     }
 
-    uint8_t data[12];
-    memset(&data, 0, sizeof(data));
-    data[0] = 0x01;
-    data[1] = (sdata->report_count++) & 0xf;
+    SwitchCommandRequest req;
+    req.command = SWITCH_COMMAND_SET_PLAYER_LEDS;
 
-    data[10] = SWITCH_SUBCMD_SET_PLAYER_LEDS;
-    data[11] = led;
-    sendOutputData(controller->handle, data, sizeof(data));
+    req.leds = led;
+
+    sendCommand(controller, &req, sizeof(req.leds));
 }
 
 void controllerRumble_switch(Controller* controller, uint8_t rumble)
 {
-    SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
+    SwitchData* sdata = (SwitchData*) controller->additionalData;
     if (sdata->device == SWITCH_DEVICE_UNKNOWN) {
         return;
     }
 
-    uint8_t data[12];
-    memset(data, 0, sizeof(data));
-    data[0] = 0x10;
-    data[1] = (sdata->report_count++) & 0xf;
+    SwitchOutputReport rep;
+    rep.report_id = SWITCH_OUTPUT_REPORT_ID;
+    rep.counter = (sdata->report_count++) & 0xf;
 
     if (rumble) {
-        data[2] = (RUMBLE_HIGH_FREQUENCY >> 8) & 0xff;
-        data[3] = (RUMBLE_HIGH_FREQUENCY & 0xff) + RUMBLE_HIGH_AMPLITUDE;
-        data[4] = RUMBLE_LOW_FREQUENCY + ((RUMBLE_LOW_AMPLITUDE >> 8) & 0xff);
-        data[5] = RUMBLE_LOW_AMPLITUDE & 0xff;
+        rep.left_motor[0] = (RUMBLE_HIGH_FREQUENCY >> 8) & 0xff;
+        rep.left_motor[1] = (RUMBLE_HIGH_FREQUENCY & 0xff) + RUMBLE_HIGH_AMPLITUDE;
+        rep.left_motor[2] = RUMBLE_LOW_FREQUENCY + ((RUMBLE_LOW_AMPLITUDE >> 8) & 0xff);
+        rep.left_motor[3] = RUMBLE_LOW_AMPLITUDE & 0xff;
 
-        data[6] = (RUMBLE_HIGH_FREQUENCY >> 8) & 0xff;
-        data[7] = (RUMBLE_HIGH_FREQUENCY & 0xff) + RUMBLE_HIGH_AMPLITUDE;
-        data[8] = RUMBLE_LOW_FREQUENCY + ((RUMBLE_LOW_AMPLITUDE >> 8) & 0xff);
-        data[9] = RUMBLE_LOW_AMPLITUDE & 0xff;
+        rep.right_motor[0] = (RUMBLE_HIGH_FREQUENCY >> 8) & 0xff;
+        rep.right_motor[1] = (RUMBLE_HIGH_FREQUENCY & 0xff) + RUMBLE_HIGH_AMPLITUDE;
+        rep.right_motor[2] = RUMBLE_LOW_FREQUENCY + ((RUMBLE_LOW_AMPLITUDE >> 8) & 0xff);
+        rep.right_motor[3] = RUMBLE_LOW_AMPLITUDE & 0xff;
     } else {
-        data[2] = 0x00;
-        data[3] = 0x01;
-        data[4] = 0x40;
-        data[5] = 0x40;
+        rep.left_motor[0] = 0x00;
+        rep.left_motor[1] = 0x01;
+        rep.left_motor[2] = 0x40;
+        rep.left_motor[3] = 0x40;
 
-        data[6] = 0x00;
-        data[7] = 0x01;
-        data[8] = 0x40;
-        data[9] = 0x40;
+        rep.right_motor[0] = 0x00;
+        rep.right_motor[1] = 0x01;
+        rep.right_motor[2] = 0x40;
+        rep.right_motor[3] = 0x40;
     }
 
-    sendOutputData(controller->handle, data, sizeof(data));
+    sendOutputData(controller->handle, &rep, sizeof(rep));
 }
 
 void controllerSetLed_switch(Controller* controller, uint8_t led)
 {
-    SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
+    SwitchData* sdata = (SwitchData*) controller->additionalData;
 
     sdata->led = led;
 
@@ -256,98 +193,83 @@ void controllerSetLed_switch(Controller* controller, uint8_t led)
     }
 }
 
-// subcmd response
-static void handle_report_0x21(Controller* controller, uint8_t* buf, uint16_t len)
+static void handle_command_response(Controller* controller, SwitchCommandResponse* resp)
 {
-    SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
+    SwitchData* sdata = (SwitchData*) controller->additionalData;
 
-    DEBUG("subcmd respone %d\n", buf[14]);
+    DEBUG("subcmd respone %d\n", resp->command);
 
-    uint8_t battery = buf[2] >> 4;
-    controller->battery = battery >> 1;
-    controller->isCharging = battery & 0x1;
-
-    if ((buf[13] & 0x80) == 0) {
-        DEBUG("switch subcmd %d failed\n", buf[14]);
+    if ((resp->ack & 0x80) == 0) {
+        DEBUG("switch subcmd %d failed\n", resp->command);
         return;
     }
 
-    if (buf[14] == SWITCH_SUBCMD_REQUEST_DEVICE_INFO) {
-        sdata->device = buf[17];
+    if (resp->command == SWITCH_COMMAND_REQUEST_DEVICE_INFO) {
+        sdata->device = resp->device_info.device_type;
         DEBUG("device type %d\n", sdata->device);
 
         // set the leds now that we know the device type
         setPlayerLeds(controller);
 
         // enable rumble
-        enableVibration(controller);
+        setVibration(controller, 1);
 
         if ((sdata->device == SWITCH_DEVICE_JOYCON_LEFT) ||
             (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT) ||
             (sdata->device == SWITCH_DEVICE_PRO_CONTROLLER) ||
             (sdata->device == SWITCH_DEVICE_N64_CONTROLLER)) {
-            // read the factory calibration
-            requestFactoryCalibration(controller);
+            // Read the user calibration magic to check if user calibration exists
+            readSpiFlash(controller, SWITCH_USER_CALIBRATION_MAGIC_ADDRESS, 2);
         } else {
             // Don't need to wait for calibration, controller is ready now
-            if (!controller->isReady)
+            if (!controller->isReady) {
                 controller->isReady = 1;
+            }
         }
-    } else if (buf[14] == SWITCH_SUBCMD_SPI_FLASH_READ) {
-        uint32_t size = buf[19];
-        uint32_t address = buf[15] | buf[16] << 8 | buf[17] << 16 | buf[18] << 24;
+    } else if (resp->command == SWITCH_COMMAND_SPI_FLASH_READ) {
+        uint32_t address = bswap32(resp->spi_flash_read.address);
 
         switch (address) {
-        case SWITCH_FACTORY_CALIBRATION_ADDRESS:
-            if (size < SWITCH_FACTORY_CALIBRATION_SIZE) {
-                DEBUG("switch: invalid factory calibration size\n");
-                break;
+        case SWITCH_USER_CALIBRATION_MAGIC_ADDRESS:
+            // Check for user calibration
+            if (resp->spi_flash_read.data[0] == 0xb2 && resp->spi_flash_read.data[1] == 0xa1) {
+                // Read user calibration
+                readSpiFlash(controller, SWITCH_USER_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibration));
+            } else {
+                // Fall back to factory calibration
+                readSpiFlash(controller, SWITCH_FACTORY_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibration));
             }
-
-            sdata->left_calib_x.center = buf[23] | ((buf[24] & 0xf) << 8);
-            sdata->left_calib_y.center = (buf[24] >> 4) | (buf[25] << 4);
-
-            sdata->left_calib_x.max = sdata->left_calib_x.center + (buf[20] | ((buf[21] & 0xf) << 8));
-            sdata->left_calib_y.max = sdata->left_calib_y.center + ((buf[21] >> 4) | (buf[22] << 4));
-            sdata->left_calib_x.min = sdata->left_calib_x.center - (buf[26] | ((buf[27] & 0xf) << 8));
-            sdata->left_calib_y.min = sdata->left_calib_y.center - ((buf[27] >> 4) | (buf[28] << 4));
-
-            sdata->right_calib_x.center = buf[29] | ((buf[30] & 0xf) << 8);
-            sdata->right_calib_y.center = (buf[30] >> 4) | (buf[31] << 4);
-
-            sdata->right_calib_x.min = sdata->right_calib_x.center - (buf[32] | ((buf[33] & 0xf) << 8));
-            sdata->right_calib_y.min = sdata->right_calib_y.center - ((buf[33] >> 4) | (buf[34] << 4));
-            sdata->right_calib_x.max = sdata->right_calib_x.center + (buf[35] | ((buf[36] & 0xf) << 8));
-            sdata->right_calib_y.max = sdata->right_calib_y.center + ((buf[36] >> 4) | (buf[37] << 4));
-
-            // now we can enable full reports
-            setFullInputReportMode(controller);
             break;
+        case SWITCH_FACTORY_CALIBRATION_ADDRESS:
         case SWITCH_USER_CALIBRATION_ADDRESS:
-            // TODO user calibration
+            // parse the calibration data
+            parseRawStickCalibration(sdata, (SwitchRawStickCalibration*) resp->spi_flash_read.data);
+
+            // we can now enable full reports
+            setInputReportMode(controller, SWITCH_INPUT_REPORT_ID);
             break;
         default:
-            DEBUG("switch: unknown SPI read from %lx size %ld\n", address, size);
+            DEBUG("switch: unknown SPI read from %lx size %d\n", address, resp->spi_flash_read.size);
             break;
         }
     }
 }
 
-static void handle_report_0x30(Controller* controller, uint8_t* buf, uint16_t len)
+static void handle_input_report(Controller* controller, SwitchInputReport* inRep)
 {
-    SwitchData_t* sdata = (SwitchData_t*) controller->additionalData;
+    SwitchData* sdata = (SwitchData*) controller->additionalData;
     ReportBuffer* rep = &controller->reportBuffer;
 
-    uint8_t battery = buf[2] >> 4;
-    controller->battery = battery >> 1;
-    controller->isCharging = battery & 0x1;
+    controller->battery = inRep->battery_level;
+    controller->isCharging = inRep->battery_charging;
 
     rep->buttons = 0;
 
     if (sdata->device == SWITCH_DEVICE_JOYCON_LEFT) {
-        int16_t left_stick_x = calibrateStickAxis(&sdata->left_calib_x, buf[6] | (buf[7] & 0xf) << 8);
-        int16_t left_stick_y = calibrateStickAxis(&sdata->left_calib_y, (buf[7] >> 4) | (buf[8] << 4));
+        int16_t left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
+        int16_t left_stick_y = calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
 
+        // map stick to dpad
         if (left_stick_x < -DPAD_EMULATION_DEAD_ZONE)
             rep->buttons |= WPAD_PRO_BUTTON_DOWN;
         if (left_stick_x > DPAD_EMULATION_DEAD_ZONE)
@@ -357,28 +279,33 @@ static void handle_report_0x30(Controller* controller, uint8_t* buf, uint16_t le
         if (left_stick_y > DPAD_EMULATION_DEAD_ZONE)
             rep->buttons |= WPAD_PRO_BUTTON_LEFT;
 
-        if (buf[4] & 0x01)
+        if (inRep->buttons.minus)
             rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-        if (buf[4] & 0x02)
+        if (inRep->buttons.plus)
             rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (buf[4] & 0x20)
+        // left joy-con only has capture button, let's map it to home
+        if (inRep->buttons.capture)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
-        if (buf[5] & 0x01)
+
+        // map the dpad to abxy
+        if (inRep->buttons.down)
             rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (buf[5] & 0x02)
+        if (inRep->buttons.up)
             rep->buttons |= WPAD_PRO_BUTTON_Y;
-        if (buf[5] & 0x04)
+        if (inRep->buttons.right)
             rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (buf[5] & 0x08)
+        if (inRep->buttons.left)
             rep->buttons |= WPAD_PRO_BUTTON_B;
-        if (buf[5] & 0x10)
+
+        if (inRep->buttons.sr_l)
             rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (buf[5] & 0x20)
+        if (inRep->buttons.sl_l)
             rep->buttons |= WPAD_PRO_TRIGGER_L;
     } else if (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT) {
-        int16_t right_stick_x = calibrateStickAxis(&sdata->right_calib_x, buf[9] | ((buf[10] & 0xf) << 8));
-        int16_t right_stick_y = calibrateStickAxis(&sdata->right_calib_y, (buf[10] >> 4) | (buf[11] << 4));
+        int16_t right_stick_x = calibrateStickAxis(&sdata->right_calib_x, SWITCH_AXIS_X(inRep->right_stick));
+        int16_t right_stick_y = calibrateStickAxis(&sdata->right_calib_y, SWITCH_AXIS_Y(inRep->right_stick));
 
+        // map stick to dpad
         if (right_stick_x > DPAD_EMULATION_DEAD_ZONE)
             rep->buttons |= WPAD_PRO_BUTTON_DOWN;
         if (right_stick_x < -DPAD_EMULATION_DEAD_ZONE)
@@ -388,167 +315,174 @@ static void handle_report_0x30(Controller* controller, uint8_t* buf, uint16_t le
         if (right_stick_y < -DPAD_EMULATION_DEAD_ZONE)
             rep->buttons |= WPAD_PRO_BUTTON_LEFT;
 
-        if (buf[3] & 0x01)
+        // rotate abxy for sidewise joy-con
+        if (inRep->buttons.y)
             rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (buf[3] & 0x02)
+        if (inRep->buttons.x)
             rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (buf[3] & 0x04)
+        if (inRep->buttons.b)
             rep->buttons |= WPAD_PRO_BUTTON_Y;
-        if (buf[3] & 0x08)
+        if (inRep->buttons.a)
             rep->buttons |= WPAD_PRO_BUTTON_B;
-        if (buf[3] & 0x10)
+
+        if (inRep->buttons.sr_r)
             rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (buf[3] & 0x20)
+        if (inRep->buttons.sl_r)
             rep->buttons |= WPAD_PRO_TRIGGER_L;
-        if (buf[4] & 0x02)
+
+        if (inRep->buttons.plus)
             rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (buf[4] & 0x10)
+        if (inRep->buttons.home)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
     } else if (sdata->device == SWITCH_DEVICE_PRO_CONTROLLER) {
-        rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, buf[6] | (buf[7] & 0xf) << 8);
-        rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, (buf[7] >> 4) | (buf[8] << 4));
-        rep->right_stick_x = calibrateStickAxis(&sdata->right_calib_x, buf[9] | ((buf[10] & 0xf) << 8));
-        rep->right_stick_y = -calibrateStickAxis(&sdata->right_calib_y, (buf[10] >> 4) | (buf[11] << 4));
+        rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
+        rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
+        rep->right_stick_x = calibrateStickAxis(&sdata->right_calib_x, SWITCH_AXIS_X(inRep->right_stick));
+        rep->right_stick_y = -calibrateStickAxis(&sdata->right_calib_y, SWITCH_AXIS_Y(inRep->right_stick));
 
-        if (buf[3] & 0x01)
+        if (inRep->buttons.y)
             rep->buttons |= WPAD_PRO_BUTTON_Y;
-        if (buf[3] & 0x02)
+        if (inRep->buttons.x)
             rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (buf[3] & 0x04)
+        if (inRep->buttons.b)
             rep->buttons |= WPAD_PRO_BUTTON_B;
-        if (buf[3] & 0x08)
+        if (inRep->buttons.a)
             rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (buf[3] & 0x40)
+        if (inRep->buttons.r)
             rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (buf[3] & 0x80)
+        if (inRep->buttons.zr)
             rep->buttons |= WPAD_PRO_TRIGGER_ZR;
-        if (buf[4] & 0x01)
+        if (inRep->buttons.minus)
             rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-        if (buf[4] & 0x02)
+        if (inRep->buttons.plus)
             rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (buf[4] & 0x04)
+        if (inRep->buttons.rstick)
             rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
-        if (buf[4] & 0x08)
+        if (inRep->buttons.lstick)
             rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
-        if (buf[4] & 0x10)
+        if (inRep->buttons.home)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
-        // capture button
-        // if (buf[4] & 0x20)
-        //     rep->buttons |= WPAD_PRO_BUTTON_;
-        if (buf[5] & 0x01)
+        // map the capture button to the reserved button bit
+        if (inRep->buttons.capture)
+            rep->buttons |= WPAD_PRO_RESERVED;
+        if (inRep->buttons.down)
             rep->buttons |= WPAD_PRO_BUTTON_DOWN;
-        if (buf[5] & 0x02)
+        if (inRep->buttons.up)
             rep->buttons |= WPAD_PRO_BUTTON_UP;
-        if (buf[5] & 0x04)
+        if (inRep->buttons.right)
             rep->buttons |= WPAD_PRO_BUTTON_RIGHT;
-        if (buf[5] & 0x08)
+        if (inRep->buttons.left)
             rep->buttons |= WPAD_PRO_BUTTON_LEFT;
-        if (buf[5] & 0x40)
+        if (inRep->buttons.l)
             rep->buttons |= WPAD_PRO_TRIGGER_L;
-        if (buf[5] & 0x80)
+        if (inRep->buttons.zl)
             rep->buttons |= WPAD_PRO_TRIGGER_ZL;
     } else if (sdata->device == SWITCH_DEVICE_N64_CONTROLLER) {
-        rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, buf[6] | (buf[7] & 0xf) << 8);
-        rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, (buf[7] >> 4) | (buf[8] << 4));
+        rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
+        rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
         rep->right_stick_y = 0;
         rep->right_stick_x = 0;
 
         // map the C buttons to the right analog stick
-        if (buf[3] & 0x01)
+        if (inRep->buttons.y)
             rep->right_stick_y -= AXIS_NORMALIZE_VALUE;
-        if (buf[3] & 0x02)
+        if (inRep->buttons.x)
             rep->right_stick_x -= AXIS_NORMALIZE_VALUE;
-        if (buf[4] & 0x01)
+        if (inRep->buttons.minus)
             rep->right_stick_x += AXIS_NORMALIZE_VALUE;
-        if (buf[3] & 0x80)
+        if (inRep->buttons.zr)
             rep->right_stick_y += AXIS_NORMALIZE_VALUE;
 
-        if (buf[3] & 0x04)
+        if (inRep->buttons.b)
             rep->buttons |= WPAD_PRO_BUTTON_B;
-        if (buf[3] & 0x08)
+        if (inRep->buttons.a)
             rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (buf[3] & 0x40)
+        if (inRep->buttons.r)
             rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (buf[4] & 0x02)
+        if (inRep->buttons.plus)
             rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (buf[4] & 0x08)
+        if (inRep->buttons.lstick)
             rep->buttons |= WPAD_PRO_TRIGGER_ZR;
-        if (buf[4] & 0x10)
+        if (inRep->buttons.home)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
         // map capture button to X
-        if (buf[4] & 0x20)
+        if (inRep->buttons.capture)
             rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (buf[5] & 0x01)
+        if (inRep->buttons.down)
             rep->buttons |= WPAD_PRO_BUTTON_DOWN;
-        if (buf[5] & 0x02)
+        if (inRep->buttons.up)
             rep->buttons |= WPAD_PRO_BUTTON_UP;
-        if (buf[5] & 0x04)
+        if (inRep->buttons.right)
             rep->buttons |= WPAD_PRO_BUTTON_RIGHT;
-        if (buf[5] & 0x08)
+        if (inRep->buttons.left)
             rep->buttons |= WPAD_PRO_BUTTON_LEFT;
-        if (buf[5] & 0x40)
+        if (inRep->buttons.l)
             rep->buttons |= WPAD_PRO_TRIGGER_L;
-        if (buf[5] & 0x80)
+        if (inRep->buttons.zl)
             rep->buttons |= WPAD_PRO_TRIGGER_ZL;
     }
 
-    if (!controller->isReady)
+    if (!controller->isReady) {
         controller->isReady = 1;
+    }
 }
 
-static void handle_report_0x3f(Controller* controller, uint8_t* buf, uint16_t len)
+static void handle_basic_input_report(Controller* controller, SwitchBasicInputReport* inRep)
 {
     ReportBuffer* rep = &controller->reportBuffer;
 
-    rep->left_stick_x = scaleStickAxis((buf[5] << 8) | buf[4], 65536);
-    rep->right_stick_x = scaleStickAxis((buf[9] << 8) | buf[8], 65536);
-    rep->left_stick_y = scaleStickAxis((buf[7] << 8) | buf[6], 65536);
-    rep->right_stick_y = scaleStickAxis((buf[11] << 8) | buf[10], 65536);
+    rep->left_stick_x = scaleStickAxis(bswap16(inRep->left_stick_x), 65536);
+    rep->right_stick_x = scaleStickAxis(bswap16(inRep->right_stick_x), 65536);
+    rep->left_stick_y = scaleStickAxis(bswap16(inRep->left_stick_y), 65536);
+    rep->right_stick_y = scaleStickAxis(bswap16(inRep->right_stick_y), 65536);
 
     rep->buttons = 0;
 
-    if ((buf[3] & 0xf) < 9)
-        rep->buttons |= dpad_map[buf[3] & 0xf];
+    if (inRep->buttons.dpad < 9)
+        rep->buttons |= dpad_map[inRep->buttons.dpad];
 
-    if (buf[1] & 0x01)
+    if (inRep->buttons.b)
         rep->buttons |= WPAD_PRO_BUTTON_B;
-    if (buf[1] & 0x02)
+    if (inRep->buttons.a)
         rep->buttons |= WPAD_PRO_BUTTON_A;
-    if (buf[1] & 0x04)
+    if (inRep->buttons.y)
         rep->buttons |= WPAD_PRO_BUTTON_Y;
-    if (buf[1] & 0x08)
+    if (inRep->buttons.x)
         rep->buttons |= WPAD_PRO_BUTTON_X;
-    if (buf[1] & 0x10)
+    if (inRep->buttons.l)
         rep->buttons |= WPAD_PRO_TRIGGER_L;
-    if (buf[1] & 0x20)
+    if (inRep->buttons.r)
         rep->buttons |= WPAD_PRO_TRIGGER_R;
-    if (buf[1] & 0x40)
+    if (inRep->buttons.zl)
         rep->buttons |= WPAD_PRO_TRIGGER_ZL;
-    if (buf[1] & 0x80)
+    if (inRep->buttons.zr)
         rep->buttons |= WPAD_PRO_TRIGGER_ZR;
-    if (buf[2] & 0x01)
+    if (inRep->buttons.minus)
         rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-    if (buf[2] & 0x02)
+    if (inRep->buttons.plus)
         rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-    if (buf[2] & 0x04)
+    if (inRep->buttons.lstick)
         rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
-    if (buf[2] & 0x08)
+    if (inRep->buttons.rstick)
         rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
-    if (buf[2] & 0x10)
+    if (inRep->buttons.home)
         rep->buttons |= WPAD_PRO_BUTTON_HOME;
-    // capture button
-    // if (buf[2] & 0x20)
+    // if (inRep->buttons.capture)
     //     rep->buttons |= WPAD_PRO_BUTTON_;
 }
 
 void controllerData_switch(Controller* controller, uint8_t* buf, uint16_t len)
 {
-    if (buf[0] == 0x21) {
-        handle_report_0x21(controller, buf, len);
-    } else if (buf[0] == 0x30) {
-        handle_report_0x30(controller, buf, len);
-    } else if (buf[0] == 0x3f) {
-        handle_report_0x3f(controller, buf, len);
+    if (buf[0] == SWITCH_COMMAND_INPUT_REPORT_ID) {
+        SwitchCommandInputReport* rep = (SwitchCommandInputReport*) buf;
+        if (controller->isReady) {
+            handle_input_report(controller, &rep->input);
+        }
+        handle_command_response(controller, &rep->response);
+    } else if (buf[0] == SWITCH_INPUT_REPORT_ID) {
+        handle_input_report(controller, (SwitchInputReport*) buf);
+    } else if (buf[0] == SWITCH_BASIC_INPUT_REPORT_ID) {
+        handle_basic_input_report(controller, (SwitchBasicInputReport*) buf);
     }
 }
 
@@ -568,10 +502,9 @@ void controllerInit_switch(Controller* controller)
     controller->battery = 4;
     controller->isCharging = 0;
 
-    SwitchData_t* data = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(SwitchData_t));
-    memset(data, 0, sizeof(SwitchData_t));
+    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(SwitchData));
+    memset(controller->additionalData, 0, sizeof(SwitchData));
 
-    controller->additionalData = data;
-
+    // start controller initialization by requesting device info
     requestDeviceInfo(controller);
 }
