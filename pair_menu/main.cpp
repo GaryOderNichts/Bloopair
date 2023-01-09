@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <cstring>
 #include <nsyshid/hid.h>
+#include <padscore/wpad.h>
 
 #include <whb/proc.h>
 #include <whb/log.h>
@@ -102,6 +103,10 @@ int main()
 {
     WHBProcInit();
 
+    // Allow connecting pro controllers while in the pairing menu
+    WPADInit();
+    WPADEnableURCC(1);
+
     WHBLogConsoleInit();
     WHBLogConsoleSetColor(0);
     WHBLogPrintf("=== Bloopair USB Controller pairing ===");
@@ -156,6 +161,7 @@ main_loop: ;
 
     WHBLogConsoleFree();
 
+    WPADShutdown();
     WHBProcShutdown();
     return 0;
 }
