@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#define PACKED __attribute__((__packed__))
+#define PACKED __attribute__ ((__packed__))
 
 #define CHECK_SIZE(type, size) static_assert(sizeof(type) == size, #type " must be " #size " bytes")
 

@@ -13,9 +13,9 @@ It temporarily applies patches to the IOS-PAD module responsible for Bluetooth c
 - Nintendo Switch Joy-Con
 - Nintendo Switch Online SNES / N64 Controller
 - Microsoft Xbox One S/X Controller  
-Note: The latest firmware versions and all Series S/X Controllers are currently not supported due to missing Bluetooth LE support
+Note: The latest firmware versions and all Series S/X Controllers are currently not supported due to missing Bluetooth LE support.
 - Sony DualShock 3 Controller  
-To pair a DualShock 3 to the console, see the [Pairing a DualShock 3](#pairing-a-dualshock-3) section
+To pair a DualShock 3 to the console, see the [Pairing a DualShock 3](#pairing-a-dualshock-3) section.
 - Sony DualShock 4 Controller
 - Sony DualSense Controller
 
@@ -30,8 +30,8 @@ Make sure you're using Tiramisu or Aroma. Follow https://wiiu.hacks.guide/#/ to 
 More info about Tiramisu here: https://maschell.github.io/homebrew/2021/12/31/tiramisu.html
 
 ## Usage
-- Once you're booted into Tiramisu and are in the Wii U menu, press the SYNC button on your console and controller
-- Wait until the Controller is connected
+- Once you're booted into Tiramisu and are in the Wii U menu, press the SYNC button on your console and controller.
+- Wait until the Controller is connected.
 
 If a controller had been paired in the past, simply turn it on again and it should reconnect.
 
@@ -59,11 +59,24 @@ Pull requests for different controllers are always welcome.
 
 ## To-Do
 - Support more controllers
-- Bluetooth LE support (the Wii U's bluetooth stack seems to support this?)
+- Bluetooth LE support (Unlikely, only partially supported by the Bluetooth Stack)
 
 ## How it works
 Bloopair will patch the IOSU's IOS-PAD module in memory. It will make sure any bluetooth peripheral can be paired to the console.  
 Once paired and connected it will convert received HID reports to the Pro Controller HID report format, which padscore expects.
+
+## Project structure
+```
+Bloopair
+├── dist            - Used for creating distributable packages.
+├── ios             - Bloopair IOSU patches.
+│   ├── ios_kernel  - Kernel patches used for setting up Bloopair.
+│   ├── ios_pad     - Core Bloopair patches.
+│   └── ios_usb     - Patches used to recover from IOS exploit done by loader.
+├── libbloopair     - Library to communicate with Bloopair IPC.
+├── loader          - Setup module which loads Bloopair.
+└── pair_menu       - DS3 pairing application.
+```
 
 ## Building
 Install devkitPPC, devkitARM and wut.  

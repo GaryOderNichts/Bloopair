@@ -33,7 +33,7 @@
 #define IOS_RESUME              0x0D
 #define IOS_SVCMSG              0x0E
 
-typedef struct __attribute__((packed)) {
+typedef struct PACKED {
 	uint32_t command;
 	uint32_t result;
 	uint32_t fd;

@@ -124,7 +124,7 @@ struct Controller {
     ControllerSetPlayerLedFn setPlayerLed;
     // called when rumble state changes
     ControllerRumbleFn rumble;
-    // called every time input is updated (requires continous reports)
+    // called every time input is updated
     ControllerUpdateFn update;
     // encryption state
     uint8_t extensionKey[16];

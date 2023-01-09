@@ -15,7 +15,7 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ipc.hpp"
+#include <bloopair.h>
 
 #include <unistd.h>
 #include <cstring>
@@ -35,7 +35,7 @@
 
 static uint8_t controller_bda[6]{};
 
-static IOSHandle btrmHandle = -1;
+static IOSHandle bloopairHandle = -1;
 
 int ds3ReadBDA(uint32_t handle, uint8_t* outBDA)
 {
@@ -84,7 +84,7 @@ int32_t hidAttachCallback(HIDClient* client, HIDDevice* device, HIDAttachEvent e
             WHBLogConsoleDraw();
 
             uint8_t link_key[16]{};
-            addControllerPairing(btrmHandle, bda, 
+            Bloopair_AddControllerPairing(bloopairHandle, bda, 
                 link_key, // we'll bypass security for a ds3 anyways, so just add an empty link key
                 "Nintendo RVL-CNT-01-UC", // use the pro controller name
                 DS3_VID, DS3_PID
@@ -109,15 +109,15 @@ int main()
     WHBLogPrintf("Press HOME to exit");
     WHBLogConsoleDraw();
 
-    btrmHandle = openBtrm();
-    if (btrmHandle < 0) {
+    bloopairHandle = Bloopair_Open();
+    if (bloopairHandle < 0) {
         WHBLogPrintf("Failed to open btrm");
         WHBLogConsoleDraw();
         sleep(2);
         goto main_loop;
     }
 
-    if (readControllerBDAddr(btrmHandle, controller_bda) < 0) {
+    if (Bloopair_ReadControllerBDA(bloopairHandle, controller_bda) < 0) {
         WHBLogPrintf("Failed to read local bda (Make sure Bloopair is active!)");
         WHBLogConsoleDraw();
         sleep(2);
@@ -152,7 +152,7 @@ main_loop: ;
     HIDDelClient(&client);
     HIDTeardown();
 
-    closeBtrm(btrmHandle);
+    Bloopair_Close(bloopairHandle);
 
     WHBLogConsoleFree();
 

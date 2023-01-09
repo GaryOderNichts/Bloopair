@@ -38,7 +38,7 @@ SOURCES		:= source \
 	source/controllers \
 	source/stack
 DATA		:= data
-INCLUDES	:= source ../../common
+INCLUDES	:= source
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -95,7 +95,7 @@ export HFILES_BIN	:= $(addsuffix .h,$(subst .,_,$(BINFILES)))
 
 export INCLUDE	:= $(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 	$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-	-I$(CURDIR)/$(BUILD)
+	-I$(CURDIR)/$(BUILD) -I$(BLOOPAIR_TOP_DIR)/libbloopair/include
 
 export LIBPATHS	:= $(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
@@ -132,7 +132,7 @@ $(OUTPUT).bin.h: $(OUTPUT).bin
 	@raw2c $<
 	@cp $(TARGETNAME).c $@
 	
-$(OUTPUT)_syms.h:
+$(OUTPUT)_syms.h: $(OUTPUT).elf
 	@echo "#ifndef $(TARGETNAME)_SYMS_H" > $@
 	@echo "#define $(TARGETNAME)_SYMS_H" >> $@
 	@$(OBJDUMP) -EB -t -marm $(OUTPUT).elf | grep 'g     F .text' | grep -v '.hidden' | awk '{print "#define " $$6 " 0x" $$1}' >> $@

@@ -15,6 +15,8 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <bloopair.h>
+
 #include <stdio.h>
 #include <string.h>
 #include <string>
@@ -32,17 +34,16 @@
 #include <condition_variable>
 
 #include "ios_exploit.h"
-#include "ipc.hpp"
 #include "kernel.hpp"
 
 int main(int argc, char **argv)
 {
-    IOSHandle btrmHandle = openBtrm();
-    if (btrmHandle < 0) {
-        OSFatal("Can't open btrm");
+    IOSHandle bloopairHandle = Bloopair_Open();
+    if (bloopairHandle < 0) {
+        OSFatal("Bloopair Loader: Failed to open btrm");
     }
 
-    if (!isBloopairRunning(btrmHandle)) {
+    if (!Bloopair_IsActive(bloopairHandle)) {
         KernelSetup();
 
         // nop out security level checks
@@ -51,12 +52,12 @@ int main(int argc, char **argv)
 
         int numRpls = OSDynLoad_GetNumberOfRPLs();
         if (numRpls <= 0) {
-            OSFatal("OSDynLoad_GetNumberOfRPLs failed");
+            OSFatal("Bloopair Loader: OSDynLoad_GetNumberOfRPLs failed");
         }
 
         OSDynLoad_NotifyData moduleInfos[numRpls];
         if (!OSDynLoad_GetRPLInfo(0, numRpls, moduleInfos)) {
-            OSFatal("OSDynLoad_GetRPLInfo failed");
+            OSFatal("Bloopair Loader: OSDynLoad_GetRPLInfo failed");
         }
 
         bool found = false;
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
         }
 
         if (!found) {
-            OSFatal("padscore not loaded");
+            OSFatal("Bloopair Loader: Padscore not loaded");
         }
 
         WPADInit();
@@ -82,9 +83,19 @@ int main(int argc, char **argv)
 
         // run the ios exploit
         ExecuteIOSExploit();
+
+        int32_t version = Bloopair_GetVersion(bloopairHandle);
+        if (version >= 0) {
+            OSReport("Bloopair Loader: Loaded Bloopair version %d.%d.%d\n",
+                BLOOPAIR_VERSION_MAJOR(version),
+                BLOOPAIR_VERSION_MINOR(version),
+                BLOOPAIR_VERSION_PATCH(version));
+        } else {
+            OSReport("Bloopair Loader: Failed to load Bloopair\n");
+        }
     }
 
-    closeBtrm(btrmHandle);  
+    Bloopair_Close(bloopairHandle);  
 
     return 0;
 }

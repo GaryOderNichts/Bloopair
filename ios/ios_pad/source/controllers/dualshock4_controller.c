@@ -15,21 +15,7 @@
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "dualsense_controller.h"
-#include "utils.h"
-
-// the dualsense has 5 leds, with one in the center
-// we'll use the same pattern the Wii U uses on the 4 outer ones
-static const uint8_t player_leds[] = {
-    0,
-    0b00001,
-    0b00010,
-    0b01000,
-    0b10000,
-    0b00011,
-    0b01001,
-    0b10001,
-};
+#include "dualshock4_controller.h"
 
 static const uint8_t led_colors[][3] = {
     {0},
@@ -58,28 +44,25 @@ static const uint32_t dpad_map[9] = {
 
 static void sendRumbleLedState(Controller* controller)
 {
-    DualsenseData* ds_data = (DualsenseData*) controller->additionalData;
+    Dualshock4Data* ds_data = (Dualshock4Data*) controller->additionalData;
 
-    DualsenseOutputReport rep;
+    Dualshock4OutputReport rep;
     memset(&rep, 0, sizeof(rep));
-    rep.report_id = DUALSENSE_OUTPUT_REPORT_ID;
-    rep.seq_tag = (ds_data->output_seq++ & 0xf) << 4;
-    rep.tag = DUALSENSE_OUTPUT_REPORT_TAG;
 
-    rep.valid_flag0 = DUALSENSE_VF0_COMPATIBLE_VIBRATION | DUALSENSE_VF0_HAPTICS_SELECT;
-    rep.valid_flag1 = DUALSENSE_VF1_LIGHTBAR_CONTROL_ENABLE | DUALSENSE_VF1_PLAYER_INDICATOR_CONTROL_ENABLE;
+    rep.report_id = DUALSHOCK4_OUTPUT_REPORT_ID;
+    rep.report_mode = 0xc; // HID + CRC
+    rep.report_rate = 10; // (1 / 10 ms) * 1000 = 100 Hz
+    rep.flags = DUALSHOCK4_OUTPUT_FLAG_MOTOR | DUALSHOCK4_OUTPUT_FLAG_LED_COLOR;
+
     rep.motor_right = ds_data->rumble;
     rep.motor_left = ds_data->rumble;
 
-    rep.valid_flag2 = DUALSENSE_VF2_COMPATIBLE_VIBRATION2;
-    rep.lightbar_setup = DUALSENSE_LIGHTBAR_SETUP_LIGHT_OUT;
-    rep.player_leds = ds_data->player_leds;
-    rep.lightbar_red = ds_data->led_color[0];
-    rep.lightbar_green = ds_data->led_color[1];
-    rep.lightbar_blue = ds_data->led_color[2];
+    rep.led_red = ds_data->led_color[0];
+    rep.led_green = ds_data->led_color[1];
+    rep.led_blue = ds_data->led_color[2];
 
     // seed and calculate crc
-    uint8_t seed = DUALSENSE_OUTPUT_REPORT_SEED;
+    uint8_t seed = DUALSHOCK4_OUTPUT_REPORT_SEED;
     uint32_t crc = crc32(0xffffffff, &seed, sizeof(seed));
     crc = crc32(crc, &rep, sizeof(rep) - 4);
     rep.crc = bswap32(~crc);
@@ -87,31 +70,30 @@ static void sendRumbleLedState(Controller* controller)
     sendOutputData(controller->handle, &rep, sizeof(rep));
 }
 
-void controllerRumble_dualsense(Controller* controller, uint8_t rumble)
+void controllerRumble_dualshock4(Controller* controller, uint8_t rumble)
 {
-    DualsenseData* ds_data = (DualsenseData*) controller->additionalData;
+    Dualshock4Data* ds_data = (Dualshock4Data*) controller->additionalData;
 
-    ds_data->rumble = rumble ? 25 : 0;
+    ds_data->rumble = rumble ? 6 : 0;
 
     sendRumbleLedState(controller);
 }
 
-void controllerSetLed_dualsense(Controller* controller, uint8_t led)
+void controllerSetLed_dualshock4(Controller* controller, uint8_t led)
 {
-    DualsenseData* ds_data = (DualsenseData*) controller->additionalData;
-
+    Dualshock4Data* ds_data = (Dualshock4Data*) controller->additionalData;
+    
     uint8_t player_num = ledMaskToPlayerNum(led); 
-    ds_data->player_leds = player_leds[player_num];
     memcpy(ds_data->led_color, &led_colors[player_num], 3);
 
     sendRumbleLedState(controller);
 }
 
-void controllerData_dualsense(Controller* controller, uint8_t* buf, uint16_t len)
+void controllerData_dualshock4(Controller* controller, uint8_t* buf, uint16_t len)
 {
-    if (buf[0] == DUALSENSE_INPUT_REPORT_ID) {
+    if (buf[0] == DUALSHOCK4_INPUT_REPORT_ID) {
         ReportBuffer* rep = &controller->reportBuffer;
-        DualsenseInputReport* inRep = (DualsenseInputReport*) buf;
+        Dualshock4InputReport* inRep = (Dualshock4InputReport*) buf;
 
         rep->left_stick_x = scaleStickAxis(inRep->left_stick_x, 256);
         rep->left_stick_y = scaleStickAxis(inRep->left_stick_y, 256);
@@ -150,20 +132,8 @@ void controllerData_dualsense(Controller* controller, uint8_t* buf, uint16_t len
         if (inRep->buttons.ps_home)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
 
-        switch (inRep->battery_status) {
-        case 0: // discharging
-            controller->battery = CLAMP(inRep->battery_level >> 1, 0, 4);
-            controller->isCharging = 0;
-            break;
-        case 1: // charging
-            controller->battery = CLAMP(inRep->battery_level >> 1, 0, 4);
-            controller->isCharging = 1;
-            break;
-        default: // everything else indicates an error
-            controller->battery = 0;
-            controller->isCharging = 0;
-            break;
-        }
+        controller->battery = CLAMP(inRep->battery_level >> 1, 0, 4);
+        controller->isCharging = inRep->cable && inRep->battery_level <= 10;
 
         if (!controller->isReady) {
             controller->isReady = 1;
@@ -171,22 +141,22 @@ void controllerData_dualsense(Controller* controller, uint8_t* buf, uint16_t len
     }
 }
 
-void controllerDeinit_dualsense(Controller* controller)
+void controllerDeinit_dualshock4(Controller* controller)
 {
     IOS_Free(LOCAL_PROCESS_HEAP_ID, controller->additionalData);
 }
 
-void controllerInit_dualsense(Controller* controller)
+void controllerInit_dualshock4(Controller* controller)
 {
-    controller->data = controllerData_dualsense;
-    controller->setPlayerLed = controllerSetLed_dualsense;
-    controller->rumble = controllerRumble_dualsense;
-    controller->deinit = controllerDeinit_dualsense;
+    controller->data = controllerData_dualshock4;
+    controller->setPlayerLed = controllerSetLed_dualshock4;
+    controller->rumble = controllerRumble_dualshock4;
+    controller->deinit = controllerDeinit_dualshock4;
     controller->update = NULL;
 
     controller->battery = 4;
     controller->isCharging = 0;
 
-    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(DualsenseData));
-    memset(controller->additionalData, 0, sizeof(DualsenseData));
+    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(Dualshock4Data));
+    memset(controller->additionalData, 0, sizeof(Dualshock4Data));
 }

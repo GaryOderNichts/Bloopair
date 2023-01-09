@@ -237,7 +237,7 @@ enum
 ** A record exists for each device authenticated with this device
 */
 #define BTM_SEC_SERVICE_ARRAY_SIZE 3
-typedef struct __attribute__ ((__packed__))
+typedef struct PACKED
 {
     void                *p_cur_service;
     void                *p_callback;

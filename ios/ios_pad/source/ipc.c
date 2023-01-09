@@ -19,12 +19,12 @@
 #include "info_store.h"
 #include "bloopair_ipc.h"
 
-static int bloopairFunc(BtrmRequest_t* request, BtrmResponse_t* response)
+static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
 {
     switch (request->func) {
-    case BLOOPAIR_FUNC_IS_ACTIVE:
-        DEBUG("BLOOPAIR_FUNC_IS_ACTIVE\n");
-        return 0;
+    case BLOOPAIR_FUNC_GET_VERSION:
+        DEBUG("BLOOPAIR_FUNC_GET_VERSION\n");
+        return BLOOPAIR_VERSION(0, 6, 0);
 
     case BLOOPAIR_FUNC_READ_DEVICE_BDADDR: {
         DEBUG("BLOOPAIR_FUNC_READ_DEVICE_BDADDR\n");
@@ -35,7 +35,7 @@ static int bloopairFunc(BtrmRequest_t* request, BtrmResponse_t* response)
     case BLOOPAIR_FUNC_ADD_CONTROLLER_PAIRING: {
         DEBUG("BLOOPAIR_FUNC_ADD_CONTROLLER_PAIRING\n");
 
-        PairingData_t* data = (PairingData_t*) request->data;
+        BloopairPairingData* data = (BloopairPairingData*) request->data;
 
         // register the device pairing
         registerNewDevice(data->bd_address, data->link_key, data->name);
@@ -79,11 +79,11 @@ int btrm_receive_message_hook(int queueid, IPCMessage_t **p_message, uint32_t fl
 
     if (message->command == IOS_IOCTLV && message->ioctlv.command == 0 &&
         message->ioctlv.num_in == 1 && message->ioctlv.num_out == 1 &&
-        message->ioctlv.vecs[0].len == sizeof(BtrmRequest_t) &&
-        message->ioctlv.vecs[1].len == sizeof(BtrmResponse_t)) {
+        message->ioctlv.vecs[0].len == sizeof(BtrmRequest) &&
+        message->ioctlv.vecs[1].len == sizeof(BtrmResponse)) {
 
-        BtrmRequest_t* request = (BtrmRequest_t*) message->ioctlv.vecs[0].ptr;
-        BtrmResponse_t* response = (BtrmResponse_t*) message->ioctlv.vecs[1].ptr;
+        BtrmRequest* request = (BtrmRequest*) message->ioctlv.vecs[0].ptr;
+        BtrmResponse* response = (BtrmResponse*) message->ioctlv.vecs[1].ptr;
 
         if (request->lib == BLOOPAIR_LIB) {
             // if this was a bloopair command reply and wait for the next message
