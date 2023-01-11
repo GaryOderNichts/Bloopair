@@ -21,8 +21,6 @@
 #include <string.h>
 #include <malloc.h>
 
-#include <coreinit/ipcbufpool.h>
-
 typedef struct {
     IOSVec vecs[2];
     uint8_t padding[104];
@@ -91,7 +89,6 @@ int32_t Bloopair_GetVersion(IOSHandle handle)
     return (int32_t) res;
 }
 
-// reads the bluetooth device address of the local bluetooth controller
 IOSError Bloopair_ReadControllerBDA(IOSHandle handle, uint8_t* outBDA)
 {
     BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_READ_DEVICE_BDADDR);
@@ -109,7 +106,6 @@ IOSError Bloopair_ReadControllerBDA(IOSHandle handle, uint8_t* outBDA)
     return res;
 }
 
-// manually adds a controller pairing
 IOSError Bloopair_AddControllerPairing(IOSHandle handle, uint8_t* bda, uint8_t* link_key, const char* name, uint16_t vid, uint16_t pid)
 {
     BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_ADD_CONTROLLER_PAIRING);

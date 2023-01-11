@@ -18,11 +18,11 @@
 #include "info_store.h"
 #include "controllers.h"
 
-BT_DevInfo* bt_devInfo = (BT_DevInfo*) 0x12157778;
+static BT_DevInfo* bt_devInfo = (BT_DevInfo*) 0x12157778;
 
-StoredInfo stored_infos[BTA_HH_MAX_KNOWN] = { 0 };
+static StoredInfo stored_infos[BTA_HH_MAX_KNOWN] = { 0 };
 
-int devInfo_read = 0;
+static int devInfo_read = 0;
 
 void store_read_device_info(void)
 {
