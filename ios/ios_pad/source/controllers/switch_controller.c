@@ -153,7 +153,7 @@ static void setPlayerLeds(Controller* controller)
     uint8_t led = sdata->led;
 
     // if this is the right joycon swap led order
-    if (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT) {
+    if (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT || sdata->device == SWITCH_DEVICE_TP_JOYCON_RIGHT) {
         led = ((led & 1) << 3) | ((led & 2) << 1) | ((led & 4) >> 1) | ((led & 8) >> 3);
     }
 
@@ -235,10 +235,10 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
         // enable rumble
         setVibration(controller, 1);
 
-        if ((sdata->device == SWITCH_DEVICE_JOYCON_LEFT) ||
-            (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT) ||
-            (sdata->device == SWITCH_DEVICE_PRO_CONTROLLER) ||
-            (sdata->device == SWITCH_DEVICE_N64_CONTROLLER)) {
+        if (sdata->device == SWITCH_DEVICE_JOYCON_LEFT || sdata->device == SWITCH_DEVICE_TP_JOYCON_LEFT ||
+            sdata->device == SWITCH_DEVICE_JOYCON_RIGHT || sdata->device == SWITCH_DEVICE_TP_JOYCON_RIGHT ||
+            sdata->device == SWITCH_DEVICE_PRO || sdata->device == SWITCH_DEVICE_TP_PRO ||
+            sdata->device == SWITCH_DEVICE_N64) {
             // Start by reading the left user calibration magic to check if user calibration exists
             readSpiFlash(controller, SWITCH_LEFT_USER_CALIBRATION_MAGIC_ADDRESS, 2);
         } else {
@@ -304,7 +304,7 @@ static void handle_input_report(Controller* controller, SwitchInputReport* inRep
 
     rep->buttons = 0;
 
-    if (sdata->device == SWITCH_DEVICE_JOYCON_LEFT) {
+    if (sdata->device == SWITCH_DEVICE_JOYCON_LEFT || sdata->device == SWITCH_DEVICE_TP_JOYCON_LEFT) {
         int16_t left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
         int16_t left_stick_y = calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
 
@@ -340,7 +340,7 @@ static void handle_input_report(Controller* controller, SwitchInputReport* inRep
             rep->buttons |= WPAD_PRO_TRIGGER_R;
         if (inRep->buttons.sl_l)
             rep->buttons |= WPAD_PRO_TRIGGER_L;
-    } else if (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT) {
+    } else if (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT || sdata->device == SWITCH_DEVICE_TP_JOYCON_RIGHT) {
         int16_t right_stick_x = calibrateStickAxis(&sdata->right_calib_x, SWITCH_AXIS_X(inRep->right_stick));
         int16_t right_stick_y = calibrateStickAxis(&sdata->right_calib_y, SWITCH_AXIS_Y(inRep->right_stick));
 
@@ -373,7 +373,7 @@ static void handle_input_report(Controller* controller, SwitchInputReport* inRep
             rep->buttons |= WPAD_PRO_BUTTON_PLUS;
         if (inRep->buttons.home)
             rep->buttons |= WPAD_PRO_BUTTON_HOME;
-    } else if (sdata->device == SWITCH_DEVICE_PRO_CONTROLLER) {
+    } else if (sdata->device == SWITCH_DEVICE_PRO || sdata->device == SWITCH_DEVICE_TP_PRO) {
         rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
         rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
         rep->right_stick_x = calibrateStickAxis(&sdata->right_calib_x, SWITCH_AXIS_X(inRep->right_stick));
@@ -416,7 +416,7 @@ static void handle_input_report(Controller* controller, SwitchInputReport* inRep
             rep->buttons |= WPAD_PRO_TRIGGER_L;
         if (inRep->buttons.zl)
             rep->buttons |= WPAD_PRO_TRIGGER_ZL;
-    } else if (sdata->device == SWITCH_DEVICE_N64_CONTROLLER) {
+    } else if (sdata->device == SWITCH_DEVICE_N64) {
         rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
         rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
         rep->right_stick_y = 0;
@@ -506,8 +506,9 @@ static void handle_basic_input_report(Controller* controller, SwitchBasicInputRe
         rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
     if (inRep->buttons.home)
         rep->buttons |= WPAD_PRO_BUTTON_HOME;
-    // if (inRep->buttons.capture)
-    //     rep->buttons |= WPAD_PRO_BUTTON_;
+    // map the capture button to the reserved button bit
+    if (inRep->buttons.capture)
+        rep->buttons |= WPAD_PRO_RESERVED;
 }
 
 void controllerData_switch(Controller* controller, uint8_t* buf, uint16_t len)
