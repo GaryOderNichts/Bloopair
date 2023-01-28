@@ -38,23 +38,44 @@ static const uint32_t dpad_map[9] = {
     0,
 };
 
-static void parseRawStickCalibration(SwitchData* sdata, SwitchRawStickCalibration* raw)
+static void parseLeftRawStickCalibration(SwitchData* sdata, SwitchRawStickCalibrationLeft* raw)
 {
-    sdata->left_calib_x.center = SWITCH_AXIS_X(raw->left_stick_center);
-    sdata->left_calib_x.max = sdata->left_calib_x.center + SWITCH_AXIS_X(raw->left_stick_max);
-    sdata->left_calib_x.min = sdata->left_calib_x.center - SWITCH_AXIS_X(raw->left_stick_min);
+    // Some controllers don't store any calibration data, in which case the raw data is just 0xff
+    if (raw->center[0] == 0xff && raw->center[1] == 0xff && raw->center[2] == 0xff) {
+        // Just use full 12-bit range if that's the case
+        sdata->left_calib_x.center = sdata->left_calib_y.center = 2047;
+        sdata->left_calib_x.max = sdata->left_calib_y.max = 4095;
+        sdata->left_calib_x.min = sdata->left_calib_y.min = 0;
+        return;
+    }
 
-    sdata->left_calib_y.center = SWITCH_AXIS_Y(raw->left_stick_center);
-    sdata->left_calib_y.max = sdata->left_calib_y.center + SWITCH_AXIS_Y(raw->left_stick_max);
-    sdata->left_calib_y.min = sdata->left_calib_y.center - SWITCH_AXIS_Y(raw->left_stick_min);
+    sdata->left_calib_x.center = SWITCH_AXIS_X(raw->center);
+    sdata->left_calib_x.max = sdata->left_calib_x.center + SWITCH_AXIS_X(raw->max);
+    sdata->left_calib_x.min = sdata->left_calib_x.center - SWITCH_AXIS_X(raw->min);
 
-    sdata->right_calib_x.center = SWITCH_AXIS_X(raw->right_stick_center);
-    sdata->right_calib_x.max = sdata->right_calib_x.center + SWITCH_AXIS_X(raw->right_stick_max);
-    sdata->right_calib_x.min = sdata->right_calib_x.center - SWITCH_AXIS_X(raw->right_stick_min);
+    sdata->left_calib_y.center = SWITCH_AXIS_Y(raw->center);
+    sdata->left_calib_y.max = sdata->left_calib_y.center + SWITCH_AXIS_Y(raw->max);
+    sdata->left_calib_y.min = sdata->left_calib_y.center - SWITCH_AXIS_Y(raw->min);
+}
 
-    sdata->right_calib_y.center = SWITCH_AXIS_Y(raw->right_stick_center);
-    sdata->right_calib_y.max = sdata->right_calib_y.center + SWITCH_AXIS_Y(raw->right_stick_max);
-    sdata->right_calib_y.min = sdata->right_calib_y.center - SWITCH_AXIS_Y(raw->right_stick_min);
+static void parseRightRawStickCalibration(SwitchData* sdata, SwitchRawStickCalibrationRight* raw)
+{
+    // Some controllers don't store any calibration data, in which case the raw data is just 0xff
+    if (raw->center[0] == 0xff && raw->center[1] == 0xff && raw->center[2] == 0xff) {
+        // Just use full 12-bit range if that's the case
+        sdata->right_calib_x.center = sdata->right_calib_y.center = 2047;
+        sdata->right_calib_x.max = sdata->right_calib_y.max = 4095;
+        sdata->right_calib_x.min = sdata->right_calib_y.min = 0;
+        return;
+    }
+
+    sdata->right_calib_x.center = SWITCH_AXIS_X(raw->center);
+    sdata->right_calib_x.max = sdata->right_calib_x.center + SWITCH_AXIS_X(raw->max);
+    sdata->right_calib_x.min = sdata->right_calib_x.center - SWITCH_AXIS_X(raw->min);
+
+    sdata->right_calib_y.center = SWITCH_AXIS_Y(raw->center);
+    sdata->right_calib_y.max = sdata->right_calib_y.center + SWITCH_AXIS_Y(raw->max);
+    sdata->right_calib_y.min = sdata->right_calib_y.center - SWITCH_AXIS_Y(raw->min);
 }
 
 static int16_t calibrateStickAxis(SwitchStickCalibration* calib, uint32_t value)
@@ -218,8 +239,8 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
             (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT) ||
             (sdata->device == SWITCH_DEVICE_PRO_CONTROLLER) ||
             (sdata->device == SWITCH_DEVICE_N64_CONTROLLER)) {
-            // Read the user calibration magic to check if user calibration exists
-            readSpiFlash(controller, SWITCH_USER_CALIBRATION_MAGIC_ADDRESS, 2);
+            // Start by reading the left user calibration magic to check if user calibration exists
+            readSpiFlash(controller, SWITCH_LEFT_USER_CALIBRATION_MAGIC_ADDRESS, 2);
         } else {
             // Don't need to wait for calibration, controller is ready now
             if (!controller->isReady) {
@@ -230,20 +251,38 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
         uint32_t address = bswap32(resp->spi_flash_read.address);
 
         switch (address) {
-        case SWITCH_USER_CALIBRATION_MAGIC_ADDRESS:
+        case SWITCH_LEFT_USER_CALIBRATION_MAGIC_ADDRESS:
             // Check for user calibration
             if (resp->spi_flash_read.data[0] == 0xb2 && resp->spi_flash_read.data[1] == 0xa1) {
                 // Read user calibration
-                readSpiFlash(controller, SWITCH_USER_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibration));
+                readSpiFlash(controller, SWITCH_LEFT_USER_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibrationLeft));
             } else {
                 // Fall back to factory calibration
-                readSpiFlash(controller, SWITCH_FACTORY_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibration));
+                readSpiFlash(controller, SWITCH_LEFT_FACTORY_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibrationLeft));
             }
             break;
-        case SWITCH_FACTORY_CALIBRATION_ADDRESS:
-        case SWITCH_USER_CALIBRATION_ADDRESS:
+        case SWITCH_LEFT_FACTORY_CALIBRATION_ADDRESS:
+        case SWITCH_LEFT_USER_CALIBRATION_ADDRESS:
             // parse the calibration data
-            parseRawStickCalibration(sdata, (SwitchRawStickCalibration*) resp->spi_flash_read.data);
+            parseLeftRawStickCalibration(sdata, (SwitchRawStickCalibrationLeft*) resp->spi_flash_read.data);
+
+            // continue with reading the right calibration magic
+            readSpiFlash(controller, SWITCH_RIGHT_USER_CALIBRATION_MAGIC_ADDRESS, 2);
+            break;
+        case SWITCH_RIGHT_USER_CALIBRATION_MAGIC_ADDRESS:
+            // Check for user calibration
+            if (resp->spi_flash_read.data[0] == 0xb2 && resp->spi_flash_read.data[1] == 0xa1) {
+                // Read user calibration
+                readSpiFlash(controller, SWITCH_RIGHT_USER_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibrationRight));
+            } else {
+                // Fall back to factory calibration
+                readSpiFlash(controller, SWITCH_RIGHT_FACTORY_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibrationRight));
+            }
+            break;
+        case SWITCH_RIGHT_FACTORY_CALIBRATION_ADDRESS:
+        case SWITCH_RIGHT_USER_CALIBRATION_ADDRESS:
+            // parse the calibration data
+            parseRightRawStickCalibration(sdata, (SwitchRawStickCalibrationRight*) resp->spi_flash_read.data);
 
             // we can now enable full reports
             setInputReportMode(controller, SWITCH_INPUT_REPORT_ID);

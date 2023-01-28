@@ -69,19 +69,28 @@ enum {
 #define SWITCH_AXIS_Y(data) ((data[1] >> 4) | (data[2] << 4))
 typedef uint8_t SwitchAxis[3];
 
-#define SWITCH_FACTORY_CALIBRATION_ADDRESS      0x603d
-#define SWITCH_USER_CALIBRATION_MAGIC_ADDRESS   0x8010
-#define SWITCH_USER_CALIBRATION_ADDRESS         0x8012
+#define SWITCH_LEFT_FACTORY_CALIBRATION_ADDRESS      0x603d
+#define SWITCH_RIGHT_FACTORY_CALIBRATION_ADDRESS     0x6046
+
+#define SWITCH_LEFT_USER_CALIBRATION_MAGIC_ADDRESS   0x8010
+#define SWITCH_LEFT_USER_CALIBRATION_ADDRESS         0x8012
+
+#define SWITCH_RIGHT_USER_CALIBRATION_MAGIC_ADDRESS  0x801b
+#define SWITCH_RIGHT_USER_CALIBRATION_ADDRESS        0x801d
 
 typedef struct PACKED {
-    SwitchAxis left_stick_max;
-    SwitchAxis left_stick_center;
-    SwitchAxis left_stick_min;
-    SwitchAxis right_stick_center;
-    SwitchAxis right_stick_min;
-    SwitchAxis right_stick_max;
-} SwitchRawStickCalibration;
-CHECK_SIZE(SwitchRawStickCalibration, 0x12);
+    SwitchAxis max;
+    SwitchAxis center;
+    SwitchAxis min;
+} SwitchRawStickCalibrationLeft;
+CHECK_SIZE(SwitchRawStickCalibrationLeft, 0x09);
+
+typedef struct PACKED {
+    SwitchAxis center;
+    SwitchAxis min;
+    SwitchAxis max;
+} SwitchRawStickCalibrationRight;
+CHECK_SIZE(SwitchRawStickCalibrationRight, 0x09);
 
 typedef struct PACKED {
     uint8_t command;
