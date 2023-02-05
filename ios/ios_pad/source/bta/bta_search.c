@@ -42,22 +42,26 @@ void bta_search_callback(uint8_t event, void *p_data)
     real_bta_search_callback(event, p_data);
 }
 
+static uint8_t current_inq_mode = BTM_LIMITED_INQUIRY;
+
 void (*const real_BTA_DmSearch)(tBTA_DM_INQ *p_dm_inq, uint32_t services, void *p_cback) = (void*) 0x11f04c7c;
 void BTA_DmSearch_hook(tBTA_DM_INQ *p_dm_inq, uint32_t services, void *p_cback)
 {
-    // set mode to general to allow all devices (by default it's only limited)
-    p_dm_inq->mode = BTM_GENERAL_INQUIRY;
+    DEBUG("BTA_DmSearch_hook %ds (%s)\n", p_dm_inq->duration,
+        (current_inq_mode == BTM_LIMITED_INQUIRY) ? "BTM_LIMITED_INQUIRY" : "BTM_GENERAL_INQUIRY");
 
-    p_dm_inq->duration = 10;
+    // switch between limited and general inquiry to make sure all devices are covered
+    p_dm_inq->mode = current_inq_mode;
+    current_inq_mode = (current_inq_mode == BTM_LIMITED_INQUIRY) ? BTM_GENERAL_INQUIRY : BTM_LIMITED_INQUIRY;
 
-    // only search for gamepad peripherals
+    // only search for peripherals
     p_dm_inq->filter_type = BTM_FILTER_COND_DEVICE_CLASS;
     p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[0] = 0;
     p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[1] = BTM_COD_MAJOR_CLASS_MASK;
-    p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[2] = BTM_COD_MINOR_CLASS_MASK;
+    p_dm_inq->filter_cond.dev_class_cond.dev_class_mask[2] = 0;
     p_dm_inq->filter_cond.dev_class_cond.dev_class[0] = 0;
     p_dm_inq->filter_cond.dev_class_cond.dev_class[1] = BTM_COD_MAJOR_PERIPHERAL;
-    p_dm_inq->filter_cond.dev_class_cond.dev_class[2] = BTM_COD_MINOR_GAMEPAD;
+    p_dm_inq->filter_cond.dev_class_cond.dev_class[2] = 0;
 
     real_BTA_DmSearch(p_dm_inq, services, p_cback);
 }

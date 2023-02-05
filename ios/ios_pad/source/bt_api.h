@@ -158,6 +158,7 @@ typedef struct
 } tBTA_DM_INQ;
 
 /* minor device class field for Peripheral Major Class */
+#define BTM_COD_MINOR_JOYSTICK              0x04
 #define BTM_COD_MINOR_GAMEPAD               0x08
 
 /***************************
