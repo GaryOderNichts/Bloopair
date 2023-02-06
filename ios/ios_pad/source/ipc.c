@@ -24,7 +24,7 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
     switch (request->func) {
     case BLOOPAIR_FUNC_GET_VERSION:
         DEBUG("BLOOPAIR_FUNC_GET_VERSION\n");
-        return BLOOPAIR_VERSION(0, 6, 1);
+        return BLOOPAIR_VERSION(0, 6, 2);
 
     case BLOOPAIR_FUNC_READ_DEVICE_BDADDR: {
         DEBUG("BLOOPAIR_FUNC_READ_DEVICE_BDADDR\n");
