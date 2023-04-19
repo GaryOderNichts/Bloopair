@@ -17,7 +17,7 @@
 
 #include "ipc.h"
 #include "info_store.h"
-#include "bloopair_ipc.h"
+#include <bloopair/ipc.h>
 
 static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
 {
@@ -63,34 +63,17 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
     return -1;
 }
 
-int btrm_receive_message_hook(int queueid, IPCMessage_t **p_message, uint32_t flags)
+int btrmCustomLibHook(BtrmRequest* request, BtrmResponse* response)
 {
-    int res = IOS_ReceiveMessage(queueid, (uint32_t*) p_message, flags);
-    if (res != 0) {
-        return res;
+    return bloopairFunc(request, response);
+}
+
+// return non-0 if btrmCustomLibHook should be called for this lib
+int btrmCheckCustomLib(uint8_t lib)
+{
+    if (lib == BLOOPAIR_LIB) {
+        return 1;
     }
 
-    IPCMessage_t* message = *p_message;
-
-    // there are some event messages which aren't ipcmessage pointers
-    if (message < (IPCMessage_t*) 0x1000) {
-        return res;
-    }
-
-    if (message->command == IOS_IOCTLV && message->ioctlv.command == 0 &&
-        message->ioctlv.num_in == 1 && message->ioctlv.num_out == 1 &&
-        message->ioctlv.vecs[0].len == sizeof(BtrmRequest) &&
-        message->ioctlv.vecs[1].len == sizeof(BtrmResponse)) {
-
-        BtrmRequest* request = (BtrmRequest*) message->ioctlv.vecs[0].ptr;
-        BtrmResponse* response = (BtrmResponse*) message->ioctlv.vecs[1].ptr;
-
-        if (request->lib == BLOOPAIR_LIB) {
-            // if this was a bloopair command reply and wait for the next message
-            IOS_ResourceReply(message, bloopairFunc(request, response));
-            return btrm_receive_message_hook(queueid, p_message, flags);
-        }
-    }
-
-    return res;
+    return 0;
 }

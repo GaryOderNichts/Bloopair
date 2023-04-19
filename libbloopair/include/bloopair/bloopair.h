@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include "bloopair_ipc.h"
+#include "ipc.h"
 #include <coreinit/ios.h>
 
 #ifdef __cplusplus

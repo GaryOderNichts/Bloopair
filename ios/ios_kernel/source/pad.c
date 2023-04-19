@@ -76,8 +76,8 @@ void run_ios_pad_patches(void)
     // hook security procedures
     *(volatile uint32_t *) 0x11f14f00 = ARM_B(0x11f14f00, btm_sec_execute_procedure_hook);
 
-    // hook btrm messages so we can have custom ipc calls
-    *(volatile uint32_t *) 0x11f0274c = ARM_BL(0x11f0274c, btrm_receive_message_hook);
+    // hook btrm lib handling so we can have custom ipc calls
+    *(volatile uint32_t *) 0x11f03428 = ARM_B(0x11f03428, _btrmCustomLibHook);
 
 #ifdef MORE_LOGS
 /******************************************************************************
