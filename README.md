@@ -73,6 +73,7 @@ Bloopair
 │   ├── ios_kernel  - Kernel patches used for setting up Bloopair.
 │   ├── ios_pad     - Core Bloopair patches.
 │   └── ios_usb     - Patches used to recover from IOS exploit done by loader.
+├── koopair         - Bloopair companion app.
 ├── libbloopair     - Library to communicate with Bloopair IPC.
 ├── loader          - Setup module which loads Bloopair.
 ├── pair_menu       - DS3 pairing application.
@@ -80,5 +81,12 @@ Bloopair
 ```
 
 ## Building
-Install devkitPPC, devkitARM and wut.  
+Install devkitPPC, devkitARM and wut.
+
+**Koopair dependencies**  
+Koopair additionally requires the following packages:
+- wiiu-sdl2
+- wiiu-sdl2_gfx
+- wiiu-sdl2_ttf
+
 Run `make`.
