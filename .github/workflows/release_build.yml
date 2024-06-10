@@ -1,6 +1,10 @@
-name: CI
+name: Release Build
 
-on: [push, pull_request]
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
 
 jobs:
   build-binary:
@@ -12,8 +16,8 @@ jobs:
     - name: build binary
       run: |
         docker build . -t builder
-        docker run --rm -v ${PWD}:/project builder make dist
+        docker run --rm -v ${PWD}:/project builder make dist DEBUG=0
     - uses: actions/upload-artifact@v4
       with:
-       name: Bloopair_nightly
+       name: Bloopair_release
        path: dist/*
