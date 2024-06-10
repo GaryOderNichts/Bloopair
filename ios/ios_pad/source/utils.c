@@ -45,30 +45,30 @@ void dumpHex(const void *data, size_t size)
     char ascii[17];
     size_t i, j;
     ascii[16] = '\0';
-    // DEBUG("0x%08X (0x0000): ", data);
+    // DEBUG_PRINT("0x%08X (0x0000): ", data);
     for (i = 0; i < size; ++i) {
-        DEBUG("%02X ", ((unsigned char *) data)[i]);
+        DEBUG_PRINT("%02X ", ((unsigned char *) data)[i]);
         if (((unsigned char *) data)[i] >= ' ' && ((unsigned char *) data)[i] <= '~') {
             ascii[i % 16] = ((unsigned char *) data)[i];
         } else {
             ascii[i % 16] = '.';
         }
         if ((i + 1) % 8 == 0 || i + 1 == size) {
-            DEBUG(" ");
+            DEBUG_PRINT(" ");
             if ((i + 1) % 16 == 0) {
-                DEBUG("|  %s \n", ascii);
+                DEBUG_PRINT("|  %s \n", ascii);
                 if (i + 1 < size) {
-                    // DEBUG("0x%08X (0x%04X); ", data + i + 1, i + 1);
+                    // DEBUG_PRINT("0x%08X (0x%04X); ", data + i + 1, i + 1);
                 }
             } else if (i + 1 == size) {
                 ascii[(i + 1) % 16] = '\0';
                 if ((i + 1) % 16 <= 8) {
-                    DEBUG(" ");
+                    DEBUG_PRINT(" ");
                 }
                 for (j = (i + 1) % 16; j < 16; ++j) {
-                    DEBUG("   ");
+                    DEBUG_PRINT("   ");
                 }
-                DEBUG("|  %s \n", ascii);
+                DEBUG_PRINT("|  %s \n", ascii);
             }
         }
     }

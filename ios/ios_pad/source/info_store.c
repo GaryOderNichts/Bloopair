@@ -83,7 +83,7 @@ StoredInfo* store_allocate_device_info(uint8_t* address)
 int (*const real_writeDevInfo)(void* callback) = (void*) DEFINE_REAL(0x11f41820, 0xe92d4ff0);
 int writeDevInfo_hook(void* callback)
 {
-    DEBUG("writeDevInfo_hook %p\n", callback);
+    DEBUG_PRINT("writeDevInfo_hook %p\n", callback);
 
     // populate devInfo with our custom info before writing
     for (int i = 0; i < bt_devInfo->num_entries; i++) {
@@ -124,7 +124,7 @@ void store_read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db)
         }
     }
 
-    DEBUG("got vid %X and pid %X\n", vendor_id, product_id);
+    DEBUG_PRINT("got vid %X and pid %X\n", vendor_id, product_id);
 
     // store the vid and pid
     StoredInfo* info = store_get_device_info(bda);

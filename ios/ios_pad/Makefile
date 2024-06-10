@@ -45,8 +45,10 @@ INCLUDES	:= source
 #---------------------------------------------------------------------------------
 CFLAGS	:= -Wall -std=gnu11 -Os $(MACHDEP) $(INCLUDE) -Wno-array-bounds -fno-builtin
 
-ifeq ($(LOGGING), 1)
-	CFLAGS += -DLOGGING
+ifeq ($(DEBUG), 1)
+	CFLAGS += -DCOMMIT_HASH=\"$(BLOOPAIR_COMMIT_HASH)\"
+else
+	CFLAGS += -DNDEBUG
 endif
 
 ASFLAGS	:= $(MACHDEP)

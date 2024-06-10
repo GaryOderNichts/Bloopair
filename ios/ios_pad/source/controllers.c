@@ -19,10 +19,11 @@
 #include "utils.h"
 #include "info_store.h"
 
-#define WPAD_PRO_AXIS_BASE 0x800
-#define WPAD_PRO_AXIS_NORMALIZE_RANGE (1140 * 2)
+#define WPAD_PRO_AXIS_BASE            0x800
+#define WPAD_PRO_AXIS_NORMALIZE_VALUE 1140
+#define WPAD_PRO_AXIS_NORMALIZE_RANGE (WPAD_PRO_AXIS_NORMALIZE_VALUE * 2)
 
-#define REPORT_THREAD_STACK_SIZE 1024
+#define REPORT_THREAD_STACK_SIZE 0x800
 
 // send a report every 10 ms
 #define REPORT_INTERVAL (10 * 1000)
@@ -127,7 +128,7 @@ int initController(uint8_t* bda, uint8_t handle)
 {
     StoredInfo* info = store_get_device_info(bda);
     if (!info) {
-        DEBUG("Failed to get info for device\n");
+        DEBUG_PRINT("Failed to get info for device\n");
         return -1;
     }
 
@@ -135,11 +136,14 @@ int initController(uint8_t* bda, uint8_t handle)
     uint16_t vendor_id = info->vendor_id;
     uint16_t product_id = info->product_id;
 
-    DEBUG("initController handle %u magic %x vid %x pid %x\n", handle, magic, vendor_id, product_id);
+    DEBUG_PRINT("initController handle %u magic %x vid %x pid %x\n", handle, magic, vendor_id, product_id);
 
     if (!report_thread_running) {
         initReportThread();
     }
+
+    // Make sure the config is initialized at this point
+    Configuration_Init();
 
     Controller* controller = &controllers[handle];
 
@@ -154,10 +158,14 @@ int initController(uint8_t* bda, uint8_t handle)
     memset(controller, 0, sizeof(Controller));
 
     controller->handle = handle;
+    memcpy(controller->bda, bda, 6);
     controller->isInitialized = 1;
-    
+
+    controller->vendor_id = vendor_id;
+    controller->product_id = product_id;
+
     if (magic == MAGIC_OFFICIAL) {
-        controller->isOfficialController = 1;
+        controller->type = BLOOPAIR_CONTROLLER_OFFICIAL;
         return 0;
     } else if (magic == MAGIC_BLOOPAIR) {
         if ((vendor_id == 0x057e && product_id == 0x2006) || // joycon l
@@ -199,27 +207,29 @@ int initController(uint8_t* bda, uint8_t handle)
     }
 
     // We don't support this device, close connection
-    DEBUG("unsupported device\n");
+    DEBUG_PRINT("unsupported device\n");
     controller->isInitialized = 0;
     return -1;
 }
 
 void sendControllerInput(Controller* controller)
 {
-    ReportBuffer* repBuf = &controller->reportBuffer;
+    // map the raw controller input to the wii u pro mapping
+    BloopairReportBuffer repBuf;
+    mapControllerInput(controller, &controller->reportBuffer, &repBuf);
 
     WPADProReport report;
     memset(&report, 0, sizeof(report));
 
     report.report_id = WM_REPORT_ID_EXTENSION_DATA_REPORT;
-    report.data.left_stick_x = bswap16(repBuf->left_stick_x + WPAD_PRO_AXIS_BASE);
-    report.data.right_stick_x = bswap16(repBuf->right_stick_x + WPAD_PRO_AXIS_BASE);
-    report.data.left_stick_y = bswap16(WPAD_PRO_AXIS_BASE - repBuf->left_stick_y);
-    report.data.right_stick_y = bswap16(WPAD_PRO_AXIS_BASE - repBuf->right_stick_y);
+    report.data.left_stick_x = bswap16(repBuf.left_stick_x + WPAD_PRO_AXIS_BASE);
+    report.data.right_stick_x = bswap16(repBuf.right_stick_x + WPAD_PRO_AXIS_BASE);
+    report.data.left_stick_y = bswap16(WPAD_PRO_AXIS_BASE - repBuf.left_stick_y);
+    report.data.right_stick_y = bswap16(WPAD_PRO_AXIS_BASE - repBuf.right_stick_y);
 
     // These bits are all low-active
-    report.data.buttons = ~repBuf->buttons & 0xffff;
-    report.data.stick_buttons = ~(repBuf->buttons >> 16) & 0x3;
+    report.data.buttons = ~repBuf.buttons & 0xffff;
+    report.data.stick_buttons = ~(repBuf.buttons >> 16) & 0x3;
     report.data.usb_connected = report.data.charging = !controller->isCharging;
 
     report.data.battery = controller->battery;
@@ -228,7 +238,109 @@ void sendControllerInput(Controller* controller)
     sendInputData(controller->handle, &report, sizeof(report));
 }
 
+static int16_t getStickAxis(BloopairReportBuffer* in, uint8_t from)
+{
+    int16_t axis = 0;
+    switch (from) {
+    case BLOOPAIR_PRO_STICK_L_UP:
+        axis = -in->left_stick_y;
+        break;
+    case BLOOPAIR_PRO_STICK_L_DOWN:
+        axis = in->left_stick_y;
+        break;
+    case BLOOPAIR_PRO_STICK_L_LEFT:
+        axis = -in->left_stick_x;
+        break;
+    case BLOOPAIR_PRO_STICK_L_RIGHT:
+        axis = in->left_stick_x;
+        break;
+    case BLOOPAIR_PRO_STICK_R_UP:
+        axis = -in->right_stick_y;
+        break;
+    case BLOOPAIR_PRO_STICK_R_DOWN:
+        axis = in->right_stick_y;
+        break;
+    case BLOOPAIR_PRO_STICK_R_LEFT:
+        axis = -in->right_stick_x;
+        break;
+    case BLOOPAIR_PRO_STICK_R_RIGHT:
+        axis = in->right_stick_x;
+        break;
+    }
 
+    return CLAMP(axis, 0, WPAD_PRO_AXIS_NORMALIZE_VALUE);
+}
+
+static void setStickAxis(BloopairReportBuffer* out, uint8_t to, int16_t value)
+{
+#define SET_STICK(stick, op) \
+    out->stick = CLAMP(out->stick op value, -WPAD_PRO_AXIS_NORMALIZE_VALUE, WPAD_PRO_AXIS_NORMALIZE_VALUE)
+
+    switch (to) {
+    case BLOOPAIR_PRO_STICK_L_UP:
+        SET_STICK(left_stick_y, -);
+        break;
+    case BLOOPAIR_PRO_STICK_L_DOWN:
+        SET_STICK(left_stick_y, +);
+        break;
+    case BLOOPAIR_PRO_STICK_L_LEFT:
+        SET_STICK(left_stick_x, -);
+        break;
+    case BLOOPAIR_PRO_STICK_L_RIGHT:
+        SET_STICK(left_stick_x, +);
+        break;
+    case BLOOPAIR_PRO_STICK_R_UP:
+        SET_STICK(right_stick_y, -);
+        break;
+    case BLOOPAIR_PRO_STICK_R_DOWN:
+        SET_STICK(right_stick_y, +);
+        break;
+    case BLOOPAIR_PRO_STICK_R_LEFT:
+        SET_STICK(right_stick_x, -);
+        break;
+    case BLOOPAIR_PRO_STICK_R_RIGHT:
+        SET_STICK(right_stick_x, +);
+        break;
+    }
+
+#undef SET_STICK
+}
+
+void mapControllerInput(Controller* controller, BloopairReportBuffer* in, BloopairReportBuffer* out)
+{
+    memset(out, 0, sizeof(*out));
+
+    const MappingConfiguration* mapping = controller->mapping;
+    if (!mapping) {
+        printf("No mapping for controller %d\n", controller->handle);
+        return;
+    }
+
+    for (uint8_t i = 0; i < mapping->num; i++) {
+        const BloopairMappingEntry* e = &mapping->mappings[i];
+        if (e->from >= BLOOPAIR_PRO_STICK_MIN) {
+            if (e->to >= BLOOPAIR_PRO_STICK_MIN) {
+                // map stick to stick
+                setStickAxis(out, e->to, getStickAxis(in, e->from));
+            } else {
+                // map stick to button
+                if (getStickAxis(in, e->from) >= controller->commonConfig->stickAsButtonDeadzone) {
+                    out->buttons |= BTN(e->to);
+                }
+            }
+        } else {
+            if (in->buttons & BTN(e->from)) {
+                if (e->to >= BLOOPAIR_PRO_STICK_MIN) {
+                    // map button to stick
+                    setStickAxis(out, e->to, WPAD_PRO_AXIS_NORMALIZE_VALUE);
+                } else {
+                    // map button to button
+                    out->buttons |= BTN(e->to);
+                }
+            }
+        }
+    }
+}
 
 uint8_t ledMaskToPlayerNum(uint8_t mask)
 {

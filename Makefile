@@ -4,7 +4,15 @@
 
 export BLOOPAIR_TOP_DIR := $(CURDIR)
 
-.PHONY: all clean ios_kernel ios_usb ios_pad libbloopair loader pair_menu
+# Always build debug builds onless specified otherwise
+ifeq ($(DEBUG),)
+	export DEBUG := 1
+endif
+
+ifeq ($(DEBUG), 1)
+	export BLOOPAIR_COMMIT_HASH := $(or $(shell git rev-parse HEAD),"ffffffffffffffffffffffffffffffffffffffff")
+endif
+
 
 all: loader pair_menu
 	@echo -e "\033[92mDone!\033[0m"

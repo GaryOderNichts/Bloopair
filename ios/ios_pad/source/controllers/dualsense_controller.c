@@ -16,6 +16,48 @@
  */
 
 #include "dualsense_controller.h"
+#include <bloopair/controllers/dualsense_controller.h>
+
+static const MappingConfiguration default_dualsense_mapping = {
+    .num = 26,
+    .mappings = {
+        { BLOOPAIR_PRO_STICK_L_UP,      BLOOPAIR_PRO_STICK_L_UP, },
+        { BLOOPAIR_PRO_STICK_L_DOWN,    BLOOPAIR_PRO_STICK_L_DOWN, },
+        { BLOOPAIR_PRO_STICK_L_LEFT,    BLOOPAIR_PRO_STICK_L_LEFT, },
+        { BLOOPAIR_PRO_STICK_L_RIGHT,   BLOOPAIR_PRO_STICK_L_RIGHT, },
+
+        { BLOOPAIR_PRO_STICK_R_UP,      BLOOPAIR_PRO_STICK_R_UP, },
+        { BLOOPAIR_PRO_STICK_R_DOWN,    BLOOPAIR_PRO_STICK_R_DOWN, },
+        { BLOOPAIR_PRO_STICK_R_LEFT,    BLOOPAIR_PRO_STICK_R_LEFT, },
+        { BLOOPAIR_PRO_STICK_R_RIGHT,   BLOOPAIR_PRO_STICK_R_RIGHT, },
+
+        { DUALSENSE_BUTTON_DOWN,        BLOOPAIR_PRO_BUTTON_DOWN, },
+        { DUALSENSE_BUTTON_UP,          BLOOPAIR_PRO_BUTTON_UP },
+        { DUALSENSE_BUTTON_RIGHT,       BLOOPAIR_PRO_BUTTON_RIGHT, },
+        { DUALSENSE_BUTTON_LEFT,        BLOOPAIR_PRO_BUTTON_LEFT, },
+
+        { DUALSENSE_BUTTON_CIRCLE,      BLOOPAIR_PRO_BUTTON_A, },
+        { DUALSENSE_BUTTON_CROSS,       BLOOPAIR_PRO_BUTTON_B, },
+        { DUALSENSE_BUTTON_TRIANGLE,    BLOOPAIR_PRO_BUTTON_X, },
+        { DUALSENSE_BUTTON_SQUARE,      BLOOPAIR_PRO_BUTTON_Y, },
+
+        { DUALSENSE_TRIGGER_L1,         BLOOPAIR_PRO_TRIGGER_L, },
+        { DUALSENSE_TRIGGER_R1,         BLOOPAIR_PRO_TRIGGER_R, },
+        { DUALSENSE_TRIGGER_L2,         BLOOPAIR_PRO_TRIGGER_ZL, },
+        { DUALSENSE_TRIGGER_R2,         BLOOPAIR_PRO_TRIGGER_ZR, },
+
+        { DUALSENSE_BUTTON_CREATE,      BLOOPAIR_PRO_BUTTON_MINUS, },
+        { DUALSENSE_BUTTON_OPTIONS,     BLOOPAIR_PRO_BUTTON_PLUS, },
+
+        { DUALSENSE_BUTTON_L3,          BLOOPAIR_PRO_BUTTON_STICK_L, },
+        { DUALSENSE_BUTTON_R3,          BLOOPAIR_PRO_BUTTON_STICK_R, },
+
+        { DUALSENSE_BUTTON_PS_HOME,     BLOOPAIR_PRO_BUTTON_HOME, },
+
+        // Map the touchpad to the reserved button bit
+        { DUALSENSE_BUTTON_TOUCHPAD,    BLOOPAIR_PRO_RESERVED, },
+    },
+};
 
 // the dualsense has 5 leds, with one in the center
 // we'll use the same pattern the Wii U uses on the 4 outer ones
@@ -44,14 +86,14 @@ static const uint8_t led_colors[][3] = {
 };
 
 static const uint32_t dpad_map[9] = {
-    WPAD_PRO_BUTTON_UP,
-    WPAD_PRO_BUTTON_UP | WPAD_PRO_BUTTON_RIGHT,
-    WPAD_PRO_BUTTON_RIGHT,
-    WPAD_PRO_BUTTON_RIGHT | WPAD_PRO_BUTTON_DOWN,
-    WPAD_PRO_BUTTON_DOWN,
-    WPAD_PRO_BUTTON_DOWN | WPAD_PRO_BUTTON_LEFT,
-    WPAD_PRO_BUTTON_LEFT,
-    WPAD_PRO_BUTTON_LEFT | WPAD_PRO_BUTTON_UP,
+    BTN(DUALSENSE_BUTTON_UP),
+    BTN(DUALSENSE_BUTTON_UP)    | BTN(DUALSENSE_BUTTON_RIGHT),
+    BTN(DUALSENSE_BUTTON_RIGHT),
+    BTN(DUALSENSE_BUTTON_RIGHT) | BTN(DUALSENSE_BUTTON_DOWN),
+    BTN(DUALSENSE_BUTTON_DOWN),
+    BTN(DUALSENSE_BUTTON_DOWN)  | BTN(DUALSENSE_BUTTON_LEFT),
+    BTN(DUALSENSE_BUTTON_LEFT),
+    BTN(DUALSENSE_BUTTON_LEFT)  | BTN(DUALSENSE_BUTTON_UP),
     0,
 };
 
@@ -109,7 +151,7 @@ void controllerSetLed_dualsense(Controller* controller, uint8_t led)
 void controllerData_dualsense(Controller* controller, uint8_t* buf, uint16_t len)
 {
     if (buf[0] == DUALSENSE_INPUT_REPORT_ID) {
-        ReportBuffer* rep = &controller->reportBuffer;
+        BloopairReportBuffer* rep = &controller->reportBuffer;
         DualsenseInputReport* inRep = (DualsenseInputReport*) buf;
 
         rep->left_stick_x = scaleStickAxis(inRep->left_stick_x, 256);
@@ -123,32 +165,36 @@ void controllerData_dualsense(Controller* controller, uint8_t* buf, uint16_t len
             rep->buttons |= dpad_map[inRep->buttons.dpad];
 
         if (inRep->buttons.circle)
-            rep->buttons |= WPAD_PRO_BUTTON_A;
+            rep->buttons |= BTN(DUALSENSE_BUTTON_CIRCLE);
         if (inRep->buttons.cross)
-            rep->buttons |= WPAD_PRO_BUTTON_B;
+            rep->buttons |= BTN(DUALSENSE_BUTTON_CROSS);
         if (inRep->buttons.triangle)
-            rep->buttons |= WPAD_PRO_BUTTON_X;
+            rep->buttons |= BTN(DUALSENSE_BUTTON_TRIANGLE);
         if (inRep->buttons.square)
-            rep->buttons |= WPAD_PRO_BUTTON_Y;
+            rep->buttons |= BTN(DUALSENSE_BUTTON_SQUARE);
         if (inRep->buttons.l1)
-            rep->buttons |= WPAD_PRO_TRIGGER_L;
+            rep->buttons |= BTN(DUALSENSE_TRIGGER_L1);
         if (inRep->buttons.r1)
-            rep->buttons |= WPAD_PRO_TRIGGER_R;
+            rep->buttons |= BTN(DUALSENSE_TRIGGER_R1);
         if (inRep->buttons.l2)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZL;
+            rep->buttons |= BTN(DUALSENSE_TRIGGER_L2);
         if (inRep->buttons.r2)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZR;
+            rep->buttons |= BTN(DUALSENSE_TRIGGER_R2);
         if (inRep->buttons.create)
-            rep->buttons |= WPAD_PRO_BUTTON_MINUS;
+            rep->buttons |= BTN(DUALSENSE_BUTTON_CREATE);
         if (inRep->buttons.options)
-            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
+            rep->buttons |= BTN(DUALSENSE_BUTTON_OPTIONS);
         if (inRep->buttons.l3)
-            rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
+            rep->buttons |= BTN(DUALSENSE_BUTTON_L3);
         if (inRep->buttons.r3)
-            rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
+            rep->buttons |= BTN(DUALSENSE_BUTTON_R3);
         if (inRep->buttons.ps_home)
-            rep->buttons |= WPAD_PRO_BUTTON_HOME;
-
+            rep->buttons |= BTN(DUALSENSE_BUTTON_PS_HOME);
+        if (inRep->buttons.mute)
+            rep->buttons |= BTN(DUALSENSE_BUTTON_MUTE);
+        if (inRep->buttons.touchpad)
+            rep->buttons |= BTN(DUALSENSE_BUTTON_TOUCHPAD);
+        
         switch (inRep->battery_status) {
         case 0: // discharging
             controller->battery = CLAMP(inRep->battery_level >> 1, 0, 4);
@@ -188,4 +234,14 @@ void controllerInit_dualsense(Controller* controller)
 
     controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(DualsenseData));
     memset(controller->additionalData, 0, sizeof(DualsenseData));
+
+    controller->type = BLOOPAIR_CONTROLLER_DUALSENSE;
+    Configuration_GetAll(controller->type, controller->bda,
+        &controller->commonConfig, &controller->mapping,
+        &controller->customConfig, &controller->customConfigSize);
+}
+
+void controllerModuleInit_dualsense(void)
+{
+    Configuration_SetFallback(BLOOPAIR_CONTROLLER_DUALSENSE, NULL, &default_dualsense_mapping, NULL, 0);
 }

@@ -21,50 +21,12 @@
 #include "main.h"
 #include "bta/bta_hh.h"
 #include "wiimote_crypto.h"
+#include "configuration.h"
+#include <bloopair/controllers/common.h>
 
 // Information about button bits and the report can be found here:
 // - <https://github.com/devkitPro/wut/blob/master/include/padscore/wpad.h>
 // - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-wiimote-modules.c#L1627>
-
-//! Pro Controller buttons.
-enum WPADProButton {
-    //! The up button of the D-pad.
-    WPAD_PRO_BUTTON_UP                  = 0x0001,
-    //! The left button of the D-pad.
-    WPAD_PRO_BUTTON_LEFT                = 0x0002,
-    //! The ZR button.
-    WPAD_PRO_TRIGGER_ZR                 = 0x0004,
-    //! The X button.
-    WPAD_PRO_BUTTON_X                   = 0x0008,
-    //! The A button.
-    WPAD_PRO_BUTTON_A                   = 0x0010,
-    //! The Y button.
-    WPAD_PRO_BUTTON_Y                   = 0x0020,
-    //! The B button.
-    WPAD_PRO_BUTTON_B                   = 0x0040,
-    //! The ZL button.
-    WPAD_PRO_TRIGGER_ZL                 = 0x0080,
-    //! Reserved.
-    WPAD_PRO_RESERVED                   = 0x0100,
-    //! The right trigger button.
-    WPAD_PRO_TRIGGER_R                  = 0x0200,
-    //! The + button.
-    WPAD_PRO_BUTTON_PLUS                = 0x0400,
-    //! The HOME button.
-    WPAD_PRO_BUTTON_HOME                = 0x0800,
-    //! The - button.
-    WPAD_PRO_BUTTON_MINUS               = 0x1000,
-    //! The left trigger button.
-    WPAD_PRO_TRIGGER_L                  = 0x2000,
-    //! The down button of the D-pad.
-    WPAD_PRO_BUTTON_DOWN                = 0x4000,
-    //! The right button of the D-pad.
-    WPAD_PRO_BUTTON_RIGHT               = 0x8000,
-    //! The right stick button.
-    WPAD_PRO_BUTTON_STICK_R             = 0x10000,
-    //! The left stick button.
-    WPAD_PRO_BUTTON_STICK_L             = 0x20000,
-};
 
 typedef struct PACKED {
     uint8_t report_id;
@@ -91,25 +53,19 @@ typedef void (*ControllerSetPlayerLedFn)(Controller* controller, uint8_t led);
 typedef void (*ControllerRumbleFn)(Controller* controller, uint8_t rumble);
 typedef void (*ControllerUpdateFn)(Controller* controller);
 
-// report data for continuous reports
-typedef struct {
-    uint32_t buttons;
-    int16_t left_stick_x;
-    int16_t right_stick_x;
-    int16_t left_stick_y;
-    int16_t right_stick_y;
-} ReportBuffer;
-
 // associated with a connected controller
 struct Controller {
     // was this controller successfully initialized
     uint8_t isInitialized;
-    // is this an officially supported controller
-    uint8_t isOfficialController;
+    // type of the controller
+    BloopairControllerType type;
+    // vid and pid
+    uint16_t vendor_id;
+    uint16_t product_id;
+    // bluetooth device address
+    uint8_t bda[6];
     // hid handle
     uint8_t handle;
-    // hid index
-    uint8_t index;
     // is ir enabled
     uint8_t irEnabled;
     // data reporting mode (should be 0x3d for pro controller)
@@ -133,9 +89,17 @@ struct Controller {
     uint8_t battery;
     uint8_t isCharging;
     // report data for continuous reports
-    ReportBuffer reportBuffer;
+    BloopairReportBuffer reportBuffer;
+    // controller mapping
+    MappingConfiguration* mapping;
     // data that can be allocated for a controller feature
     void* additionalData;
+    // Common configuration
+    BloopairCommonConfiguration* commonConfig;
+    // configuration data pointer for a specific controller type
+    void* customConfig;
+    // size of custom config for IPC passing
+    uint32_t customConfigSize;
 };
 
 extern Controller controllers[BTA_HH_MAX_KNOWN];
@@ -151,6 +115,8 @@ int isSwitchControllerName(const char* name);
 int initController(uint8_t* bda, uint8_t handle);
 
 void sendControllerInput(Controller* controller);
+
+void mapControllerInput(Controller* controller, BloopairReportBuffer* in, BloopairReportBuffer* out);
 
 uint8_t ledMaskToPlayerNum(uint8_t mask);
 

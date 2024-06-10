@@ -42,11 +42,11 @@ void wiimoteCryptoInit(CryptoState* state, const uint8_t* ext_key)
 {
     // Make sure the data from padscore was copied properly
     if (*(uint32_t*) __ans_tbl != 0xA877A6E0) {
-        DEBUG("Invalid __ans_tbl!\n");
+        DEBUG_PRINT("Invalid __ans_tbl!\n");
         return;
     }
     if (*(uint32_t*) __sboxes != 0x70510386) {
-        DEBUG("Invalid __sboxes!\n");
+        DEBUG_PRINT("Invalid __sboxes!\n");
         return;
     }
 
@@ -77,7 +77,7 @@ void wiimoteCryptoInit(CryptoState* state, const uint8_t* ext_key)
 
     // This should never happen
     if (idx == 7) {
-        DEBUG("ext_key did not match any idx!\n");
+        DEBUG_PRINT("ext_key did not match any idx!\n");
         return;
     }
 

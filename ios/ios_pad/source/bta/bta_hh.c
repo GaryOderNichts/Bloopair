@@ -24,12 +24,12 @@ tBTA_HH_CB* bta_hh_cb = (tBTA_HH_CB*) 0x1214d718;
 void (*const real_bta_hh_event)(uint8_t event, void *p_data) = (void*) 0x11f405ac;
 void bta_hh_event(uint8_t event, void *p_data)
 {
-    DEBUG("bta_hh_event called %u %p\n", event, p_data);
+    DEBUG_PRINT("bta_hh_event called %u %p\n", event, p_data);
 
     switch (event) {
     case BTA_HH_OPEN_EVT: {
         tBTA_HH_CONN* conn_data = (tBTA_HH_CONN*) p_data;
-        DEBUG("open event for handle %u\n", conn_data->handle);
+        DEBUG_PRINT("open event for handle %u\n", conn_data->handle);
 
         // initialize the controller
         if (conn_data->handle != BTA_HH_INVALID_HANDLE) {
@@ -43,7 +43,7 @@ void bta_hh_event(uint8_t event, void *p_data)
     }
     case BTA_HH_CLOSE_EVT: {
         tBTA_HH_CBDATA* cb_data = (tBTA_HH_CBDATA*) p_data;
-        DEBUG("close event handle %u status %x\n", cb_data->handle, cb_data->status);
+        DEBUG_PRINT("close event handle %u status %x\n", cb_data->handle, cb_data->status);
 
         // deinit the controller if it was initialized
         if (cb_data->handle != BTA_HH_INVALID_HANDLE) {
@@ -63,7 +63,7 @@ void bta_hh_event(uint8_t event, void *p_data)
     // TODO can this be removed?
     case BTA_HH_VC_UNPLUG_EVT: {
         tBTA_HH_CBDATA* cb_data = (tBTA_HH_CBDATA*) p_data;
-        DEBUG("vc unplug %u\n", cb_data->handle);
+        DEBUG_PRINT("vc unplug %u\n", cb_data->handle);
 
         // disconnect virtually unplugged devices
         if (cb_data->handle != BTA_HH_INVALID_HANDLE) {
@@ -81,7 +81,7 @@ void bta_hh_event(uint8_t event, void *p_data)
 void (*const real_bta_hh_api_disable)(void) = (void*) 0x11f07174;
 void bta_hh_api_disable(void)
 {
-    DEBUG("bta_hh_api_disable\n");
+    DEBUG_PRINT("bta_hh_api_disable\n");
 
     // deinitialize all controllers
     for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
@@ -95,6 +95,8 @@ void bta_hh_api_disable(void)
 
     // stop report thread
     deinitReportThread();
+
+    Configuration_Deinit();
 
     real_bta_hh_api_disable();    
 }

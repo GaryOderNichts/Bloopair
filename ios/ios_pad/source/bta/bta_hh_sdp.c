@@ -26,7 +26,7 @@ void bta_hh_sdp_cback(uint16_t result, uint16_t attr_mask, void *sdp_rec);
 
 void name_read_cback(tBTM_REMOTE_DEV_NAME* name)
 {
-    DEBUG("got name %s status %d\n", name->remote_bd_name, name->status);
+    DEBUG_PRINT("got name %s status %d\n", name->remote_bd_name, name->status);
 
     static int retry = 0;
     if (name->status != 0) {
@@ -67,7 +67,7 @@ void name_read_cback(tBTM_REMOTE_DEV_NAME* name)
 
 void bta_hh_di_sdp_callback(uint16_t result)
 {
-    DEBUG("bta_hh_di_sdp_callback called res: %u\n", result);
+    DEBUG_PRINT("bta_hh_di_sdp_callback called res: %u\n", result);
 
     // make sure the device info has been read
     store_read_device_info();
@@ -98,7 +98,7 @@ void bta_hh_di_sdp_callback(uint16_t result)
 
 void name_read_cback_open(tBTM_REMOTE_DEV_NAME* name)
 {
-    DEBUG("open: got name %s status %d\n", name->remote_bd_name, name->status);
+    DEBUG_PRINT("open: got name %s status %d\n", name->remote_bd_name, name->status);
 
     if (name->status == 0) {
         StoredInfo* info = store_get_device_info(bta_hh_cb->p_cur->addr);
@@ -120,7 +120,7 @@ void bta_hh_open_act(tBTA_HH_DEV_CB *p_cb, void *p_data)
 {
     tBTA_HH_API_CONN    conn_data;
 
-    DEBUG("bta_hh_open_act handle %d %d\n", p_cb->hid_handle, p_cb->app_id);
+    DEBUG_PRINT("bta_hh_open_act handle %d %d\n", p_cb->hid_handle, p_cb->app_id);
 
     // make sure the device info has been read
     store_read_device_info();

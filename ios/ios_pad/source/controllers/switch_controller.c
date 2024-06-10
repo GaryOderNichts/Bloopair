@@ -16,6 +16,7 @@
  */
 
 #include "switch_controller.h"
+#include <bloopair/controllers/switch_controller.h>
 
 #define AXIS_NORMALIZE_VALUE               1140
 #define DPAD_EMULATION_DEAD_ZONE           500
@@ -26,17 +27,207 @@
 #define RUMBLE_LOW_FREQUENCY 0x3d // 150 Hz
 #define RUMBLE_LOW_AMPLITUDE 0x0072 // 1.003
 
+static const SwitchConfiguration default_switch_configuration = {
+    .disableCalibration = 0,
+};
+
+static const MappingConfiguration default_generic_mapping = {
+    .num = 30,
+    .mappings = {
+        { BLOOPAIR_PRO_STICK_L_UP,      BLOOPAIR_PRO_STICK_L_UP, },
+        { BLOOPAIR_PRO_STICK_L_DOWN,    BLOOPAIR_PRO_STICK_L_DOWN, },
+        { BLOOPAIR_PRO_STICK_L_LEFT,    BLOOPAIR_PRO_STICK_L_LEFT, },
+        { BLOOPAIR_PRO_STICK_L_RIGHT,   BLOOPAIR_PRO_STICK_L_RIGHT, },
+
+        { BLOOPAIR_PRO_STICK_R_UP,      BLOOPAIR_PRO_STICK_R_UP, },
+        { BLOOPAIR_PRO_STICK_R_DOWN,    BLOOPAIR_PRO_STICK_R_DOWN, },
+        { BLOOPAIR_PRO_STICK_R_LEFT,    BLOOPAIR_PRO_STICK_R_LEFT, },
+        { BLOOPAIR_PRO_STICK_R_RIGHT,   BLOOPAIR_PRO_STICK_R_RIGHT, },
+
+        { SWITCH_BUTTON_Y,              BLOOPAIR_PRO_BUTTON_Y, },
+        { SWITCH_BUTTON_X,              BLOOPAIR_PRO_BUTTON_X, },
+        { SWITCH_BUTTON_B,              BLOOPAIR_PRO_BUTTON_B, },
+        { SWITCH_BUTTON_A,              BLOOPAIR_PRO_BUTTON_A, },
+
+        { SWITCH_TRIGGER_R,             BLOOPAIR_PRO_TRIGGER_R, },
+        { SWITCH_TRIGGER_ZR,            BLOOPAIR_PRO_TRIGGER_ZR, },
+
+        { SWITCH_BUTTON_MINUS,          BLOOPAIR_PRO_BUTTON_MINUS, },
+        { SWITCH_BUTTON_PLUS,           BLOOPAIR_PRO_BUTTON_PLUS, },
+        { SWITCH_BUTTON_STICK_R,        BLOOPAIR_PRO_BUTTON_STICK_R, },
+        { SWITCH_BUTTON_STICK_L,        BLOOPAIR_PRO_BUTTON_STICK_L, },
+        { SWITCH_BUTTON_HOME,           BLOOPAIR_PRO_BUTTON_HOME, },
+        // map the capture button to the reserved button bit
+        { SWITCH_BUTTON_CAPTURE,        BLOOPAIR_PRO_RESERVED, },
+
+        { SWITCH_BUTTON_DOWN,           BLOOPAIR_PRO_BUTTON_DOWN, },
+        { SWITCH_BUTTON_UP,             BLOOPAIR_PRO_BUTTON_UP },
+        { SWITCH_BUTTON_RIGHT,          BLOOPAIR_PRO_BUTTON_RIGHT, },
+        { SWITCH_BUTTON_LEFT,           BLOOPAIR_PRO_BUTTON_LEFT, },
+
+        { SWITCH_TRIGGER_L,             BLOOPAIR_PRO_TRIGGER_L, },
+        { SWITCH_TRIGGER_ZL,            BLOOPAIR_PRO_TRIGGER_ZL, },
+
+        { SWITCH_TRIGGER_SR_L,          BLOOPAIR_PRO_TRIGGER_R, },
+        { SWITCH_TRIGGER_SL_L,          BLOOPAIR_PRO_TRIGGER_L, },
+
+        { SWITCH_TRIGGER_SR_R,          BLOOPAIR_PRO_TRIGGER_R, },
+        { SWITCH_TRIGGER_SL_R,          BLOOPAIR_PRO_TRIGGER_L, },
+    },
+};
+
+static const MappingConfiguration default_joycon_left_mapping = {
+    .num = 12,
+    .mappings = {
+        // map stick to dpad
+        { BLOOPAIR_PRO_STICK_L_DOWN,    BLOOPAIR_PRO_BUTTON_DOWN, },
+        { BLOOPAIR_PRO_STICK_L_UP,      BLOOPAIR_PRO_BUTTON_UP, },
+        { BLOOPAIR_PRO_STICK_L_RIGHT,   BLOOPAIR_PRO_BUTTON_RIGHT, },
+        { BLOOPAIR_PRO_STICK_L_LEFT,    BLOOPAIR_PRO_BUTTON_LEFT, },
+
+        { SWITCH_BUTTON_MINUS,          BLOOPAIR_PRO_BUTTON_MINUS },
+        // left joy-con only has capture button, let's map it to home
+        { SWITCH_BUTTON_CAPTURE,        BLOOPAIR_PRO_BUTTON_HOME },
+
+        // map the dpad to abxy
+        { SWITCH_BUTTON_DOWN,           BLOOPAIR_PRO_BUTTON_A, },
+        { SWITCH_BUTTON_UP,             BLOOPAIR_PRO_BUTTON_Y, },
+        { SWITCH_BUTTON_RIGHT,          BLOOPAIR_PRO_BUTTON_X, },
+        { SWITCH_BUTTON_LEFT,           BLOOPAIR_PRO_BUTTON_B, },
+
+        { SWITCH_TRIGGER_SR_L,          BLOOPAIR_PRO_TRIGGER_R, },
+        { SWITCH_TRIGGER_SL_L,          BLOOPAIR_PRO_TRIGGER_L, },
+    },
+};
+
+static const MappingConfiguration default_joycon_right_mapping = {
+    .num = 12,
+    .mappings = {
+        // map stick to dpad
+        { BLOOPAIR_PRO_STICK_R_DOWN,    BLOOPAIR_PRO_BUTTON_DOWN, },
+        { BLOOPAIR_PRO_STICK_R_UP,      BLOOPAIR_PRO_BUTTON_UP, },
+        { BLOOPAIR_PRO_STICK_R_RIGHT,   BLOOPAIR_PRO_BUTTON_RIGHT, },
+        { BLOOPAIR_PRO_STICK_R_LEFT,    BLOOPAIR_PRO_BUTTON_LEFT, },
+
+        // rotate abxy for sidewise joy-con
+        { SWITCH_BUTTON_Y,              BLOOPAIR_PRO_BUTTON_X, },
+        { SWITCH_BUTTON_X,              BLOOPAIR_PRO_BUTTON_A, },
+        { SWITCH_BUTTON_B,              BLOOPAIR_PRO_BUTTON_Y, },
+        { SWITCH_BUTTON_A,              BLOOPAIR_PRO_BUTTON_B, },
+
+        { SWITCH_TRIGGER_SR_R,          BLOOPAIR_PRO_TRIGGER_R, },
+        { SWITCH_TRIGGER_SL_R,          BLOOPAIR_PRO_TRIGGER_L, },
+
+        { SWITCH_BUTTON_PLUS,           BLOOPAIR_PRO_BUTTON_PLUS },
+        { SWITCH_BUTTON_HOME,           BLOOPAIR_PRO_BUTTON_HOME },
+    },
+};
+
+static const MappingConfiguration default_pro_controller_mapping = {
+    .num = 26,
+    .mappings = {
+        { BLOOPAIR_PRO_STICK_L_UP,      BLOOPAIR_PRO_STICK_L_UP, },
+        { BLOOPAIR_PRO_STICK_L_DOWN,    BLOOPAIR_PRO_STICK_L_DOWN, },
+        { BLOOPAIR_PRO_STICK_L_LEFT,    BLOOPAIR_PRO_STICK_L_LEFT, },
+        { BLOOPAIR_PRO_STICK_L_RIGHT,   BLOOPAIR_PRO_STICK_L_RIGHT, },
+
+        { BLOOPAIR_PRO_STICK_R_UP,      BLOOPAIR_PRO_STICK_R_UP, },
+        { BLOOPAIR_PRO_STICK_R_DOWN,    BLOOPAIR_PRO_STICK_R_DOWN, },
+        { BLOOPAIR_PRO_STICK_R_LEFT,    BLOOPAIR_PRO_STICK_R_LEFT, },
+        { BLOOPAIR_PRO_STICK_R_RIGHT,   BLOOPAIR_PRO_STICK_R_RIGHT, },
+
+        { SWITCH_BUTTON_Y,              BLOOPAIR_PRO_BUTTON_Y, },
+        { SWITCH_BUTTON_X,              BLOOPAIR_PRO_BUTTON_X, },
+        { SWITCH_BUTTON_B,              BLOOPAIR_PRO_BUTTON_B, },
+        { SWITCH_BUTTON_A,              BLOOPAIR_PRO_BUTTON_A, },
+
+        { SWITCH_TRIGGER_R,             BLOOPAIR_PRO_TRIGGER_R, },
+        { SWITCH_TRIGGER_ZR,            BLOOPAIR_PRO_TRIGGER_ZR, },
+
+        { SWITCH_BUTTON_MINUS,          BLOOPAIR_PRO_BUTTON_MINUS, },
+        { SWITCH_BUTTON_PLUS,           BLOOPAIR_PRO_BUTTON_PLUS, },
+        { SWITCH_BUTTON_STICK_R,        BLOOPAIR_PRO_BUTTON_STICK_R, },
+        { SWITCH_BUTTON_STICK_L,        BLOOPAIR_PRO_BUTTON_STICK_L, },
+        { SWITCH_BUTTON_HOME,           BLOOPAIR_PRO_BUTTON_HOME, },
+        // map the capture button to the reserved button bit
+        { SWITCH_BUTTON_CAPTURE,        BLOOPAIR_PRO_RESERVED, },
+
+        { SWITCH_BUTTON_DOWN,           BLOOPAIR_PRO_BUTTON_DOWN, },
+        { SWITCH_BUTTON_UP,             BLOOPAIR_PRO_BUTTON_UP },
+        { SWITCH_BUTTON_RIGHT,          BLOOPAIR_PRO_BUTTON_RIGHT, },
+        { SWITCH_BUTTON_LEFT,           BLOOPAIR_PRO_BUTTON_LEFT, },
+
+        { SWITCH_TRIGGER_L,             BLOOPAIR_PRO_TRIGGER_L, },
+        { SWITCH_TRIGGER_ZL,            BLOOPAIR_PRO_TRIGGER_ZL, },
+    },
+};
+
+static const MappingConfiguration default_n64_mapping = {
+    .num = 20,
+    .mappings = {
+        { BLOOPAIR_PRO_STICK_L_UP,      BLOOPAIR_PRO_STICK_L_UP, },
+        { BLOOPAIR_PRO_STICK_L_DOWN,    BLOOPAIR_PRO_STICK_L_DOWN, },
+        { BLOOPAIR_PRO_STICK_L_LEFT,    BLOOPAIR_PRO_STICK_L_LEFT, },
+        { BLOOPAIR_PRO_STICK_L_RIGHT,   BLOOPAIR_PRO_STICK_L_RIGHT, },
+
+        // map the C buttons to the right analog stick
+        { SWITCH_N64_C_UP,              BLOOPAIR_PRO_STICK_R_UP, },
+        { SWITCH_N64_C_DOWN,            BLOOPAIR_PRO_STICK_R_DOWN, },
+        { SWITCH_N64_C_LEFT,            BLOOPAIR_PRO_STICK_R_LEFT, },
+        { SWITCH_N64_C_RIGHT,           BLOOPAIR_PRO_STICK_R_RIGHT, },
+
+        { SWITCH_BUTTON_B,              BLOOPAIR_PRO_BUTTON_B, },
+        { SWITCH_BUTTON_A,              BLOOPAIR_PRO_BUTTON_A, },
+
+        { SWITCH_TRIGGER_R,             BLOOPAIR_PRO_TRIGGER_R, },
+        { SWITCH_BUTTON_PLUS,           BLOOPAIR_PRO_BUTTON_PLUS, },
+
+        // TODO what button was this again?
+        { SWITCH_BUTTON_STICK_L,        BLOOPAIR_PRO_TRIGGER_ZR, },
+        { SWITCH_BUTTON_HOME,           BLOOPAIR_PRO_BUTTON_HOME, },
+
+        // map the capture button to the reserved button bit
+        { SWITCH_BUTTON_CAPTURE,        BLOOPAIR_PRO_RESERVED, },
+
+        { SWITCH_BUTTON_DOWN,           BLOOPAIR_PRO_BUTTON_DOWN, },
+        { SWITCH_BUTTON_UP,             BLOOPAIR_PRO_BUTTON_UP },
+        { SWITCH_BUTTON_RIGHT,          BLOOPAIR_PRO_BUTTON_RIGHT, },
+        { SWITCH_BUTTON_LEFT,           BLOOPAIR_PRO_BUTTON_LEFT, },
+
+        { SWITCH_TRIGGER_L,             BLOOPAIR_PRO_TRIGGER_L, },
+        { SWITCH_TRIGGER_ZL,            BLOOPAIR_PRO_TRIGGER_ZL, },
+    },
+};
+
 static const uint32_t dpad_map[9] = {
-    WPAD_PRO_BUTTON_UP,
-    WPAD_PRO_BUTTON_UP | WPAD_PRO_BUTTON_RIGHT,
-    WPAD_PRO_BUTTON_RIGHT,
-    WPAD_PRO_BUTTON_RIGHT | WPAD_PRO_BUTTON_DOWN,
-    WPAD_PRO_BUTTON_DOWN,
-    WPAD_PRO_BUTTON_DOWN | WPAD_PRO_BUTTON_LEFT,
-    WPAD_PRO_BUTTON_LEFT,
-    WPAD_PRO_BUTTON_LEFT | WPAD_PRO_BUTTON_UP,
+    BTN(SWITCH_BUTTON_UP),
+    BTN(SWITCH_BUTTON_UP)    | BTN(SWITCH_BUTTON_RIGHT),
+    BTN(SWITCH_BUTTON_RIGHT),
+    BTN(SWITCH_BUTTON_RIGHT) | BTN(SWITCH_BUTTON_DOWN),
+    BTN(SWITCH_BUTTON_DOWN),
+    BTN(SWITCH_BUTTON_DOWN)  | BTN(SWITCH_BUTTON_LEFT),
+    BTN(SWITCH_BUTTON_LEFT),
+    BTN(SWITCH_BUTTON_LEFT)  | BTN(SWITCH_BUTTON_UP),
     0,
 };
+
+static inline BloopairControllerType switchDeviceToControllerType(uint8_t device)
+{
+    switch (device) {
+    case SWITCH_DEVICE_JOYCON_LEFT:
+    case SWITCH_DEVICE_TP_JOYCON_LEFT:
+        return BLOOPAIR_CONTROLLER_SWITCH_JOYCON_LEFT;
+    case SWITCH_DEVICE_JOYCON_RIGHT:
+    case SWITCH_DEVICE_TP_JOYCON_RIGHT:
+        return BLOOPAIR_CONTROLLER_SWITCH_JOYCON_RIGHT;
+    case SWITCH_DEVICE_PRO:
+        return BLOOPAIR_CONTROLLER_SWITCH_PRO;
+    case SWITCH_DEVICE_N64:
+        return BLOOPAIR_CONTROLLER_SWITCH_N64;
+    }
+
+    return BLOOPAIR_CONTROLLER_SWITCH_GENERIC;
+}
 
 static void parseLeftRawStickCalibration(SwitchData* sdata, SwitchRawStickCalibrationLeft* raw)
 {
@@ -214,20 +405,38 @@ void controllerSetLed_switch(Controller* controller, uint8_t led)
     }
 }
 
+static int switchConfigCalibrationEnabled(Controller* controller)
+{
+    if (!controller->customConfig) {
+        return 0;
+    }
+
+    SwitchConfiguration* config = (SwitchConfiguration*) controller->customConfig;
+    return !config->disableCalibration;
+}
+
 static void handle_command_response(Controller* controller, SwitchCommandResponse* resp)
 {
     SwitchData* sdata = (SwitchData*) controller->additionalData;
 
-    DEBUG("subcmd respone %d\n", resp->command);
+    DEBUG_PRINT("subcmd respone %d\n", resp->command);
 
     if ((resp->ack & 0x80) == 0) {
-        DEBUG("switch subcmd %d failed\n", resp->command);
+        DEBUG_PRINT("switch subcmd %d failed\n", resp->command);
+        // if we failed during one of the stages, just fall back to simple input
+        controller->isReady = 1;
         return;
     }
 
     if (resp->command == SWITCH_COMMAND_REQUEST_DEVICE_INFO) {
         sdata->device = resp->device_info.device_type;
-        DEBUG("device type %d\n", sdata->device);
+        DEBUG_PRINT("device type %d\n", sdata->device);
+
+        // Get the configuration again, now that we have the actual device type
+        controller->type = switchDeviceToControllerType(sdata->device);
+        Configuration_GetAll(controller->type, controller->bda,
+            &controller->commonConfig, &controller->mapping,
+            &controller->customConfig, &controller->customConfigSize);
 
         // set the leds now that we know the device type
         setPlayerLeds(controller);
@@ -235,17 +444,16 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
         // enable rumble
         setVibration(controller, 1);
 
-        if (sdata->device == SWITCH_DEVICE_JOYCON_LEFT || sdata->device == SWITCH_DEVICE_TP_JOYCON_LEFT ||
-            sdata->device == SWITCH_DEVICE_JOYCON_RIGHT || sdata->device == SWITCH_DEVICE_TP_JOYCON_RIGHT ||
-            sdata->device == SWITCH_DEVICE_PRO || sdata->device == SWITCH_DEVICE_TP_PRO ||
-            sdata->device == SWITCH_DEVICE_N64) {
+                                                         /* Calibration causes issues for third-party controllers */
+        if ((sdata->device == SWITCH_DEVICE_JOYCON_LEFT || /*sdata->device == SWITCH_DEVICE_TP_JOYCON_LEFT ||*/
+             sdata->device == SWITCH_DEVICE_JOYCON_RIGHT || /*sdata->device == SWITCH_DEVICE_TP_JOYCON_RIGHT ||*/
+             sdata->device == SWITCH_DEVICE_PRO || /*sdata->device == SWITCH_DEVICE_TP_PRO ||*/
+             sdata->device == SWITCH_DEVICE_N64) && switchConfigCalibrationEnabled(controller)) {
             // Start by reading the left user calibration magic to check if user calibration exists
             readSpiFlash(controller, SWITCH_LEFT_USER_CALIBRATION_MAGIC_ADDRESS, 2);
         } else {
             // Don't need to wait for calibration, controller is ready now
-            if (!controller->isReady) {
-                controller->isReady = 1;
-            }
+            controller->isReady = 1;
         }
     } else if (resp->command == SWITCH_COMMAND_SPI_FLASH_READ) {
         uint32_t address = bswap32(resp->spi_flash_read.address);
@@ -288,7 +496,7 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
             setInputReportMode(controller, SWITCH_INPUT_REPORT_ID);
             break;
         default:
-            DEBUG("switch: unknown SPI read from %lx size %d\n", address, resp->spi_flash_read.size);
+            DEBUG_PRINT("switch: unknown SPI read from %lx size %d\n", address, resp->spi_flash_read.size);
             break;
         }
     }
@@ -297,169 +505,62 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
 static void handle_input_report(Controller* controller, SwitchInputReport* inRep)
 {
     SwitchData* sdata = (SwitchData*) controller->additionalData;
-    ReportBuffer* rep = &controller->reportBuffer;
+    BloopairReportBuffer* rep = &controller->reportBuffer;
 
     controller->battery = inRep->battery_level;
     controller->isCharging = inRep->battery_charging;
 
     rep->buttons = 0;
 
-    if (sdata->device == SWITCH_DEVICE_JOYCON_LEFT || sdata->device == SWITCH_DEVICE_TP_JOYCON_LEFT) {
-        int16_t left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
-        int16_t left_stick_y = calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
+    rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
+    rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
+    rep->right_stick_x = calibrateStickAxis(&sdata->right_calib_x, SWITCH_AXIS_X(inRep->right_stick));
+    rep->right_stick_y = -calibrateStickAxis(&sdata->right_calib_y, SWITCH_AXIS_Y(inRep->right_stick));
 
-        // map stick to dpad
-        if (left_stick_x < -DPAD_EMULATION_DEAD_ZONE)
-            rep->buttons |= WPAD_PRO_BUTTON_DOWN;
-        if (left_stick_x > DPAD_EMULATION_DEAD_ZONE)
-            rep->buttons |= WPAD_PRO_BUTTON_UP;
-        if (left_stick_y < -DPAD_EMULATION_DEAD_ZONE)
-            rep->buttons |= WPAD_PRO_BUTTON_RIGHT;
-        if (left_stick_y > DPAD_EMULATION_DEAD_ZONE)
-            rep->buttons |= WPAD_PRO_BUTTON_LEFT;
-
-        if (inRep->buttons.minus)
-            rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-        if (inRep->buttons.plus)
-            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        // left joy-con only has capture button, let's map it to home
-        if (inRep->buttons.capture)
-            rep->buttons |= WPAD_PRO_BUTTON_HOME;
-
-        // map the dpad to abxy
-        if (inRep->buttons.down)
-            rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (inRep->buttons.up)
-            rep->buttons |= WPAD_PRO_BUTTON_Y;
-        if (inRep->buttons.right)
-            rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (inRep->buttons.left)
-            rep->buttons |= WPAD_PRO_BUTTON_B;
-
-        if (inRep->buttons.sr_l)
-            rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (inRep->buttons.sl_l)
-            rep->buttons |= WPAD_PRO_TRIGGER_L;
-    } else if (sdata->device == SWITCH_DEVICE_JOYCON_RIGHT || sdata->device == SWITCH_DEVICE_TP_JOYCON_RIGHT) {
-        int16_t right_stick_x = calibrateStickAxis(&sdata->right_calib_x, SWITCH_AXIS_X(inRep->right_stick));
-        int16_t right_stick_y = calibrateStickAxis(&sdata->right_calib_y, SWITCH_AXIS_Y(inRep->right_stick));
-
-        // map stick to dpad
-        if (right_stick_x > DPAD_EMULATION_DEAD_ZONE)
-            rep->buttons |= WPAD_PRO_BUTTON_DOWN;
-        if (right_stick_x < -DPAD_EMULATION_DEAD_ZONE)
-            rep->buttons |= WPAD_PRO_BUTTON_UP;
-        if (right_stick_y > DPAD_EMULATION_DEAD_ZONE)
-            rep->buttons |= WPAD_PRO_BUTTON_RIGHT;
-        if (right_stick_y < -DPAD_EMULATION_DEAD_ZONE)
-            rep->buttons |= WPAD_PRO_BUTTON_LEFT;
-
-        // rotate abxy for sidewise joy-con
-        if (inRep->buttons.y)
-            rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (inRep->buttons.x)
-            rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (inRep->buttons.b)
-            rep->buttons |= WPAD_PRO_BUTTON_Y;
-        if (inRep->buttons.a)
-            rep->buttons |= WPAD_PRO_BUTTON_B;
-
-        if (inRep->buttons.sr_r)
-            rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (inRep->buttons.sl_r)
-            rep->buttons |= WPAD_PRO_TRIGGER_L;
-
-        if (inRep->buttons.plus)
-            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (inRep->buttons.home)
-            rep->buttons |= WPAD_PRO_BUTTON_HOME;
-    } else if (sdata->device == SWITCH_DEVICE_PRO || sdata->device == SWITCH_DEVICE_TP_PRO) {
-        rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
-        rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
-        rep->right_stick_x = calibrateStickAxis(&sdata->right_calib_x, SWITCH_AXIS_X(inRep->right_stick));
-        rep->right_stick_y = -calibrateStickAxis(&sdata->right_calib_y, SWITCH_AXIS_Y(inRep->right_stick));
-
-        if (inRep->buttons.y)
-            rep->buttons |= WPAD_PRO_BUTTON_Y;
-        if (inRep->buttons.x)
-            rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (inRep->buttons.b)
-            rep->buttons |= WPAD_PRO_BUTTON_B;
-        if (inRep->buttons.a)
-            rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (inRep->buttons.r)
-            rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (inRep->buttons.zr)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZR;
-        if (inRep->buttons.minus)
-            rep->buttons |= WPAD_PRO_BUTTON_MINUS;
-        if (inRep->buttons.plus)
-            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (inRep->buttons.rstick)
-            rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
-        if (inRep->buttons.lstick)
-            rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
-        if (inRep->buttons.home)
-            rep->buttons |= WPAD_PRO_BUTTON_HOME;
-        // map the capture button to the reserved button bit
-        if (inRep->buttons.capture)
-            rep->buttons |= WPAD_PRO_RESERVED;
-        if (inRep->buttons.down)
-            rep->buttons |= WPAD_PRO_BUTTON_DOWN;
-        if (inRep->buttons.up)
-            rep->buttons |= WPAD_PRO_BUTTON_UP;
-        if (inRep->buttons.right)
-            rep->buttons |= WPAD_PRO_BUTTON_RIGHT;
-        if (inRep->buttons.left)
-            rep->buttons |= WPAD_PRO_BUTTON_LEFT;
-        if (inRep->buttons.l)
-            rep->buttons |= WPAD_PRO_TRIGGER_L;
-        if (inRep->buttons.zl)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZL;
-    } else if (sdata->device == SWITCH_DEVICE_N64) {
-        rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
-        rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
-        rep->right_stick_y = 0;
-        rep->right_stick_x = 0;
-
-        // map the C buttons to the right analog stick
-        if (inRep->buttons.y)
-            rep->right_stick_y -= AXIS_NORMALIZE_VALUE;
-        if (inRep->buttons.x)
-            rep->right_stick_x -= AXIS_NORMALIZE_VALUE;
-        if (inRep->buttons.minus)
-            rep->right_stick_x += AXIS_NORMALIZE_VALUE;
-        if (inRep->buttons.zr)
-            rep->right_stick_y += AXIS_NORMALIZE_VALUE;
-
-        if (inRep->buttons.b)
-            rep->buttons |= WPAD_PRO_BUTTON_B;
-        if (inRep->buttons.a)
-            rep->buttons |= WPAD_PRO_BUTTON_A;
-        if (inRep->buttons.r)
-            rep->buttons |= WPAD_PRO_TRIGGER_R;
-        if (inRep->buttons.plus)
-            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
-        if (inRep->buttons.lstick)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZR;
-        if (inRep->buttons.home)
-            rep->buttons |= WPAD_PRO_BUTTON_HOME;
-        // map capture button to X
-        if (inRep->buttons.capture)
-            rep->buttons |= WPAD_PRO_BUTTON_X;
-        if (inRep->buttons.down)
-            rep->buttons |= WPAD_PRO_BUTTON_DOWN;
-        if (inRep->buttons.up)
-            rep->buttons |= WPAD_PRO_BUTTON_UP;
-        if (inRep->buttons.right)
-            rep->buttons |= WPAD_PRO_BUTTON_RIGHT;
-        if (inRep->buttons.left)
-            rep->buttons |= WPAD_PRO_BUTTON_LEFT;
-        if (inRep->buttons.l)
-            rep->buttons |= WPAD_PRO_TRIGGER_L;
-        if (inRep->buttons.zl)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZL;
-    }
+    if (inRep->buttons.y)
+        rep->buttons |= BTN(SWITCH_BUTTON_Y);
+    if (inRep->buttons.x)
+        rep->buttons |= BTN(SWITCH_BUTTON_X);
+    if (inRep->buttons.b)
+        rep->buttons |= BTN(SWITCH_BUTTON_B);
+    if (inRep->buttons.a)
+        rep->buttons |= BTN(SWITCH_BUTTON_A);
+    if (inRep->buttons.r)
+        rep->buttons |= BTN(SWITCH_TRIGGER_R);
+    if (inRep->buttons.zr)
+        rep->buttons |= BTN(SWITCH_TRIGGER_ZR);
+    if (inRep->buttons.minus)
+        rep->buttons |= BTN(SWITCH_BUTTON_MINUS);
+    if (inRep->buttons.plus)
+        rep->buttons |= BTN(SWITCH_BUTTON_PLUS);
+    if (inRep->buttons.rstick)
+        rep->buttons |= BTN(SWITCH_BUTTON_STICK_R);
+    if (inRep->buttons.lstick)
+        rep->buttons |= BTN(SWITCH_BUTTON_STICK_L);
+    if (inRep->buttons.home)
+        rep->buttons |= BTN(SWITCH_BUTTON_HOME);
+    if (inRep->buttons.capture)
+        rep->buttons |= BTN(SWITCH_BUTTON_CAPTURE);
+    if (inRep->buttons.down)
+        rep->buttons |= BTN(SWITCH_BUTTON_DOWN);
+    if (inRep->buttons.up)
+        rep->buttons |= BTN(SWITCH_BUTTON_UP);
+    if (inRep->buttons.right)
+        rep->buttons |= BTN(SWITCH_BUTTON_RIGHT);
+    if (inRep->buttons.left)
+        rep->buttons |= BTN(SWITCH_BUTTON_LEFT);
+    if (inRep->buttons.l)
+        rep->buttons |= BTN(SWITCH_TRIGGER_L);
+    if (inRep->buttons.zl)
+        rep->buttons |= BTN(SWITCH_TRIGGER_ZL);
+    if (inRep->buttons.sl_r)
+        rep->buttons |= BTN(SWITCH_TRIGGER_SL_R);
+    if (inRep->buttons.sr_r)
+        rep->buttons |= BTN(SWITCH_TRIGGER_SR_R);
+    if (inRep->buttons.sl_l)
+        rep->buttons |= BTN(SWITCH_TRIGGER_SL_L);
+    if (inRep->buttons.sr_l)
+        rep->buttons |= BTN(SWITCH_TRIGGER_SR_L);
 
     if (!controller->isReady) {
         controller->isReady = 1;
@@ -468,7 +569,7 @@ static void handle_input_report(Controller* controller, SwitchInputReport* inRep
 
 static void handle_basic_input_report(Controller* controller, SwitchBasicInputReport* inRep)
 {
-    ReportBuffer* rep = &controller->reportBuffer;
+    BloopairReportBuffer* rep = &controller->reportBuffer;
 
     rep->left_stick_x = scaleStickAxis(bswap16(inRep->left_stick_x), 65536);
     rep->right_stick_x = scaleStickAxis(bswap16(inRep->right_stick_x), 65536);
@@ -481,34 +582,33 @@ static void handle_basic_input_report(Controller* controller, SwitchBasicInputRe
         rep->buttons |= dpad_map[inRep->buttons.dpad];
 
     if (inRep->buttons.b)
-        rep->buttons |= WPAD_PRO_BUTTON_B;
+        rep->buttons |= BTN(SWITCH_BUTTON_B);
     if (inRep->buttons.a)
-        rep->buttons |= WPAD_PRO_BUTTON_A;
+        rep->buttons |= BTN(SWITCH_BUTTON_A);
     if (inRep->buttons.y)
-        rep->buttons |= WPAD_PRO_BUTTON_Y;
+        rep->buttons |= BTN(SWITCH_BUTTON_Y);
     if (inRep->buttons.x)
-        rep->buttons |= WPAD_PRO_BUTTON_X;
+        rep->buttons |= BTN(SWITCH_BUTTON_X);
     if (inRep->buttons.l)
-        rep->buttons |= WPAD_PRO_TRIGGER_L;
+        rep->buttons |= BTN(SWITCH_TRIGGER_L);
     if (inRep->buttons.r)
-        rep->buttons |= WPAD_PRO_TRIGGER_R;
+        rep->buttons |= BTN(SWITCH_TRIGGER_R);
     if (inRep->buttons.zl)
-        rep->buttons |= WPAD_PRO_TRIGGER_ZL;
+        rep->buttons |= BTN(SWITCH_TRIGGER_ZL);
     if (inRep->buttons.zr)
-        rep->buttons |= WPAD_PRO_TRIGGER_ZR;
+        rep->buttons |= BTN(SWITCH_TRIGGER_ZR);
     if (inRep->buttons.minus)
-        rep->buttons |= WPAD_PRO_BUTTON_MINUS;
+        rep->buttons |= BTN(SWITCH_BUTTON_MINUS);
     if (inRep->buttons.plus)
-        rep->buttons |= WPAD_PRO_BUTTON_PLUS;
+        rep->buttons |= BTN(SWITCH_BUTTON_PLUS);
     if (inRep->buttons.lstick)
-        rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
+        rep->buttons |= BTN(SWITCH_BUTTON_STICK_L);
     if (inRep->buttons.rstick)
-        rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
+        rep->buttons |= BTN(SWITCH_BUTTON_STICK_R);
     if (inRep->buttons.home)
-        rep->buttons |= WPAD_PRO_BUTTON_HOME;
-    // map the capture button to the reserved button bit
+        rep->buttons |= BTN(SWITCH_BUTTON_HOME);
     if (inRep->buttons.capture)
-        rep->buttons |= WPAD_PRO_RESERVED;
+        rep->buttons |= BTN(SWITCH_BUTTON_CAPTURE);
 }
 
 void controllerData_switch(Controller* controller, uint8_t* buf, uint16_t len)
@@ -545,6 +645,22 @@ void controllerInit_switch(Controller* controller)
     controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(SwitchData));
     memset(controller->additionalData, 0, sizeof(SwitchData));
 
+    // start as a generic controller until we figure out the type
+    controller->type = BLOOPAIR_CONTROLLER_SWITCH_GENERIC;
+    Configuration_GetAll(controller->type, controller->bda,
+        &controller->commonConfig, &controller->mapping,
+        &controller->customConfig, &controller->customConfigSize);
+
     // start controller initialization by requesting device info
     requestDeviceInfo(controller);
+}
+
+void controllerModuleInit_switch(void)
+{
+    // set default mappings
+    Configuration_SetFallback(BLOOPAIR_CONTROLLER_SWITCH_GENERIC, NULL, &default_generic_mapping, &default_switch_configuration, sizeof(default_switch_configuration));
+    Configuration_SetFallback(BLOOPAIR_CONTROLLER_SWITCH_JOYCON_LEFT, NULL, &default_joycon_left_mapping, &default_switch_configuration, sizeof(default_switch_configuration));
+    Configuration_SetFallback(BLOOPAIR_CONTROLLER_SWITCH_JOYCON_RIGHT, NULL, &default_joycon_right_mapping, &default_switch_configuration, sizeof(default_switch_configuration));
+    Configuration_SetFallback(BLOOPAIR_CONTROLLER_SWITCH_PRO, NULL, &default_pro_controller_mapping, &default_switch_configuration, sizeof(default_switch_configuration));
+    Configuration_SetFallback(BLOOPAIR_CONTROLLER_SWITCH_N64, NULL, &default_n64_mapping, &default_switch_configuration, sizeof(default_switch_configuration));
 }

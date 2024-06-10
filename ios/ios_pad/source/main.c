@@ -24,7 +24,13 @@
 
 static const uint8_t wiiu_pro_controller_id[] = { 0x00, 0x00, 0xa4, 0x20, 0x01, 0x20 };
 
-static const uint8_t wiiu_pro_controller_cert[] = { 0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0x01, 0x00, 0x00, 0x20, 0x01, 0x00, 0xa4, 0x20, 0x00, 0x05 };
+// Motion Plus configuration dumped from a pro controller, unsure what for
+static const uint8_t wiiu_pro_controller_mpls_config[] = {
+    0xff, 0xff, 0xff, 0x00, 0xff, 0xff, 0x01, 0x00, 0x00, 0x20,
+    0x01, // mplsIsIntegrated
+    0x00, 0xa4, 0x20, 0x00,
+    0x05, // 0x05 == has mplus
+};
 
 void sendInputData(uint8_t dev_handle, const void* data, uint16_t len)
 {
@@ -111,7 +117,7 @@ static void sendReadResponse(uint8_t dev_handle, uint8_t result, uint32_t addres
 
 static void writeMemory(uint8_t dev_handle, uint32_t address, uint8_t* data, uint8_t len)
 {
-    DEBUG("writing to 0x%08lX size %d\n", address, len);
+    DEBUG_PRINT("writing to 0x%08lX size %d\n", address, len);
     Controller* controller = &controllers[dev_handle];
 
     switch (address) {
@@ -154,13 +160,13 @@ static void writeMemory(uint8_t dev_handle, uint32_t address, uint8_t* data, uin
         return;
     }
 
-    DEBUG("invalid write to 0x%lx\n", address);
+    DEBUG_PRINT("invalid write to 0x%lx\n", address);
     sendAcknowledgeReport(dev_handle, WM_REPORT_ID_MEMORY_WRITE, 3);
 }
 
 static void readMemory(uint8_t dev_handle, uint32_t address, uint16_t len)
 {
-    DEBUG("reading from 0x%08lx size %d\n", address, len);
+    DEBUG_PRINT("reading from 0x%08lx size %d\n", address, len);
     Controller* controller = &controllers[dev_handle];
 
     switch (address) {
@@ -170,9 +176,9 @@ static void readMemory(uint8_t dev_handle, uint32_t address, uint16_t len)
             return;
         }
         break;
-    case 0x04a600f0: // cert
+    case 0x04a600f0: // mpls config
         if (len == 16) {
-            sendReadResponse(dev_handle, 0, address, wiiu_pro_controller_cert, sizeof(wiiu_pro_controller_cert));
+            sendReadResponse(dev_handle, 0, address, wiiu_pro_controller_mpls_config, sizeof(wiiu_pro_controller_mpls_config));
             return;
         }
         break;
@@ -194,7 +200,7 @@ static void readMemory(uint8_t dev_handle, uint32_t address, uint16_t len)
         break;
     }
 
-    DEBUG("invalid read from 0x%08lx\n", address);
+    DEBUG_PRINT("invalid read from 0x%08lx\n", address);
     sendReadResponse(dev_handle, 8, address, NULL, 0);
 }
 
@@ -208,14 +214,14 @@ void processSmdMessages(void)
     SMDOutputMessage msg;
     while (smdIopReceive(smdIopIndex, &msg) != -0xc0005) {
         WMReport* report = &msg.report;
-        DEBUG("output request for handle %u size %u, cmd: 0x%X\n", msg.dev_handle, msg.length, report->report_id);
+        DEBUG_PRINT("output request for handle %u size %u, cmd: 0x%X\n", msg.dev_handle, msg.length, report->report_id);
 
         Controller* controller = &controllers[msg.dev_handle];
         if (!controller->isInitialized) {
             continue;
         }
 
-        if (controller->isOfficialController) {
+        if (controller->type == BLOOPAIR_CONTROLLER_OFFICIAL) {
 #ifdef TESTING
             if (report->report_id == WM_REPORT_ID_MEMORY_WRITE) {
                 uint32_t address = report->memory_write.address;
@@ -267,7 +273,7 @@ void processSmdMessages(void)
                 break;
             }
             case WM_REPORT_ID_REPORT_MODE: {
-                DEBUG("data reporting set to %x:%x\n", report->report_mode.continous, report->report_mode.mode);
+                DEBUG_PRINT("data reporting set to %x:%x\n", report->report_mode.continous, report->report_mode.mode);
                 controller->dataReportingMode = report->report_mode.mode;
                 sendAcknowledgeReport(msg.dev_handle, WM_REPORT_ID_REPORT_MODE, 0);
                 break;
@@ -333,7 +339,7 @@ void bta_hh_co_data(uint8_t dev_handle, uint8_t *p_rpt, uint16_t len, uint8_t mo
         return;
     }
 
-    if (controller->isOfficialController) {
+    if (controller->type == BLOOPAIR_CONTROLLER_OFFICIAL) {
         // we can just pass received data from official controllers to padscore
         sendInputData(dev_handle, p_rpt, len);
 #ifdef TESTING

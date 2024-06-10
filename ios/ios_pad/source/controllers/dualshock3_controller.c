@@ -16,6 +16,44 @@
  */
 
 #include "dualshock3_controller.h"
+#include <bloopair/controllers/dualshock3_controller.h>
+
+static const MappingConfiguration default_dualshock3_mapping = {
+    .num = 25,
+    .mappings = {
+        { BLOOPAIR_PRO_STICK_L_UP,      BLOOPAIR_PRO_STICK_L_UP, },
+        { BLOOPAIR_PRO_STICK_L_DOWN,    BLOOPAIR_PRO_STICK_L_DOWN, },
+        { BLOOPAIR_PRO_STICK_L_LEFT,    BLOOPAIR_PRO_STICK_L_LEFT, },
+        { BLOOPAIR_PRO_STICK_L_RIGHT,   BLOOPAIR_PRO_STICK_L_RIGHT, },
+
+        { BLOOPAIR_PRO_STICK_R_UP,      BLOOPAIR_PRO_STICK_R_UP, },
+        { BLOOPAIR_PRO_STICK_R_DOWN,    BLOOPAIR_PRO_STICK_R_DOWN, },
+        { BLOOPAIR_PRO_STICK_R_LEFT,    BLOOPAIR_PRO_STICK_R_LEFT, },
+        { BLOOPAIR_PRO_STICK_R_RIGHT,   BLOOPAIR_PRO_STICK_R_RIGHT, },
+
+        { DUALSHOCK3_BUTTON_DOWN,       BLOOPAIR_PRO_BUTTON_DOWN, },
+        { DUALSHOCK3_BUTTON_UP,         BLOOPAIR_PRO_BUTTON_UP },
+        { DUALSHOCK3_BUTTON_RIGHT,      BLOOPAIR_PRO_BUTTON_RIGHT, },
+        { DUALSHOCK3_BUTTON_LEFT,       BLOOPAIR_PRO_BUTTON_LEFT, },
+
+        { DUALSHOCK3_BUTTON_CIRCLE,     BLOOPAIR_PRO_BUTTON_A, },
+        { DUALSHOCK3_BUTTON_CROSS,      BLOOPAIR_PRO_BUTTON_B, },
+        { DUALSHOCK3_BUTTON_TRIANGLE,   BLOOPAIR_PRO_BUTTON_X, },
+        { DUALSHOCK3_BUTTON_SQUARE,     BLOOPAIR_PRO_BUTTON_Y, },
+
+        { DUALSHOCK3_TRIGGER_L1,        BLOOPAIR_PRO_TRIGGER_L, },
+        { DUALSHOCK3_TRIGGER_R1,        BLOOPAIR_PRO_TRIGGER_R, },
+        { DUALSHOCK3_TRIGGER_L2,        BLOOPAIR_PRO_TRIGGER_ZL, },
+        { DUALSHOCK3_TRIGGER_R2,        BLOOPAIR_PRO_TRIGGER_ZR, },
+
+        { DUALSHOCK3_BUTTON_SELECT,     BLOOPAIR_PRO_BUTTON_MINUS, },
+        { DUALSHOCK3_BUTTON_START,      BLOOPAIR_PRO_BUTTON_PLUS, },
+        { DUALSHOCK3_BUTTON_L3,         BLOOPAIR_PRO_BUTTON_STICK_L, },
+        { DUALSHOCK3_BUTTON_R3,         BLOOPAIR_PRO_BUTTON_STICK_R, },
+
+        { DUALSHOCK3_BUTTON_PS_HOME,    BLOOPAIR_PRO_BUTTON_HOME, },
+    },
+};
 
 static const Dualshock3LedConfig led_config = { 0xff, 0x27, 0x10, 0x00, 0x32 };
 
@@ -73,7 +111,7 @@ void controllerData_dualshock3(Controller* controller, uint8_t* buf, uint16_t le
     }
 
     if (buf[0] == 0x01) {
-        ReportBuffer* rep = &controller->reportBuffer;
+        BloopairReportBuffer* rep = &controller->reportBuffer;
         Dualshock3InputReport* inRep = (Dualshock3InputReport*) buf;
 
         rep->left_stick_x = scaleStickAxis(inRep->left_stick_x, 256);
@@ -84,39 +122,39 @@ void controllerData_dualshock3(Controller* controller, uint8_t* buf, uint16_t le
         rep->buttons = 0;
 
         if (inRep->buttons.select)
-            rep->buttons |= WPAD_PRO_BUTTON_MINUS;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_SELECT);
         if (inRep->buttons.l3)
-            rep->buttons |= WPAD_PRO_BUTTON_STICK_L;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_L3);
         if (inRep->buttons.r3)
-            rep->buttons |= WPAD_PRO_BUTTON_STICK_R;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_R3);
         if (inRep->buttons.start)
-            rep->buttons |= WPAD_PRO_BUTTON_PLUS;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_START);
         if (inRep->buttons.up)
-            rep->buttons |= WPAD_PRO_BUTTON_UP;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_UP);
         if (inRep->buttons.right)
-            rep->buttons |= WPAD_PRO_BUTTON_RIGHT;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_RIGHT);
         if (inRep->buttons.down)
-            rep->buttons |= WPAD_PRO_BUTTON_DOWN;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_DOWN);
         if (inRep->buttons.left)
-            rep->buttons |= WPAD_PRO_BUTTON_LEFT;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_LEFT);
         if (inRep->buttons.l2)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZL;
+            rep->buttons |= BTN(DUALSHOCK3_TRIGGER_L2);
         if (inRep->buttons.r2)
-            rep->buttons |= WPAD_PRO_TRIGGER_ZR;
+            rep->buttons |= BTN(DUALSHOCK3_TRIGGER_R2);
         if (inRep->buttons.l1)
-            rep->buttons |= WPAD_PRO_TRIGGER_L;
+            rep->buttons |= BTN(DUALSHOCK3_TRIGGER_L1);
         if (inRep->buttons.r1)
-            rep->buttons |= WPAD_PRO_TRIGGER_R;
+            rep->buttons |= BTN(DUALSHOCK3_TRIGGER_R1);
         if (inRep->buttons.triangle)
-            rep->buttons |= WPAD_PRO_BUTTON_X;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_TRIANGLE);
         if (inRep->buttons.circle)
-            rep->buttons |= WPAD_PRO_BUTTON_A;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_CIRCLE);
         if (inRep->buttons.cross)
-            rep->buttons |= WPAD_PRO_BUTTON_B;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_CROSS);
         if (inRep->buttons.square)
-            rep->buttons |= WPAD_PRO_BUTTON_Y;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_SQUARE);
         if (inRep->buttons.ps_home)
-            rep->buttons |= WPAD_PRO_BUTTON_HOME;
+            rep->buttons |= BTN(DUALSHOCK3_BUTTON_PS_HOME);
 
         controller->isCharging = inRep->battery_status == 0x02;
         controller->battery = CLAMP(inRep->battery_level, 0, 4);
@@ -146,6 +184,16 @@ void controllerInit_dualshock3(Controller* controller)
     controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(Dualshock3Data));
     memset(controller->additionalData, 0, sizeof(Dualshock3Data));
 
+    controller->type = BLOOPAIR_CONTROLLER_DUALSHOCK3;
+    Configuration_GetAll(controller->type, controller->bda,
+        &controller->commonConfig, &controller->mapping,
+        &controller->customConfig, &controller->customConfigSize);
+
     // enable the controller so it sends reports
     setReport(controller->handle, BTA_HH_RPTT_FEATURE, enable_payload, sizeof(enable_payload));
+}
+
+void controllerModuleInit_dualshock3(void)
+{
+    Configuration_SetFallback(BLOOPAIR_CONTROLLER_DUALSHOCK3, NULL, &default_dualshock3_mapping, NULL, 0);
 }

@@ -22,7 +22,7 @@ uint8_t (*const real_btm_sec_execute_procedure)(tBTM_SEC_DEV_REC *p_dev_rec) = (
 
 uint8_t btm_sec_execute_procedure_hook(tBTM_SEC_DEV_REC *p_dev_rec)
 {
-    DEBUG("btm_sec_execute_procedure_hook\n");
+    DEBUG_PRINT("btm_sec_execute_procedure_hook\n");
 
     // make sure the device info has been read
     store_read_device_info();
@@ -37,7 +37,7 @@ uint8_t btm_sec_execute_procedure_hook(tBTM_SEC_DEV_REC *p_dev_rec)
                                         BTM_SEC_FORCE_MASTER | BTM_SEC_ATTEMPT_MASTER |
                                         BTM_SEC_FORCE_SLAVE | BTM_SEC_ATTEMPT_SLAVE);
 
-        DEBUG("Security Manager: access granted\n");
+        DEBUG_PRINT("Security Manager: access granted\n");
 
         return 0;
     }
