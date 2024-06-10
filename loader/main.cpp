@@ -33,6 +33,7 @@
 #include <chrono>
 #include <condition_variable>
 
+#include "config.hpp"
 #include "ios_exploit.h"
 #include "kernel.hpp"
 
@@ -86,16 +87,26 @@ int main(int argc, char **argv)
 
         int32_t version = Bloopair_GetVersion(bloopairHandle);
         if (version >= 0) {
-            OSReport("Bloopair Loader: Loaded Bloopair version %d.%d.%d\n",
+            char commitHash[41];
+            if (Bloopair_GetCommitHash(bloopairHandle, commitHash, sizeof(commitHash)) >= 0) {
+                commitHash[7] = '\0';
+            } else {
+                commitHash[0] = '\0';
+            }
+
+            OSReport("Bloopair Loader: Loaded Bloopair version %d.%d.%d%s%s\n",
                 BLOOPAIR_VERSION_MAJOR(version),
                 BLOOPAIR_VERSION_MINOR(version),
-                BLOOPAIR_VERSION_PATCH(version));
+                BLOOPAIR_VERSION_PATCH(version),
+                commitHash[0] ? "-" : "", commitHash);
         } else {
             OSReport("Bloopair Loader: Failed to load Bloopair\n");
         }
+
+        LoadAndApplyBloopairConfiguration(bloopairHandle);
     }
 
-    Bloopair_Close(bloopairHandle);  
+    Bloopair_Close(bloopairHandle);
 
     return 0;
 }

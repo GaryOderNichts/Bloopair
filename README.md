@@ -75,7 +75,8 @@ Bloopair
 │   └── ios_usb     - Patches used to recover from IOS exploit done by loader.
 ├── libbloopair     - Library to communicate with Bloopair IPC.
 ├── loader          - Setup module which loads Bloopair.
-└── pair_menu       - DS3 pairing application.
+├── pair_menu       - DS3 pairing application.
+└── third_party     - Third-party content included in Bloopair.
 ```
 
 ## Building

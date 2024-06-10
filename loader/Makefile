@@ -31,7 +31,7 @@ CFLAGS	:=	-Wall -O2 -ffunction-sections \
 
 CFLAGS	+=	$(INCLUDE) -D__WIIU__ -D__WUT__
 
-CXXFLAGS	:= $(CFLAGS)
+CXXFLAGS	:= $(CFLAGS) -std=gnu++20
 
 ASFLAGS	:=	$(ARCH)
 LDFLAGS	=	$(ARCH) $(RPXSPECS) --entry=_start -Wl,-Map,$(notdir $*.map)
@@ -85,8 +85,8 @@ export OFILES 	:=	$(OFILES_BIN) $(OFILES_SRC)
 export HFILES_BIN	:=	$(addsuffix .h,$(subst .,_,$(BINFILES)))
 
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
-			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
-			-I$(CURDIR)/$(BUILD) -I$(BLOOPAIR_TOP_DIR)/ios
+			$(foreach dir,$(LIBDIRS),-I$(dir)/include) -I$(CURDIR)/$(BUILD) \
+			-I$(BLOOPAIR_TOP_DIR)/ios -I$(BLOOPAIR_TOP_DIR)/third_party
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
