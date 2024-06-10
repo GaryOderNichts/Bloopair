@@ -122,7 +122,7 @@ int main()
         goto main_loop;
     }
 
-    if (Bloopair_ReadControllerBDA(bloopairHandle, controller_bda) < 0) {
+    if (Bloopair_ReadConsoleBDA(bloopairHandle, controller_bda) < 0) {
         WHBLogPrintf("Failed to read local bda (Make sure Bloopair is active!)");
         WHBLogConsoleDraw();
         sleep(2);
