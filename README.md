@@ -24,7 +24,7 @@ To pair a DualShock 3 to the console, see the [Pairing a DualShock 3](#pairing-a
 - Copy the `30_bloopair.rpx` from the .zip file to the `modules/setup/` folder of your target environment on the SD Card.  
   This would be `wiiu/environments/tiramisu/modules/setup/` for Tiramisu.
 - Copy the `wiiu` folder from the .zip and copy it to the root of your SD Card.  
-  If you're using aroma you can delete the `Bloopair_pair_menu.rpx` in the `wiiu/apps` folder and use the .wuhb instead.
+  If you're using aroma you can delete the `Koopair.rpx` in the `wiiu/apps` folder and use the .wuhb instead.
 
 Make sure you're using Tiramisu or Aroma. Follow https://wiiu.hacks.guide/#/ to setup Tiramisu.  
 More info about Tiramisu here: https://maschell.github.io/homebrew/2021/12/31/tiramisu.html
@@ -37,10 +37,10 @@ If a controller had been paired in the past, simply turn it on again and it shou
 
 ## Pairing a DualShock 3
 The DualShock 3 needs to be paired using a USB cable. After the initial pairing it can be used like any other wireless Bluetooth controller.  
-- Open the Bloopair pairing app from the Wii U menu or Homebrew Launcher. You should now be in the USB pairing menu.
+- Open Koopair from the Wii U menu or Homebrew Launcher. Now open the "Controller Pairing" option on the menu.
 - Connect the DualShock 3 using a USB cable to the front or back ports of the console.
-- The screen will say "Paired!" once the controller has been successfully paired.  
-You can now remove the USB cable from the controller. Press the PS button once back on the Wii U menu to connect it to the console.
+- The screen will say "Successfully paired controller!" once the controller has been successfully paired.  
+You can now remove the USB cable from the controller. Press the PS button to connect it to the console.
 - Press the HOME button to exit.
 
 The DualShock 3 is now ready to use with the console.
@@ -76,7 +76,6 @@ Bloopair
 ├── koopair         - Bloopair companion app.
 ├── libbloopair     - Library to communicate with Bloopair IPC.
 ├── loader          - Setup module which loads Bloopair.
-├── pair_menu       - DS3 pairing application.
 └── third_party     - Third-party content included in Bloopair.
 ```
 
