@@ -203,7 +203,7 @@ void controllerInit_dualshock4(Controller* controller)
     controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(Dualshock4Data));
     memset(controller->additionalData, 0, sizeof(Dualshock4Data));
 
-    controller->type = BLOOPAIR_CONTROLLER_DUALSHOCK3;
+    controller->type = BLOOPAIR_CONTROLLER_DUALSHOCK4;
     Configuration_GetAll(controller->type, controller->bda,
         &controller->commonConfig, &controller->mapping,
         &controller->customConfig, &controller->customConfigSize);
