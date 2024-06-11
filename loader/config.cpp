@@ -303,7 +303,8 @@ bool LoadAndApplyBloopairConfiguration(IOSHandle handle)
 {
     std::regex regex("^Controller-([A-Za-z0-9-]+)\\.conf$");
 
-    for (const auto& entry : std::filesystem::directory_iterator(BLOOPAIR_CONFIGURATION_DIR)) {
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(BLOOPAIR_CONFIGURATION_DIR, ec)) {
         if (!entry.is_regular_file()) {
             continue;
         }
