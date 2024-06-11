@@ -147,22 +147,17 @@ std::string GetButtonName(BloopairControllerType type, uint8_t button)
             switch (button) {
                 case SWITCH_N64_C_UP: return "C\ue092";
                 case SWITCH_TRIGGER_R: return "\ue084";
-                case SWITCH_TRIGGER_SL_R: return "SL (R)";
-                case SWITCH_TRIGGER_SR_R: return "SR (R)";
                 case SWITCH_BUTTON_A: return "\ue000";
                 case SWITCH_BUTTON_B: return "\ue001";
                 case SWITCH_N64_C_LEFT: return "C\ue091";
                 case SWITCH_N64_C_DOWN: return "C\ue093";
                 case SWITCH_BUTTON_CAPTURE: return "\ue01e";
                 case SWITCH_BUTTON_HOME: return "\ue044";
-                case SWITCH_BUTTON_STICK_L: return "\ue08a";
-                case SWITCH_BUTTON_STICK_R: return "\ue08b";
+                case SWITCH_N64_ZR: return "\ue086";
                 case SWITCH_BUTTON_PLUS: return "\ue045";
                 case SWITCH_N64_C_RIGHT: return "C\ue090";
-                case SWITCH_TRIGGER_ZL: return "\ue085";
+                case SWITCH_TRIGGER_ZL: return "\ue04b"; // This is the N64 Z button
                 case SWITCH_TRIGGER_L: return "\ue083";
-                case SWITCH_TRIGGER_SL_L: return "SL (L)";
-                case SWITCH_TRIGGER_SR_L: return "SR (L)";
                 case SWITCH_BUTTON_UP: return "\ue079";
                 case SWITCH_BUTTON_DOWN: return "\ue07a";
                 case SWITCH_BUTTON_LEFT: return "\ue07b";

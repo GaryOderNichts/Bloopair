@@ -163,7 +163,7 @@ static const MappingConfiguration default_pro_controller_mapping = {
 };
 
 static const MappingConfiguration default_n64_mapping = {
-    .num = 20,
+    .num = 21,
     .mappings = {
         { BLOOPAIR_PRO_STICK_L_UP,      BLOOPAIR_PRO_STICK_L_UP, },
         { BLOOPAIR_PRO_STICK_L_DOWN,    BLOOPAIR_PRO_STICK_L_DOWN, },
@@ -182,8 +182,7 @@ static const MappingConfiguration default_n64_mapping = {
         { SWITCH_TRIGGER_R,             BLOOPAIR_PRO_TRIGGER_R, },
         { SWITCH_BUTTON_PLUS,           BLOOPAIR_PRO_BUTTON_PLUS, },
 
-        // TODO what button was this again?
-        { SWITCH_BUTTON_STICK_L,        BLOOPAIR_PRO_TRIGGER_ZR, },
+        { SWITCH_N64_ZR,                BLOOPAIR_PRO_TRIGGER_ZR, },
         { SWITCH_BUTTON_HOME,           BLOOPAIR_PRO_BUTTON_HOME, },
 
         // map the capture button to the reserved button bit
@@ -514,8 +513,12 @@ static void handle_input_report(Controller* controller, SwitchInputReport* inRep
 
     rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
     rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
-    rep->right_stick_x = calibrateStickAxis(&sdata->right_calib_x, SWITCH_AXIS_X(inRep->right_stick));
-    rep->right_stick_y = -calibrateStickAxis(&sdata->right_calib_y, SWITCH_AXIS_Y(inRep->right_stick));
+
+    // The N64 controller seems to send invalid data for the right stick, since it doesn't have one
+    if (sdata->device != SWITCH_DEVICE_N64) {
+        rep->right_stick_x = calibrateStickAxis(&sdata->right_calib_x, SWITCH_AXIS_X(inRep->right_stick));
+        rep->right_stick_y = -calibrateStickAxis(&sdata->right_calib_y, SWITCH_AXIS_Y(inRep->right_stick));
+    }
 
     if (inRep->buttons.y)
         rep->buttons |= BTN(SWITCH_BUTTON_Y);
