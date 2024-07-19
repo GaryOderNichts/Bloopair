@@ -16,6 +16,8 @@
  */
 #include "AboutScreen.hpp"
 #include "Gfx.hpp"
+#include "BloopairIPC.hpp"
+#include "Utils.hpp"
 
 AboutScreen::AboutScreen()
 {
@@ -27,6 +29,21 @@ AboutScreen::AboutScreen()
 
     mLinkList.push_back({"GitHub:", ""});
     mLinkList.push_back({"", {"github.com/GaryOderNichts/Bloopair", true}});
+
+    uint32_t bloopairVersion = BloopairIPC::GetVersion();
+    std::string commitHash = BloopairIPC::GetCommitHash();
+    std::string shortHash = "";
+    if (commitHash.size() > 7) {
+        shortHash = commitHash.substr(0, 7);
+    }
+
+    mBloopairList.push_back({"Running Version:", {
+        Utils::sprintf("v%d.%d.%d%s%s",
+            BLOOPAIR_VERSION_MAJOR(bloopairVersion),
+            BLOOPAIR_VERSION_MINOR(bloopairVersion),
+            BLOOPAIR_VERSION_PATCH(bloopairVersion),
+            shortHash.empty() ? "" : "-",
+            shortHash.c_str())}});
 }
 
 AboutScreen::~AboutScreen()
@@ -46,6 +63,9 @@ void AboutScreen::Draw()
     yOff = 128;
     yOff = DrawHeader(992, yOff, 896, 0xf08e, "Links");
     yOff = DrawList(992, yOff, 896, mLinkList);
+
+    yOff = DrawHeader(992, yOff, 896, 0xf085, "Bloopair");
+    yOff = DrawList(992, yOff, 896, mBloopairList);
 
     DrawBottomBar(nullptr, "\ue044 Exit", "\ue001 Back");
 }

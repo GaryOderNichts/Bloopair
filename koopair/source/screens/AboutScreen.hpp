@@ -32,4 +32,5 @@ private:
     ScreenList mCreditList;
     ScreenList mFontList;
     ScreenList mLinkList;
+    ScreenList mBloopairList;
 };
