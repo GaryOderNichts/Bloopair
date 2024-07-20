@@ -26,9 +26,9 @@
 namespace
 {
 
-// Let's make sure to not break API for minor and patch versions
+// Let's make sure to not break API for patch versions
 constexpr uint32_t kMinBloopairVersion = BLOOPAIR_VERSION(1,   0,   0);
-constexpr uint32_t kMaxBloopairVersion = BLOOPAIR_VERSION(1, 255, 255);
+constexpr uint32_t kMaxBloopairVersion = BLOOPAIR_VERSION(1,   0, 255);
 
 }
 

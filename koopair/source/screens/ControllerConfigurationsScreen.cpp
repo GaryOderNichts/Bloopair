@@ -42,8 +42,7 @@ ControllerConfigurationsScreen::~ControllerConfigurationsScreen()
 
 void ControllerConfigurationsScreen::Draw()
 {
-    // TODO
-    DrawTopBar("ControllerConfigurationsScreen");
+    DrawTopBar("Controller Configurations");
 
     if (!mConfigurations.empty()) {
         int drawIndex = 0;

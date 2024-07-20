@@ -245,8 +245,7 @@ ControllerMappingScreen::~ControllerMappingScreen()
 
 void ControllerMappingScreen::Draw()
 {
-    // TODO
-    DrawTopBar("ControllerMappingScreen");
+    DrawTopBar("Controller Mapping");
 
     int drawIndex = 0;
     for (size_t i = mSelectionStart; i < mSelectionEnd; i++) {

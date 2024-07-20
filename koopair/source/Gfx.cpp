@@ -17,6 +17,7 @@
 #include "Gfx.hpp"
 #include "SDL_FontCache.h"
 #include <SDL2_gfxPrimitives.h>
+#include <SDL_image.h>
 #include <map>
 #include <cstdarg>
 
@@ -25,6 +26,7 @@
 
 #include <ter-u32b_bdf.h>
 #include <fa-solid-900_ttf.h>
+#include <shell_png.h>
 
 namespace
 {
@@ -44,6 +46,8 @@ FC_Font* monospaceFont = nullptr;
 TTF_Font* iconFont = nullptr;
 
 std::map<Uint16, SDL_Texture*> iconCache;
+
+SDL_Texture* appIcon = nullptr;
 
 FC_Font* GetFontForSize(int size)
 {
@@ -67,6 +71,10 @@ FC_Font* GetFontForSize(int size)
 
 SDL_Texture* LoadIcon(Uint16 icon)
 {
+    if (icon == Gfx::APP_ICON) {
+        return appIcon;
+    }
+
     if (iconCache.contains(icon)) {
         return iconCache[icon];
     }
@@ -123,14 +131,19 @@ bool Init()
         return false;
     }
 
-    if (!FC_LoadFont_RW(monospaceFont, renderer, SDL_RWFromMem((void*)ter_u32b_bdf, ter_u32b_bdf_size), 1, 32, Gfx::COLOR_BLACK, TTF_STYLE_NORMAL)) {
+    if (!FC_LoadFont_RW(monospaceFont, renderer, SDL_RWFromConstMem(ter_u32b_bdf, ter_u32b_bdf_size), 1, 32, Gfx::COLOR_BLACK, TTF_STYLE_NORMAL)) {
         FC_FreeFont(monospaceFont);
         return false;
     }
 
     // icons @256 should be large enough for our needs
-    iconFont = TTF_OpenFontRW(SDL_RWFromMem((void*)fa_solid_900_ttf, fa_solid_900_ttf_size), 1, 256);
+    iconFont = TTF_OpenFontRW(SDL_RWFromConstMem(fa_solid_900_ttf, fa_solid_900_ttf_size), 1, 256);
     if (!iconFont) {
+        return false;
+    }
+
+    appIcon = IMG_LoadTextureTyped_RW(renderer, SDL_RWFromConstMem(shell_png, shell_png_size), 1, "PNG");
+    if (!appIcon) {
         return false;
     }
 
@@ -147,6 +160,7 @@ void Shutdown()
         SDL_DestroyTexture(value);
     }
 
+    SDL_DestroyTexture(appIcon);
     FC_FreeFont(monospaceFont);
     TTF_CloseFont(iconFont);
     TTF_Quit();

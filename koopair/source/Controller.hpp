@@ -186,4 +186,6 @@ public:
 
 private:
     std::string mName;
+
+    Buttons mPreviousButtons;
 };

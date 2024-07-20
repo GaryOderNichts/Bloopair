@@ -13,7 +13,7 @@ TOPDIR ?= $(CURDIR)
 # APP_SHORTNAME sets the short name of the application
 # APP_AUTHOR sets the author of the application
 #-------------------------------------------------------------------------------
-APP_NAME		:=	Bloopair Companion App
+APP_NAME		:=	Koopair
 APP_SHORTNAME		:=	Koopair
 APP_AUTHOR		:=	GaryOderNichts
 APP_VERSION		:=	1.0.0
@@ -56,7 +56,7 @@ CXXFLAGS	:= $(CFLAGS) -std=gnu++20
 ASFLAGS	:=	$(ARCH)
 LDFLAGS	=	$(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map)
 
-LIBS	:=	-lSDL2 -lSDL2_ttf -lSDL2_gfx -lfreetype -lharfbuzz -lfreetype -lpng -lbz2 -lz -lbloopair -lwut
+LIBS	:=	-lSDL2 -lSDL2_ttf -lSDL2_gfx -lSDL2_image -lfreetype -lharfbuzz -lfreetype -lpng -lbz2 -lz -lbloopair -lwut
 
 ifeq ($(DEBUG), 1)
 	CFLAGS += -g -DCOMMIT_HASH=\"$(BLOOPAIR_COMMIT_HASH)\"
@@ -196,6 +196,12 @@ $(OFILES_SRC)	: $(HFILES_BIN)
 
 #-------------------------------------------------------------------------------
 %.bdf.o	%_bdf.h :	%.bdf
+#-------------------------------------------------------------------------------
+	@echo $(notdir $<)
+	@$(bin2o)
+
+#-------------------------------------------------------------------------------
+%.png.o	%_png.h :	%.png
 #-------------------------------------------------------------------------------
 	@echo $(notdir $<)
 	@$(bin2o)

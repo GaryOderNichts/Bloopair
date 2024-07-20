@@ -82,7 +82,7 @@ ControllerOptionsScreen::~ControllerOptionsScreen()
 
 void ControllerOptionsScreen::Draw()
 {
-    DrawTopBar("ControllerOptionsScreen");
+    DrawTopBar("Controller Options");
 
     uint32_t yOff = 128;
 

@@ -248,6 +248,11 @@ bool KPADController::Update()
         MAP_BTN(WPAD_CLASSIC_BUTTON_R,      BUTTON_R);
         MAP_BTN(WPAD_CLASSIC_BUTTON_L,      BUTTON_L);
 #undef MAP_BTN
+
+        mStickL.x = mStatus.classic.leftStick.x;
+        mStickL.y = mStatus.classic.leftStick.y;
+        mStickR.x = mStatus.classic.rightStick.x;
+        mStickR.y = mStatus.classic.rightStick.y;
     }
 
     return true;
@@ -324,7 +329,8 @@ std::array<uint8_t, 6> KPADController::GetBDA() const
 }
 
 CombinedInputController::CombinedInputController() : Controller(),
-    mName("Combined Controller")
+    mName("Combined Controller"),
+    mPreviousButtons()
 {
 }
 
@@ -342,8 +348,34 @@ bool CombinedInputController::Combine(const std::vector<const Controller*>& cont
         mButtonsHeld |= c->GetButtonsHeld();
         mButtonsTriggered |= c->GetButtonsTriggered();
 
+        if (c->GetStickL().x > 0.2f) {
+            if ((mPreviousButtons & BUTTON_RIGHT) == 0) {
+                mButtonsTriggered |= BUTTON_RIGHT;
+            }
+            mButtonsHeld |= BUTTON_RIGHT;
+        } else if (c->GetStickL().x < -0.2f) {
+            if ((mPreviousButtons & BUTTON_LEFT) == 0) {
+                mButtonsTriggered |= BUTTON_LEFT;
+            }
+            mButtonsHeld |= BUTTON_LEFT;
+        }
+        if (c->GetStickL().y > 0.2f) {
+            if ((mPreviousButtons & BUTTON_UP) == 0) {
+                mButtonsTriggered |= BUTTON_UP;
+            }
+            mButtonsHeld |= BUTTON_UP;
+        } else if (c->GetStickL().y < -0.2f) {
+            if ((mPreviousButtons & BUTTON_DOWN) == 0) {
+                mButtonsTriggered |= BUTTON_DOWN;
+            }
+            mButtonsHeld |= BUTTON_DOWN;
+        }
+
+
         // TODO sticks
     }
+
+    mPreviousButtons = mButtonsHeld;
 
     return true;
 }

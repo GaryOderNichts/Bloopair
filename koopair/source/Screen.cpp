@@ -23,12 +23,12 @@ void Screen::DrawTopBar(const char* name)
     Gfx::DrawRectFilled(0, 0, Gfx::SCREEN_WIDTH, 75, Gfx::COLOR_BARS);
 
     // draw top bar content
-    Gfx::DrawIcon(32, 75 / 2, 60, Gfx::COLOR_TEXT, 0xffff, Gfx::ALIGN_VERTICAL);
-    Gfx::Print(128, 75 / 2, 60, Gfx::COLOR_TEXT, "Koopair", Gfx::ALIGN_VERTICAL);
+    Gfx::DrawIcon(68, 75 / 2, 60, Gfx::COLOR_TEXT, Gfx::APP_ICON, Gfx::ALIGN_CENTER);
+    Gfx::Print(128 + 8, 75 / 2, 60, Gfx::COLOR_TEXT, "Koopair", Gfx::ALIGN_VERTICAL);
 #ifdef NDEBUG
-    Gfx::Print(Gfx::GetTextWidth(60, "Koopair") + 128 + 16, 75 / 2 + 5, 50, Gfx::COLOR_ALT_TEXT, "v" APP_VERSION, Gfx::ALIGN_VERTICAL);
+    Gfx::Print(Gfx::GetTextWidth(60, "Koopair") + 128 + 8 + 16, 75 / 2 + 5, 50, Gfx::COLOR_ALT_TEXT, "v" APP_VERSION, Gfx::ALIGN_VERTICAL);
 #else
-    Gfx::Print(Gfx::GetTextWidth(60, "Koopair") + 128 + 16, 75 / 2 + 5, 50, Gfx::COLOR_ALT_TEXT, "v" APP_VERSION "-" + std::string(COMMIT_HASH).substr(0, 7), Gfx::ALIGN_VERTICAL);
+    Gfx::Print(Gfx::GetTextWidth(60, "Koopair") + 128 + 8 + 16, 75 / 2 + 5, 50, Gfx::COLOR_ALT_TEXT, "v" APP_VERSION "-" + std::string(COMMIT_HASH).substr(0, 7), Gfx::ALIGN_VERTICAL);
 #endif
     if (name)
         Gfx::Print(Gfx::SCREEN_WIDTH - 32, 75 / 2, 50, Gfx::COLOR_ALT_TEXT, name, Gfx::ALIGN_VERTICAL | Gfx::ALIGN_RIGHT);

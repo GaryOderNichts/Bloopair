@@ -73,8 +73,7 @@ ControllerPairingScreen::~ControllerPairingScreen()
 
 void ControllerPairingScreen::Draw()
 {
-    // TODO
-    DrawTopBar("ControllerPairingScreen");
+    DrawTopBar("Controller Pairing");
 
     Gfx::Print(Gfx::SCREEN_WIDTH / 2, Gfx::SCREEN_HEIGHT / 2, 60, Gfx::COLOR_TEXT,
         "Connect a DualShock 3 using a USB cable\nto any USB port of the system to pair it.\n"

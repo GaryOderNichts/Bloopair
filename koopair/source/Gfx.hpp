@@ -39,6 +39,8 @@ constexpr SDL_Color COLOR_BARS             = { 0x00, 0x22, 0x42, 0xff };
 constexpr SDL_Color COLOR_ERROR            = { 0xff, 0x33, 0x33, 0xff };
 constexpr SDL_Color COLOR_WIIU             = { 0x00, 0x95, 0xc7, 0xff };
 
+constexpr uint16_t APP_ICON                = 0xfffe;
+
 enum AlignFlags {
     ALIGN_LEFT            =   1 << 0,
     ALIGN_RIGHT           =   1 << 1,

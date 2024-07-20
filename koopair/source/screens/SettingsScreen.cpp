@@ -27,8 +27,7 @@ SettingsScreen::~SettingsScreen()
 
 void SettingsScreen::Draw()
 {
-    // TODO
-    DrawTopBar("SettingsScreen");
+    DrawTopBar("Settings");
 
     Gfx::Print(Gfx::SCREEN_WIDTH / 2, Gfx::SCREEN_HEIGHT / 2, 60, Gfx::COLOR_TEXT, "Nothing here yet :)", Gfx::ALIGN_CENTER);
 
