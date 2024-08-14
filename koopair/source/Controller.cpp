@@ -223,8 +223,8 @@ bool KPADController::Update()
         MAP_BTN(WPAD_BUTTON_DOWN,   BUTTON_DOWN);
         MAP_BTN(WPAD_BUTTON_UP,     BUTTON_UP);
         MAP_BTN(WPAD_BUTTON_PLUS,   BUTTON_PLUS);
-        MAP_BTN(WPAD_BUTTON_B,      BUTTON_A);
-        MAP_BTN(WPAD_BUTTON_A,      BUTTON_B);
+        MAP_BTN(WPAD_BUTTON_B,      BUTTON_B);
+        MAP_BTN(WPAD_BUTTON_A,      BUTTON_A);
         MAP_BTN(WPAD_BUTTON_MINUS,  BUTTON_MINUS);
 #undef MAP_BTN
     } else {
