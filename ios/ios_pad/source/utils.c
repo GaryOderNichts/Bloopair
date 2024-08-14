@@ -41,7 +41,7 @@ uint32_t crc32(uint32_t seed, const void* data, size_t len)
 // https://gist.github.com/ccbrown/9722406
 void dumpHex(const void *data, size_t size)
 {
-#ifdef LOGGING
+#ifndef NDEBUG
     char ascii[17];
     size_t i, j;
     ascii[16] = '\0';

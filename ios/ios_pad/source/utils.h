@@ -43,7 +43,7 @@ uint32_t crc32(uint32_t seed, const void* data, size_t len);
 
 void dumpHex(const void *data, size_t size);
 
-#ifdef LOGGING
+#ifndef NDEBUG
 #define DEBUG_PRINT(x, ...) printf(x, ##__VA_ARGS__)
 #else
 #define DEBUG_PRINT(x, ...)
