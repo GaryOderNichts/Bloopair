@@ -29,6 +29,7 @@ typedef struct {
 } SwitchStickCalibration;
 
 typedef struct {
+    uint8_t first_report;
     uint8_t report_count;
     uint8_t device;
     uint8_t led;

@@ -572,7 +572,15 @@ static void handle_input_report(Controller* controller, SwitchInputReport* inRep
 
 static void handle_basic_input_report(Controller* controller, SwitchBasicInputReport* inRep)
 {
+    SwitchData* sdata = (SwitchData*) controller->additionalData; 
     BloopairReportBuffer* rep = &controller->reportBuffer;
+
+    // the pro controller sends weird stick data in the first report
+    // which completely messes with the start calibration, so we drop that report
+    if (sdata->first_report) {
+        sdata->first_report = 0;
+        return;
+    }
 
     rep->left_stick_x = scaleStickAxis(bswap16(inRep->left_stick_x), 65536);
     rep->right_stick_x = scaleStickAxis(bswap16(inRep->right_stick_x), 65536);
@@ -645,8 +653,11 @@ void controllerInit_switch(Controller* controller)
     controller->battery = 4;
     controller->isCharging = 0;
 
-    controller->additionalData = IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(SwitchData));
-    memset(controller->additionalData, 0, sizeof(SwitchData));
+    SwitchData* sdata = (SwitchData*) IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(SwitchData));
+    memset(sdata, 0, sizeof(SwitchData));
+    sdata->first_report = 1; 
+
+    controller->additionalData = sdata;
 
     // start as a generic controller until we figure out the type
     controller->type = BLOOPAIR_CONTROLLER_SWITCH_GENERIC;
