@@ -114,7 +114,8 @@ int isSwitchControllerName(const char* name)
            COMPARE_NAME("HVC Controller") ||
            COMPARE_NAME("SNES Controller") ||
            COMPARE_NAME("N64 Controller") ||
-           COMPARE_NAME("MD/Gen Control Pad");
+           COMPARE_NAME("MD/Gen Control Pad") ||
+           COMPARE_NAME("Lic2 Pro Controller");
 }
 #undef COMPARE_NAME
 
