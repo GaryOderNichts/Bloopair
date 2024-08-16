@@ -2,8 +2,8 @@
 <app version="1">
   <name>Koopair</name>
   <coder>GaryOderNichts</coder>
-  <version>v1.0.0</version>
-  <release_date>20240610120000</release_date>
+  <version>v1.0.1</version>
+  <release_date>20240816120000</release_date>
   <short_description>Bloopair Companion App</short_description> 
   <long_description>
 Bloopair settings and more.
