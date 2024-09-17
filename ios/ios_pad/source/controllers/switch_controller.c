@@ -79,11 +79,11 @@ static const MappingConfiguration default_generic_mapping = {
 static const MappingConfiguration default_joycon_left_mapping = {
     .num = 12,
     .mappings = {
-        // map stick to dpad
-        { BLOOPAIR_PRO_STICK_L_DOWN,    BLOOPAIR_PRO_BUTTON_DOWN, },
-        { BLOOPAIR_PRO_STICK_L_UP,      BLOOPAIR_PRO_BUTTON_UP, },
-        { BLOOPAIR_PRO_STICK_L_RIGHT,   BLOOPAIR_PRO_BUTTON_RIGHT, },
-        { BLOOPAIR_PRO_STICK_L_LEFT,    BLOOPAIR_PRO_BUTTON_LEFT, },
+        // map stick to dpad (assume a sideways joycon)
+        { BLOOPAIR_PRO_STICK_L_DOWN,    BLOOPAIR_PRO_BUTTON_RIGHT, },
+        { BLOOPAIR_PRO_STICK_L_UP,      BLOOPAIR_PRO_BUTTON_LEFT, },
+        { BLOOPAIR_PRO_STICK_L_RIGHT,   BLOOPAIR_PRO_BUTTON_UP, },
+        { BLOOPAIR_PRO_STICK_L_LEFT,    BLOOPAIR_PRO_BUTTON_DOWN, },
 
         { SWITCH_BUTTON_MINUS,          BLOOPAIR_PRO_BUTTON_MINUS },
         // left joy-con only has capture button, let's map it to home
@@ -103,11 +103,11 @@ static const MappingConfiguration default_joycon_left_mapping = {
 static const MappingConfiguration default_joycon_right_mapping = {
     .num = 12,
     .mappings = {
-        // map stick to dpad
-        { BLOOPAIR_PRO_STICK_R_DOWN,    BLOOPAIR_PRO_BUTTON_DOWN, },
-        { BLOOPAIR_PRO_STICK_R_UP,      BLOOPAIR_PRO_BUTTON_UP, },
-        { BLOOPAIR_PRO_STICK_R_RIGHT,   BLOOPAIR_PRO_BUTTON_RIGHT, },
-        { BLOOPAIR_PRO_STICK_R_LEFT,    BLOOPAIR_PRO_BUTTON_LEFT, },
+        // map stick to dpad (assume a sideways joycon)
+        { BLOOPAIR_PRO_STICK_R_DOWN,    BLOOPAIR_PRO_BUTTON_LEFT, },
+        { BLOOPAIR_PRO_STICK_R_UP,      BLOOPAIR_PRO_BUTTON_RIGHT, },
+        { BLOOPAIR_PRO_STICK_R_RIGHT,   BLOOPAIR_PRO_BUTTON_DOWN, },
+        { BLOOPAIR_PRO_STICK_R_LEFT,    BLOOPAIR_PRO_BUTTON_UP, },
 
         // rotate abxy for sidewise joy-con
         { SWITCH_BUTTON_Y,              BLOOPAIR_PRO_BUTTON_X, },
