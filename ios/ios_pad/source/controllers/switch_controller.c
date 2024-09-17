@@ -511,11 +511,13 @@ static void handle_input_report(Controller* controller, SwitchInputReport* inRep
 
     rep->buttons = 0;
 
-    rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
-    rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
+    // Make sure the controller actually has the stick in question, to avoid invalid data
+    if (sdata->device != SWITCH_DEVICE_JOYCON_RIGHT && sdata->device != SWITCH_DEVICE_TP_JOYCON_RIGHT) {
+        rep->left_stick_x = calibrateStickAxis(&sdata->left_calib_x, SWITCH_AXIS_X(inRep->left_stick));
+        rep->left_stick_y = -calibrateStickAxis(&sdata->left_calib_y, SWITCH_AXIS_Y(inRep->left_stick));
+    }
 
-    // The N64 controller seems to send invalid data for the right stick, since it doesn't have one
-    if (sdata->device != SWITCH_DEVICE_N64) {
+    if (sdata->device != SWITCH_DEVICE_JOYCON_LEFT && sdata->device != SWITCH_DEVICE_TP_JOYCON_LEFT && sdata->device != SWITCH_DEVICE_N64) {
         rep->right_stick_x = calibrateStickAxis(&sdata->right_calib_x, SWITCH_AXIS_X(inRep->right_stick));
         rep->right_stick_y = -calibrateStickAxis(&sdata->right_calib_y, SWITCH_AXIS_Y(inRep->right_stick));
     }
@@ -582,10 +584,17 @@ static void handle_basic_input_report(Controller* controller, SwitchBasicInputRe
         return;
     }
 
-    rep->left_stick_x = scaleStickAxis(bswap16(inRep->left_stick_x), 65536);
-    rep->right_stick_x = scaleStickAxis(bswap16(inRep->right_stick_x), 65536);
-    rep->left_stick_y = scaleStickAxis(bswap16(inRep->left_stick_y), 65536);
-    rep->right_stick_y = scaleStickAxis(bswap16(inRep->right_stick_y), 65536);
+    // Make sure the controller actually has the stick in question, to avoid invalid data
+    if (sdata->device != SWITCH_DEVICE_JOYCON_RIGHT && sdata->device != SWITCH_DEVICE_TP_JOYCON_RIGHT) {
+        rep->left_stick_x = scaleStickAxis(bswap16(inRep->left_stick_x), 65536);
+        rep->left_stick_y = scaleStickAxis(bswap16(inRep->left_stick_y), 65536);
+    }
+
+
+    if (sdata->device != SWITCH_DEVICE_JOYCON_LEFT && sdata->device != SWITCH_DEVICE_TP_JOYCON_LEFT && sdata->device != SWITCH_DEVICE_N64) {
+        rep->right_stick_x = scaleStickAxis(bswap16(inRep->right_stick_x), 65536);
+        rep->right_stick_y = scaleStickAxis(bswap16(inRep->right_stick_y), 65536);
+    }
 
     rep->buttons = 0;
 
