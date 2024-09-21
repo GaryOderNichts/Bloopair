@@ -2,9 +2,8 @@
 #include "Gfx.hpp"
 
 LanguageSelectionScreen::LanguageSelectionScreen()
- : mSelectedLanguage(0)  // Standardmäßig die erste Sprache auswählen
+ : mSelectedLanguage(0)  // Select the first language by default
 {
-    // Liste der verfügbaren Sprachen
     mLanguages = {
         { "English", "en" },
         { "Deutsch", "de" },
@@ -19,7 +18,6 @@ void LanguageSelectionScreen::Draw()
 {
     DrawTopBar("Select Language");
 
-    // Zeige die Sprachoptionen
     for (size_t i = 0; i < mLanguages.size(); i++) {
         int yOff = 75 + i * 150;
         Gfx::DrawRectFilled(0, yOff, Gfx::SCREEN_WIDTH, 150, Gfx::COLOR_ALT_BACKGROUND);
@@ -36,10 +34,9 @@ void LanguageSelectionScreen::Draw()
 bool LanguageSelectionScreen::Update(const CombinedInputController& input)
 {
     if (input.GetButtonsTriggered() & Controller::BUTTON_B) {
-        return false;  // Zurück zum vorherigen Bildschirm
+        return false;
     }
 
-    // Navigiere durch die Sprachliste
     if (input.GetButtonsTriggered() & Controller::BUTTON_DOWN) {
         if (mSelectedLanguage < static_cast<int>(mLanguages.size()) - 1) {
             mSelectedLanguage++;
@@ -50,12 +47,19 @@ bool LanguageSelectionScreen::Update(const CombinedInputController& input)
         }
     }
 
-    // Wenn die A-Taste gedrückt wird, wähle die Sprache aus
+if (input.GetButtonsTriggered() & Controller::BUTTON_B) {
+        return false;
+    }
+
+    if (input.GetButtonsTriggered() & Controller::BUTTON_DOWN) {
+        mSelectedLanguage = (mSelectedLanguage + 1) % mLanguages.size();
+    } else if (input.GetButtonsTriggered() & Controller::BUTTON_UP) {
+        mSelectedLanguage = (mSelectedLanguage - 1 + mLanguages.size()) % mLanguages.size();
+    }
+
     if (input.GetButtonsTriggered() & Controller::BUTTON_A) {
         const LanguageOption& selectedLanguage = mLanguages[mSelectedLanguage];
-        // Hier könntest du den Sprachcode speichern und die Sprache wechseln
-        // z.B. Configuration::SetLanguage(selectedLanguage.code);
-        // Rückkehr zum vorherigen Bildschirm
+        Configuration::SetLanguage(selectedLanguage.code);
         return false;
     }
 
