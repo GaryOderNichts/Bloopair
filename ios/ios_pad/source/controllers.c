@@ -188,7 +188,8 @@ int initController(uint8_t* bda, uint8_t handle)
                    (vendor_id == 0x045e && product_id == 0x0b0a)) { // xbox one adaptive controller
             controllerInit_xbox_one(controller);
             return 0;
-        } else if (vendor_id == 0x054c && product_id == 0x0ce6) { // dualsense
+        } else if ((vendor_id == 0x054c && product_id == 0x0ce6) || // dualsense
+                   (vendor_id == 0x054c && product_id == 0x0df2)) { // dualsense edge
             controllerInit_dualsense(controller);
             return 0;
         } else if ((vendor_id == 0x054c && product_id == 0x05c4) || // dualshock 4 v1
