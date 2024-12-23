@@ -62,6 +62,14 @@ void ControllerConfigurationsScreen::Draw()
         Gfx::Print(Gfx::SCREEN_WIDTH / 2, Gfx::SCREEN_HEIGHT / 2, 64, Gfx::COLOR_TEXT, "No configurations found", Gfx::ALIGN_CENTER);
     }
 
+    // Draw scroll indicators
+    if (mSelectionEnd < mConfigurations.size()) {
+        Gfx::Print(Gfx::SCREEN_WIDTH / 2, Gfx::SCREEN_HEIGHT - 100, 60, Gfx::COLOR_ACCENT, "\ufe3e", Gfx::ALIGN_CENTER);
+    }
+    if (mSelectionStart > 0) {
+        Gfx::Print(Gfx::SCREEN_WIDTH / 2, 100, 60, Gfx::COLOR_ACCENT, "\ufe3d", Gfx::ALIGN_CENTER);
+    }
+
     DrawBottomBar("\ue07d Navigate", "\ue001 Back", mConfigurations.empty() ? nullptr : "\ue000 Select");
 
     if (mMessageBox) {
@@ -83,39 +91,45 @@ bool ControllerConfigurationsScreen::Update(const CombinedInputController& input
         return false;
     }
 
-    if (input.GetButtonsTriggered() & Controller::BUTTON_A) {
-        mMessageBox = std::make_unique<MessageBox>(
-            mConfigurations[mSelected].GetFilename(),
-            "Do you want to remove this configuration?",
-            std::vector{
-                MessageBox::Option{0, "\ue001 Back", [this]() {} },
-                MessageBox::Option{0xf1f8, "Remove", [this]() {
-                    mConfigurations[mSelected].Remove();
-                    mConfigurations.erase(mConfigurations.begin() + mSelected);
-                    mSelected = std::min(mConfigurations.size(), mSelected);
+    if (!mConfigurations.empty()) {
+        if (input.GetButtonsTriggered() & Controller::BUTTON_A) {
+            mMessageBox = std::make_unique<MessageBox>(
+                mConfigurations[mSelected].GetFilename(),
+                "Do you want to remove this configuration?",
+                std::vector{
+                    MessageBox::Option{0, "\ue001 Back", [this]() {} },
+                    MessageBox::Option{0xf1f8, "Remove", [this]() {
+                        mConfigurations[mSelected].Remove();
+                        mConfigurations.erase(mConfigurations.begin() + mSelected);
 
-                    // TODO also remove applied configuration
-                }},
+                        // Reset selection
+                        mSelected = 0;
+                        mSelectionStart = 0;
+                        mSelectionEnd = std::min(mConfigurations.size(), kMaxEntriesPerPage);
+
+                        // TODO also remove applied configuration
+                    }},
+                }
+            );
+        }
+
+        if (input.GetButtonsTriggered() & Controller::BUTTON_DOWN) {
+            if (mSelected < mConfigurations.size() - 1) {
+                mSelected++;
             }
-        );
-    }
-
-    if (input.GetButtonsTriggered() & Controller::BUTTON_DOWN) {
-        if (mSelected < mConfigurations.size() - 1) {
-            mSelected++;
+        } else if (input.GetButtonsTriggered() & Controller::BUTTON_UP) {
+            if (mSelected > 0) {
+                mSelected--;
+            }
         }
-    } else if (input.GetButtonsTriggered() & Controller::BUTTON_UP) {
-        if (mSelected > 0) {
-            mSelected--;
-        }
-    }
 
-    if (mSelected >= mSelectionEnd) {
-        mSelectionEnd = mSelected + 1;
-        mSelectionStart = mSelectionEnd - kMaxEntriesPerPage;
-    } else if (mSelected < mSelectionStart) {
-        mSelectionStart = mSelected;
-        mSelectionEnd = mSelectionStart + kMaxEntriesPerPage;
+        if (mSelected >= mSelectionEnd) {
+            mSelectionEnd = mSelected + 1;
+            mSelectionStart = mSelectionEnd - kMaxEntriesPerPage;
+        } else if (mSelected < mSelectionStart) {
+            mSelectionStart = mSelected;
+            mSelectionEnd = mSelectionStart + kMaxEntriesPerPage;
+        }
     }
 
     return true;
