@@ -91,7 +91,7 @@ const std::map<std::string, uint32_t> bloopairButtonNameValues = {
 const std::map<BloopairControllerType, std::string> bloopairControllerTypes = {
     { BLOOPAIR_CONTROLLER_DUALSENSE,             "DualSense", },
     { BLOOPAIR_CONTROLLER_DUALSHOCK3,            "DualShock-3", },
-    { BLOOPAIR_CONTROLLER_DUALSHOCK4,            "DualShock-3", },
+    { BLOOPAIR_CONTROLLER_DUALSHOCK4,            "DualShock-4", },
     { BLOOPAIR_CONTROLLER_SWITCH_GENERIC,        "Switch-Generic", },
     { BLOOPAIR_CONTROLLER_SWITCH_JOYCON_LEFT,    "Switch-JoyCon-Left", },
     { BLOOPAIR_CONTROLLER_SWITCH_JOYCON_RIGHT,   "Switch-JoyCon-Right", },
@@ -104,7 +104,7 @@ const std::map<BloopairControllerType, std::string> bloopairControllerTypes = {
 const std::map<std::string, BloopairControllerType> bloopairControllerTypeValues = {
     { "DualSense",              BLOOPAIR_CONTROLLER_DUALSENSE },
     { "DualShock-3",            BLOOPAIR_CONTROLLER_DUALSHOCK3 },
-    { "DualShock-3",            BLOOPAIR_CONTROLLER_DUALSHOCK4 },
+    { "DualShock-4",            BLOOPAIR_CONTROLLER_DUALSHOCK4 },
     { "Switch-Generic",         BLOOPAIR_CONTROLLER_SWITCH_GENERIC },
     { "Switch-JoyCon-Left",     BLOOPAIR_CONTROLLER_SWITCH_JOYCON_LEFT },
     { "Switch-JoyCon-Right",    BLOOPAIR_CONTROLLER_SWITCH_JOYCON_RIGHT },
