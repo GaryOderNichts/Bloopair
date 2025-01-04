@@ -1,6 +1,6 @@
 OUTPUT_ARCH(arm)
 
-INCLUDE "imports.ld"
+INCLUDE "imports.sym"
 
 SECTIONS {
     . = 0x11f86000;
@@ -14,9 +14,9 @@ SECTIONS {
 
     /* the kernel will copy the crypto tables here */
     .crypto : {
-        PROVIDE(__ans_tbl = .);
+        __ans_tbl = .;
         . += 0x2a;
-        PROVIDE(__sboxes = .);
+        __sboxes = .;
         . += 0x900;
     }
     _text_end = .;

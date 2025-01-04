@@ -1,0 +1,75 @@
+printf = 0x11f7ef98;
+usleep = 0x11f84134;
+memcpy = 0x11f833ec;
+memset = 0x11f83488;
+memcmp = 0x11f83304;
+strncmp = 0x11f83edc;
+strnlen = 0x11f83f60;
+strncpy = 0x11f83e80;
+vsnprintf = 0x11f83e04;
+
+IOS_CreateThread = 0x11f82e68;
+IOS_JoinThread = 0x11f82e70;
+IOS_CancelThread = 0x11f82e78;
+IOS_GetCurrentThreadID = 0x11f82e80;
+IOS_StartThread = 0x11f82ea0;
+IOS_SuspendThread = 0x11f82ea8;
+IOS_GetThreadPriority = 0x11f82eb8;
+IOS_CreateMessageQueue = 0x11f82ec8;
+IOS_DestroyMessageQueue = 0x11f82ed0;
+IOS_SendMessage = 0x11f82ed8;
+IOS_ReceiveMessage = 0x11f82ee8;
+IOS_CreateTimer = 0x11f82f00;
+IOS_DestroyTimer = 0x11f82f18;
+IOS_GetUpTime64 = 0x11f82f38;
+IOS_Open = 0x11f83000;
+IOS_Close = 0x11f83008;
+IOS_Ioctl = 0x11f83028;
+IOS_Ioctlv = 0x11f83030;
+IOS_ResourceReply = 0x11f830b0;
+IOS_CreateSemaphore = 0x11f83120;
+IOS_WaitSemaphore = 0x11f83128;
+IOS_SignalSemaphore = 0x11f83130;
+IOS_DestroySemaphore = 0x11f83138;
+IOS_VirtToPhys = 0x11f83118;
+IOS_Alloc = 0x11f82fa0;
+IOS_AllocAligned = 0x11f82fa8;
+IOS_Free = 0x11f82fb0;
+
+bdcpy = 0x11f082a0;
+GKI_getbuf = 0x11f2ecb0;
+GKI_freebuf = 0x11f2eb5c;
+GKI_getpoolbuf = 0x11f2ee64;
+GKI_get_taskid = 0x11f2f9c4;
+utl_freebuf = 0x11f08ec0;
+bta_sys_sendmsg = 0x11f08818;
+bta_hh_snd_write_dev = 0x11f07744;
+BTA_HhSendData = 0x11f077c4;
+BTA_HhClose = 0x11f07634;
+BTA_HhAddDev = 0x11f07678;
+BTM_ReadRemoteDeviceName = 0x11f11820;
+BTM_WriteStoredLinkKey = 0x11f0e3ec;
+BTA_DmSetAfhChannels = 0x11f04cdc;
+BTA_DmAddDevice = 0x11f04d88;
+smdIopSendMessage = 0x11f7e104;
+smdIopReceive = 0x11f7e154;
+btm_remove_acl = 0x11f09b58;
+deleteDevice = 0x11f04ec8;
+registerNewDevice = 0x11f41370;
+bdaddr_to_string = 0x11f40150;
+
+bta_hh_sm_execute = 0x11f07a88;
+bta_hh_start_sdp = 0x11f06d5c;
+bta_hh_sdp_cback = 0x11f06fa4;
+
+SDP_InitDiscoveryDb = 0x11f2aefc;
+SDP_ServiceSearchRequest = 0x11f2aec8;
+HID_HostGetSDPRecord = 0x11f1f840;
+SDP_FindAttributeInRec = 0x11f2a6dc;
+SDP_FindServiceUUIDInDb = 0x11f2ada0;
+
+isSmdReady = 0x11fd5218;
+smdIopIndex = 0x11fd5210;
+local_device_bdaddr = 0x1215775a;
+
+sdp_db_size = 0x11fca8cc;
