@@ -130,9 +130,60 @@ void controllerSetLed_dualshock4(Controller* controller, uint8_t led)
     sendRumbleLedState(controller);
 }
 
+static void controllerButtons_dualshock4(BloopairReportBuffer* rep, Dualshock4Buttons* buttons)
+{
+    rep->buttons = 0;
+
+    if (buttons->dpad < 9)
+        rep->buttons |= dpad_map[buttons->dpad];
+
+    if (buttons->circle)
+        rep->buttons |= BTN(DUALSHOCK4_BUTTON_CIRCLE);
+    if (buttons->cross)
+        rep->buttons |= BTN(DUALSHOCK4_BUTTON_CROSS);
+    if (buttons->triangle)
+        rep->buttons |= BTN(DUALSHOCK4_BUTTON_TRIANGLE);
+    if (buttons->square)
+        rep->buttons |= BTN(DUALSHOCK4_BUTTON_SQUARE);
+    if (buttons->l1)
+        rep->buttons |= BTN(DUALSHOCK4_TRIGGER_L1);
+    if (buttons->r1)
+        rep->buttons |= BTN(DUALSHOCK4_TRIGGER_R1);
+    if (buttons->l2)
+        rep->buttons |= BTN(DUALSHOCK4_TRIGGER_L2);
+    if (buttons->r2)
+        rep->buttons |= BTN(DUALSHOCK4_TRIGGER_R2);
+    if (buttons->create)
+        rep->buttons |= BTN(DUALSHOCK4_BUTTON_CREATE);
+    if (buttons->options)
+        rep->buttons |= BTN(DUALSHOCK4_BUTTON_OPTIONS);
+    if (buttons->l3)
+        rep->buttons |= BTN(DUALSHOCK4_BUTTON_L3);
+    if (buttons->r3)
+        rep->buttons |= BTN(DUALSHOCK4_BUTTON_R3);
+    if (buttons->touchpad)
+        rep->buttons |= BTN(DUALSHOCK4_BUTTON_TOUCHPAD);
+    if (buttons->ps_home)
+        rep->buttons |= BTN(DUALSHOCK4_BUTTON_PS_HOME);
+}
+
 void controllerData_dualshock4(Controller* controller, uint8_t* buf, uint16_t len)
 {
-    if (buf[0] == DUALSHOCK4_INPUT_REPORT_ID) {
+    if (buf[0] == DUALSHOCK4_BASIC_INPUT_REPORT_ID) {
+        BloopairReportBuffer* rep = &controller->reportBuffer;
+        Dualshock4BasicInputReport* inRep = (Dualshock4BasicInputReport*) buf;
+
+        rep->left_stick_x = scaleStickAxis(inRep->left_stick_x, 256);
+        rep->left_stick_y = scaleStickAxis(inRep->left_stick_y, 256);
+        rep->right_stick_x = scaleStickAxis(inRep->right_stick_x, 256);
+        rep->right_stick_y = scaleStickAxis(inRep->right_stick_y, 256);
+
+        controllerButtons_dualshock4(rep, &inRep->buttons);
+
+        if (!controller->isReady) {
+            controller->isReady = 1;
+        }
+    } else if (buf[0] == DUALSHOCK4_INPUT_REPORT_ID) {
         BloopairReportBuffer* rep = &controller->reportBuffer;
         Dualshock4InputReport* inRep = (Dualshock4InputReport*) buf;
 
@@ -141,39 +192,7 @@ void controllerData_dualshock4(Controller* controller, uint8_t* buf, uint16_t le
         rep->right_stick_x = scaleStickAxis(inRep->right_stick_x, 256);
         rep->right_stick_y = scaleStickAxis(inRep->right_stick_y, 256);
 
-        rep->buttons = 0;
-
-        if (inRep->buttons.dpad < 9)
-            rep->buttons |= dpad_map[inRep->buttons.dpad];
-
-        if (inRep->buttons.circle)
-            rep->buttons |= BTN(DUALSHOCK4_BUTTON_CIRCLE);
-        if (inRep->buttons.cross)
-            rep->buttons |= BTN(DUALSHOCK4_BUTTON_CROSS);
-        if (inRep->buttons.triangle)
-            rep->buttons |= BTN(DUALSHOCK4_BUTTON_TRIANGLE);
-        if (inRep->buttons.square)
-            rep->buttons |= BTN(DUALSHOCK4_BUTTON_SQUARE);
-        if (inRep->buttons.l1)
-            rep->buttons |= BTN(DUALSHOCK4_TRIGGER_L1);
-        if (inRep->buttons.r1)
-            rep->buttons |= BTN(DUALSHOCK4_TRIGGER_R1);
-        if (inRep->buttons.l2)
-            rep->buttons |= BTN(DUALSHOCK4_TRIGGER_L2);
-        if (inRep->buttons.r2)
-            rep->buttons |= BTN(DUALSHOCK4_TRIGGER_R2);
-        if (inRep->buttons.create)
-            rep->buttons |= BTN(DUALSHOCK4_BUTTON_CREATE);
-        if (inRep->buttons.options)
-            rep->buttons |= BTN(DUALSHOCK4_BUTTON_OPTIONS);
-        if (inRep->buttons.l3)
-            rep->buttons |= BTN(DUALSHOCK4_BUTTON_L3);
-        if (inRep->buttons.r3)
-            rep->buttons |= BTN(DUALSHOCK4_BUTTON_R3);
-        if (inRep->buttons.touchpad)
-            rep->buttons |= BTN(DUALSHOCK4_BUTTON_TOUCHPAD);
-        if (inRep->buttons.ps_home)
-            rep->buttons |= BTN(DUALSHOCK4_BUTTON_PS_HOME);
+        controllerButtons_dualshock4(rep, &inRep->buttons);
 
         controller->battery = CLAMP(inRep->battery_level >> 1, 0, 4);
         controller->isCharging = inRep->cable && inRep->battery_level <= 10;

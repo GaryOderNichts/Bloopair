@@ -26,7 +26,45 @@ typedef struct {
     uint8_t rumble;
 } Dualshock4Data;
 
+#define DUALSHOCK4_BASIC_INPUT_REPORT_ID 0x01
 #define DUALSHOCK4_INPUT_REPORT_ID 0x11
+
+typedef struct {
+    uint8_t triangle : 1;
+    uint8_t circle : 1;
+    uint8_t cross : 1;
+    uint8_t square : 1;
+    uint8_t dpad : 4;
+    
+    uint8_t r3 : 1;
+    uint8_t l3 : 1;
+    uint8_t options : 1;
+    uint8_t create : 1;
+    uint8_t r2 : 1;
+    uint8_t l2 : 1;
+    uint8_t r1 : 1;
+    uint8_t l1 : 1;
+
+    uint8_t : 6;
+    uint8_t touchpad : 1;
+    uint8_t ps_home : 1;
+} Dualshock4Buttons;
+CHECK_SIZE(Dualshock4Buttons, 0x03);
+
+typedef struct PACKED {
+    uint8_t report_id;
+
+    uint8_t left_stick_x;
+    uint8_t left_stick_y;
+    uint8_t right_stick_x;
+    uint8_t right_stick_y;
+
+    Dualshock4Buttons buttons;
+
+    uint8_t left_trigger;
+    uint8_t right_trigger;
+} Dualshock4BasicInputReport;
+CHECK_SIZE(Dualshock4BasicInputReport, 0x0a);
 
 typedef struct PACKED {
     uint8_t report_id;
@@ -37,26 +75,7 @@ typedef struct PACKED {
     uint8_t right_stick_x;
     uint8_t right_stick_y;
 
-    struct {
-        uint8_t triangle : 1;
-        uint8_t circle : 1;
-        uint8_t cross : 1;
-        uint8_t square : 1;
-        uint8_t dpad : 4;
-        
-        uint8_t r3 : 1;
-        uint8_t l3 : 1;
-        uint8_t options : 1;
-        uint8_t create : 1;
-        uint8_t r2 : 1;
-        uint8_t l2 : 1;
-        uint8_t r1 : 1;
-        uint8_t l1 : 1;
-
-        uint8_t : 6;
-        uint8_t touchpad : 1;
-        uint8_t ps_home : 1;
-    } buttons;
+    Dualshock4Buttons buttons;
 
     uint8_t left_trigger;
     uint8_t right_trigger;
