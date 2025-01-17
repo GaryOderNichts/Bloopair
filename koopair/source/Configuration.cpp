@@ -247,7 +247,8 @@ void Configuration::SetCustomConfiguraion(const Dualshock3Configuration& config)
         return;
     }
 
-    // mJson["custom"]["someCustomField"] = config.SomeCustomField;
+    mJson["custom"]["motorForce"] = config.motorForce;
+    mJson["custom"]["motorDuration"] = config.motorDuration;
 }
 
 void Configuration::SetCustomConfiguraion(const Dualshock4Configuration& config)

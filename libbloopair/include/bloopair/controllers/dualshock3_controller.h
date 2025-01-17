@@ -43,5 +43,6 @@ enum {
 };
 
 typedef struct {
-
+    uint8_t motorForce;
+    uint8_t motorDuration;
 } Dualshock3Configuration;

@@ -146,6 +146,34 @@ static bool LoadDualSenseCustomConfiguration(const nlohmann::json& custom, IOSHa
 
 static bool LoadDualShock3CustomConfiguration(const nlohmann::json& custom, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
 {
+    // Start by getting the default configuration
+    Dualshock3Configuration config;
+    uint32_t configSize = sizeof(config);
+    if (Bloopair_GetDefaultCustomConfiguration(handle, type, &config, &configSize) < 0) {
+        return false;
+    }
+
+    // Overwrite fields from the config
+    if (custom.contains("motorForce")) {
+        config.motorForce = custom["motorForce"];
+    }
+    if (custom.contains("motorDuration")) {
+        config.motorDuration = custom["motorDuration"];
+    }
+
+    // Apply configuration
+    IOSError error;
+    if (bda) {
+        error = Bloopair_ApplyCustomConfigurationForBDA(handle, bda, &config, sizeof(config));
+    } else {
+        error = Bloopair_ApplyCustomConfigurationForControllerType(handle, type, &config, sizeof(config));
+    }
+
+    if (error < 0) {
+        OSReport("Bloopair Loader: ApplyCustomConfiguration failed %x\n", error);
+        return false;
+    }
+
     return true;
 }
 

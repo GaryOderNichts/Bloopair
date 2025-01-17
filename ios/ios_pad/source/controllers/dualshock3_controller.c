@@ -55,6 +55,11 @@ static const MappingConfiguration default_dualshock3_mapping = {
     },
 };
 
+static const Dualshock3Configuration default_dualshock3_configuration = {
+    .motorForce = 64,
+    .motorDuration = 1,
+};
+
 static const Dualshock3LedConfig led_config = { 0xff, 0x27, 0x10, 0x00, 0x32 };
 
 static const uint8_t enable_payload[] = { 0xf4, 0x42, 0x03, 0x00, 0x00 };
@@ -62,16 +67,17 @@ static const uint8_t enable_payload[] = { 0xf4, 0x42, 0x03, 0x00, 0x00 };
 static void sendRumbleLedState(Controller* controller)
 {
     Dualshock3Data* ds_data = (Dualshock3Data*) controller->additionalData;
+    Dualshock3Configuration* config = (Dualshock3Configuration*) controller->customConfig;
 
     Dualshock3OutputReport rep;
     memset(&rep, 0, sizeof(rep));
 
     rep.report_id = DUALSHOCK3_OUTPUT_REPORT_ID;
 
-    rep.right_motor_duration = 1;
+    rep.right_motor_duration = config->motorDuration;
     rep.right_motor_force = ds_data->rumble;
-    rep.left_motor_duration = 1;
-    rep.left_motor_force = ds_data->rumble * 64;
+    rep.left_motor_duration = config->motorDuration;
+    rep.left_motor_force = ds_data->rumble * config->motorForce;
 
     rep.led_mask = ds_data->led_mask << 1;
     memcpy(&rep.leds[0], &led_config, sizeof(Dualshock3LedConfig));
@@ -195,5 +201,5 @@ void controllerInit_dualshock3(Controller* controller)
 
 void controllerModuleInit_dualshock3(void)
 {
-    Configuration_SetFallback(BLOOPAIR_CONTROLLER_DUALSHOCK3, NULL, &default_dualshock3_mapping, NULL, 0);
+    Configuration_SetFallback(BLOOPAIR_CONTROLLER_DUALSHOCK3, NULL, &default_dualshock3_mapping, &default_dualshock3_configuration, sizeof(default_dualshock3_configuration));
 }

@@ -51,6 +51,19 @@ ControllerOptionsScreen::ControllerOptionsScreen(const KPADController* controlle
         case BLOOPAIR_CONTROLLER_DUALSENSE:
             break;
         case BLOOPAIR_CONTROLLER_DUALSHOCK3:
+            mCustomOptions.insert(mCustomOptions.begin(), 1, Option{ .name = "Dualshock 3 Specific Options", .type = OPTION_TYPE_TITLE_BAR });
+            mCustomOptions.push_back(Option{ .name = "Motor force", .type = OPTION_TYPE_INT,
+                .d = { custom.dualshock3.motorForce, 0, 255 },
+                .callback = [this](const Option& opt) {
+                    mCustomConfiguration.dualshock3.motorForce = opt.d.value;
+                }
+            });
+            mCustomOptions.push_back(Option{ .name = "Motor duration", .type = OPTION_TYPE_INT,
+                .d = { custom.dualshock3.motorDuration, 0, 255 },
+                .callback = [this](const Option& opt) {
+                    mCustomConfiguration.dualshock3.motorDuration = opt.d.value;
+                }
+            });
             break;
         case BLOOPAIR_CONTROLLER_DUALSHOCK4:
             break;
