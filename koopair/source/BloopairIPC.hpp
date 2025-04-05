@@ -19,6 +19,7 @@
 #include <string>
 #include <array>
 #include <optional>
+#include <span>
 #include <bloopair/controllers/common.h>
 #include <bloopair/controllers/dualsense_controller.h>
 #include <bloopair/controllers/dualshock3_controller.h>
@@ -30,6 +31,24 @@
 
 namespace BloopairIPC
 {
+
+template <typename T>
+concept ConfigurationType = std::same_as<T, DualsenseConfiguration> ||
+                            std::same_as<T, Dualshock3Configuration> ||
+                            std::same_as<T, Dualshock4Configuration> ||
+                            std::same_as<T, SwitchConfiguration> ||
+                            std::same_as<T, XboxOneConfiguration>;
+
+namespace detail
+{
+
+bool ApplyCustomConfiguration(const uint8_t* bda, const std::span<const std::byte>& configuration);
+
+bool ApplyCustomConfiguration(BloopairControllerType type, const std::span<const std::byte>& configuration);
+
+bool GetCustomConfiguration(KPADChan chan, const std::span<std::byte>& configuration);
+
+};
 
 bool Init();
 
@@ -63,25 +82,24 @@ bool ApplyControllerMapping(BloopairControllerType type, const BloopairMappingEn
 
 bool GetControllerMapping(KPADChan chan, BloopairMappingEntry* outEntries, uint8_t* outNumMappings);
 
-// TODO template this
-bool ApplyCustomConfiguration(const uint8_t* bda, const DualsenseConfiguration& configuration);
-bool ApplyCustomConfiguration(const uint8_t* bda, const Dualshock3Configuration& configuration);
-bool ApplyCustomConfiguration(const uint8_t* bda, const Dualshock4Configuration& configuration);
-bool ApplyCustomConfiguration(const uint8_t* bda, const SwitchConfiguration& configuration);
-bool ApplyCustomConfiguration(const uint8_t* bda, const XboxOneConfiguration& configuration);
-bool ApplyCustomConfiguration(BloopairControllerType type, const DualsenseConfiguration& configuration);
-bool ApplyCustomConfiguration(BloopairControllerType type, const Dualshock3Configuration& configuration);
-bool ApplyCustomConfiguration(BloopairControllerType type, const Dualshock4Configuration& configuration);
-bool ApplyCustomConfiguration(BloopairControllerType type, const SwitchConfiguration& configuration);
-bool ApplyCustomConfiguration(BloopairControllerType type, const XboxOneConfiguration& configuration);
+template <ConfigurationType T>
+bool ApplyCustomConfiguration(const uint8_t* bda, const T& configuration)
+{
+    return detail::ApplyCustomConfiguration(bda, std::as_bytes(std::span{std::addressof(configuration), 1}));
+}
+
+template <ConfigurationType T>
+bool ApplyCustomConfiguration(BloopairControllerType type, const T& configuration)
+{
+    return detail::ApplyCustomConfiguration(type, std::as_bytes(std::span{std::addressof(configuration), 1}));
+}
 
 bool ClearCustomConfiguration(const uint8_t* bda);
 
-// TODO template this
-bool GetCustomConfiguration(KPADChan chan, DualsenseConfiguration& configuration);
-bool GetCustomConfiguration(KPADChan chan, Dualshock3Configuration& configuration);
-bool GetCustomConfiguration(KPADChan chan, Dualshock4Configuration& configuration);
-bool GetCustomConfiguration(KPADChan chan, SwitchConfiguration& configuration);
-bool GetCustomConfiguration(KPADChan chan, XboxOneConfiguration& configuration);
+template <ConfigurationType T>
+bool GetCustomConfiguration(KPADChan chan, T& configuration)
+{
+    return detail::GetCustomConfiguration(chan, std::as_writable_bytes(std::span{std::addressof(configuration), 1}));
+}
 
 }

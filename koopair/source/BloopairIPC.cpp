@@ -137,89 +137,30 @@ bool GetControllerMapping(KPADChan chan, BloopairMappingEntry* outEntries, uint8
     return Bloopair_GetControllerMapping(bloopairHandle, chan, outEntries, outNumMappings) >= 0;
 }
 
-bool ApplyCustomConfiguration(const uint8_t* bda, const DualsenseConfiguration& configuration)
-{
-    return Bloopair_ApplyCustomConfigurationForBDA(bloopairHandle, bda, &configuration, sizeof(configuration)) >= 0;
-}
-
-bool ApplyCustomConfiguration(const uint8_t* bda, const Dualshock3Configuration& configuration)
-{
-    return Bloopair_ApplyCustomConfigurationForBDA(bloopairHandle, bda, &configuration, sizeof(configuration)) >= 0;
-}
-
-bool ApplyCustomConfiguration(const uint8_t* bda, const Dualshock4Configuration& configuration)
-{
-    return Bloopair_ApplyCustomConfigurationForBDA(bloopairHandle, bda, &configuration, sizeof(configuration)) >= 0;
-}
-
-bool ApplyCustomConfiguration(const uint8_t* bda, const SwitchConfiguration& configuration)
-{
-    return Bloopair_ApplyCustomConfigurationForBDA(bloopairHandle, bda, &configuration, sizeof(configuration)) >= 0;
-}
-
-bool ApplyCustomConfiguration(const uint8_t* bda, const XboxOneConfiguration& configuration)
-{
-    return Bloopair_ApplyCustomConfigurationForBDA(bloopairHandle, bda, &configuration, sizeof(configuration)) >= 0;
-}
-
-bool ApplyCustomConfiguration(BloopairControllerType type, const DualsenseConfiguration& configuration)
-{
-    return Bloopair_ApplyCustomConfigurationForControllerType(bloopairHandle, type, &configuration, sizeof(configuration)) >= 0;
-}
-
-bool ApplyCustomConfiguration(BloopairControllerType type, const Dualshock3Configuration& configuration)
-{
-    return Bloopair_ApplyCustomConfigurationForControllerType(bloopairHandle, type, &configuration, sizeof(configuration)) >= 0;
-}
-
-bool ApplyCustomConfiguration(BloopairControllerType type, const Dualshock4Configuration& configuration)
-{
-    return Bloopair_ApplyCustomConfigurationForControllerType(bloopairHandle, type, &configuration, sizeof(configuration)) >= 0;
-}
-
-bool ApplyCustomConfiguration(BloopairControllerType type, const SwitchConfiguration& configuration)
-{
-    return Bloopair_ApplyCustomConfigurationForControllerType(bloopairHandle, type, &configuration, sizeof(configuration)) >= 0;
-}
-
-bool ApplyCustomConfiguration(BloopairControllerType type, const XboxOneConfiguration& configuration)
-{
-    return Bloopair_ApplyCustomConfigurationForControllerType(bloopairHandle, type, &configuration, sizeof(configuration)) >= 0;
-}
-
 bool ClearCustomConfiguration(const uint8_t* bda)
 {
     return Bloopair_ApplyCustomConfigurationForBDA(bloopairHandle, bda, nullptr, 0) >= 0;
 }
 
-bool GetCustomConfiguration(KPADChan chan, DualsenseConfiguration& configuration)
+namespace detail
 {
-    uint32_t maxSize = sizeof(configuration);
-    return Bloopair_GetCustomConfiguration(bloopairHandle, chan, &configuration, &maxSize) >= 0;
+
+bool ApplyCustomConfiguration(const uint8_t* bda, const std::span<const std::byte>& configuration)
+{
+    return Bloopair_ApplyCustomConfigurationForBDA(bloopairHandle, bda, reinterpret_cast<const uint8_t*>(configuration.data()), configuration.size()) >= 0;
 }
 
-bool GetCustomConfiguration(KPADChan chan, Dualshock3Configuration& configuration)
+bool ApplyCustomConfiguration(BloopairControllerType type, const std::span<const std::byte>& configuration)
 {
-    uint32_t maxSize = sizeof(configuration);
-    return Bloopair_GetCustomConfiguration(bloopairHandle, chan, &configuration, &maxSize) >= 0;
+    return Bloopair_ApplyCustomConfigurationForControllerType(bloopairHandle, type, reinterpret_cast<const uint8_t*>(configuration.data()), configuration.size()) >= 0;
 }
 
-bool GetCustomConfiguration(KPADChan chan, Dualshock4Configuration& configuration)
+bool GetCustomConfiguration(KPADChan chan, const std::span<std::byte>& configuration)
 {
-    uint32_t maxSize = sizeof(configuration);
-    return Bloopair_GetCustomConfiguration(bloopairHandle, chan, &configuration, &maxSize) >= 0;
+    uint32_t maxSize = configuration.size();
+    return Bloopair_GetCustomConfiguration(bloopairHandle, chan, reinterpret_cast<uint8_t*>(configuration.data()), &maxSize) >= 0;
 }
 
-bool GetCustomConfiguration(KPADChan chan, SwitchConfiguration& configuration)
-{
-    uint32_t maxSize = sizeof(configuration);
-    return Bloopair_GetCustomConfiguration(bloopairHandle, chan, &configuration, &maxSize) >= 0;
-}
-
-bool GetCustomConfiguration(KPADChan chan, XboxOneConfiguration& configuration)
-{
-    uint32_t maxSize = sizeof(configuration);
-    return Bloopair_GetCustomConfiguration(bloopairHandle, chan, &configuration, &maxSize) >= 0;
-}
+};
 
 };
