@@ -16,7 +16,7 @@ TOPDIR ?= $(CURDIR)
 APP_NAME		:=	Koopair
 APP_SHORTNAME		:=	Koopair
 APP_AUTHOR		:=	GaryOderNichts
-APP_VERSION		:=	1.0.2
+APP_VERSION		:=	1.0.3
 
 include $(DEVKITPRO)/wut/share/wut_rules
 
