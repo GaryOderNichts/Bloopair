@@ -21,6 +21,7 @@
 // - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-nintendo.c>
 // - <https://github.com/ndeadly/MissionControl/blob/master/mc_mitm/source/controllers/switch_controller.hpp>
 // - <https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering>
+// - <https://github.com/libsdl-org/SDL/blob/main/src/joystick/hidapi/SDL_hidapi_switch.c>
 
 typedef struct {
     int16_t max;
@@ -29,15 +30,27 @@ typedef struct {
 } SwitchStickCalibration;
 
 typedef struct {
+    int16_t max;
+    int16_t min;
+} SwitchStickExtent;
+
+typedef struct {
     uint8_t first_report;
     uint8_t report_count;
     uint8_t device;
     uint8_t led;
 
+    // Calibration for full reports
     SwitchStickCalibration left_calib_x;
     SwitchStickCalibration right_calib_x;
     SwitchStickCalibration left_calib_y;
     SwitchStickCalibration right_calib_y;
+
+    // Extents for basic reports
+    SwitchStickExtent left_extent_x;
+    SwitchStickExtent right_extent_x;
+    SwitchStickExtent left_extent_y;
+    SwitchStickExtent right_extent_y;
 } SwitchData;
 
 enum {

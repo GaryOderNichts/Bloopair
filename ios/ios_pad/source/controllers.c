@@ -363,3 +363,8 @@ int16_t scaleStickAxis(uint32_t val, uint32_t range)
 {
     return (int16_t) (((int32_t) val - (range / 2)) * WPAD_PRO_AXIS_NORMALIZE_RANGE / range);
 }
+
+int16_t remapStickAxis(int32_t val, int32_t valMin, int32_t valMax)
+{
+    return (int16_t) SCALE(val, valMin, valMax, -WPAD_PRO_AXIS_NORMALIZE_VALUE, WPAD_PRO_AXIS_NORMALIZE_VALUE);
+}

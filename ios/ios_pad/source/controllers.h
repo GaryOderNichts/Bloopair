@@ -121,3 +121,5 @@ void mapControllerInput(Controller* controller, BloopairReportBuffer* in, Bloopa
 uint8_t ledMaskToPlayerNum(uint8_t mask);
 
 int16_t scaleStickAxis(uint32_t val, uint32_t range);
+
+int16_t remapStickAxis(int32_t val, int32_t valMin, int32_t valMax);

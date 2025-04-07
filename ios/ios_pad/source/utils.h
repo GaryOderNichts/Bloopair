@@ -36,6 +36,8 @@
 
 #define CLAMP(x, low, high) (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 
+#define SCALE(x, oldMin, oldMax, newMin, newMax) ((newMin) + ((newMax) - (newMin)) * ((x) - (oldMin)) / ((oldMax) - (oldMin)))
+
 #define bswap16 __builtin_bswap16
 #define bswap32 __builtin_bswap32
 

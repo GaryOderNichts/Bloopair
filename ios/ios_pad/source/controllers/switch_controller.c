@@ -18,8 +18,11 @@
 #include "switch_controller.h"
 #include <bloopair/controllers/switch_controller.h>
 
+// Joystick center for basic reports
+#define BASIC_JOYSTICK_CENTER              0x8000
+
+// Normalize value for switch -> wii u range
 #define AXIS_NORMALIZE_VALUE               1140
-#define DPAD_EMULATION_DEAD_ZONE           500
 
 // These values are based on https://github.com/dekuNukem/Nintendo_Switch_Reverse_Engineering/blob/master/rumble_data_table.md
 #define RUMBLE_HIGH_FREQUENCY 0x7400 // 150 Hz
@@ -228,44 +231,52 @@ static inline BloopairControllerType switchDeviceToControllerType(uint8_t device
     return BLOOPAIR_CONTROLLER_SWITCH_GENERIC;
 }
 
-static void parseLeftRawStickCalibration(SwitchData* sdata, SwitchRawStickCalibrationLeft* raw)
+static void finalizeStickCalibration(SwitchStickCalibration* calibration)
 {
-    // Some controllers don't store any calibration data, in which case the raw data is just 0xff
-    if (raw->center[0] == 0xff && raw->center[1] == 0xff && raw->center[2] == 0xff) {
-        // Just use full 12-bit range if that's the case
-        sdata->left_calib_x.center = sdata->left_calib_y.center = 2047;
-        sdata->left_calib_x.max = sdata->left_calib_y.max = 4095;
-        sdata->left_calib_x.min = sdata->left_calib_y.min = 0;
-        return;
+    DEBUG_PRINT("StickCalibration center: %d min: %d max: %d\n",
+        calibration->center, calibration->min, calibration->max);
+
+    // Some controllers only store partial calibration data, in which case the raw data is just 0xfff
+    if (calibration->center == 0xfff) {
+        calibration->center = 2048;
     }
 
+    if (calibration->max == 0xfff) {
+        calibration->max = 1434; // calibration->center * 0.7f;
+    }
+
+    if (calibration->min == 0xfff) {
+        calibration->min = 1434; // calibration->center * 0.7f;
+    }
+
+    calibration->max = calibration->center + calibration->max;
+    calibration->min = calibration->center - calibration->min;
+}
+
+static void parseLeftRawStickCalibration(SwitchData* sdata, SwitchRawStickCalibrationLeft* raw)
+{
     sdata->left_calib_x.center = SWITCH_AXIS_X(raw->center);
-    sdata->left_calib_x.max = sdata->left_calib_x.center + SWITCH_AXIS_X(raw->max);
-    sdata->left_calib_x.min = sdata->left_calib_x.center - SWITCH_AXIS_X(raw->min);
+    sdata->left_calib_x.max = SWITCH_AXIS_X(raw->max);
+    sdata->left_calib_x.min = SWITCH_AXIS_X(raw->min);
+    finalizeStickCalibration(&sdata->left_calib_x);
 
     sdata->left_calib_y.center = SWITCH_AXIS_Y(raw->center);
-    sdata->left_calib_y.max = sdata->left_calib_y.center + SWITCH_AXIS_Y(raw->max);
-    sdata->left_calib_y.min = sdata->left_calib_y.center - SWITCH_AXIS_Y(raw->min);
+    sdata->left_calib_y.max = SWITCH_AXIS_Y(raw->max);
+    sdata->left_calib_y.min = SWITCH_AXIS_Y(raw->min);
+    finalizeStickCalibration(&sdata->left_calib_y);
 }
 
 static void parseRightRawStickCalibration(SwitchData* sdata, SwitchRawStickCalibrationRight* raw)
 {
-    // Some controllers don't store any calibration data, in which case the raw data is just 0xff
-    if (raw->center[0] == 0xff && raw->center[1] == 0xff && raw->center[2] == 0xff) {
-        // Just use full 12-bit range if that's the case
-        sdata->right_calib_x.center = sdata->right_calib_y.center = 2047;
-        sdata->right_calib_x.max = sdata->right_calib_y.max = 4095;
-        sdata->right_calib_x.min = sdata->right_calib_y.min = 0;
-        return;
-    }
-
     sdata->right_calib_x.center = SWITCH_AXIS_X(raw->center);
-    sdata->right_calib_x.max = sdata->right_calib_x.center + SWITCH_AXIS_X(raw->max);
-    sdata->right_calib_x.min = sdata->right_calib_x.center - SWITCH_AXIS_X(raw->min);
+    sdata->right_calib_x.max = SWITCH_AXIS_X(raw->max);
+    sdata->right_calib_x.min = SWITCH_AXIS_X(raw->min);
+    finalizeStickCalibration(&sdata->right_calib_x);
 
     sdata->right_calib_y.center = SWITCH_AXIS_Y(raw->center);
-    sdata->right_calib_y.max = sdata->right_calib_y.center + SWITCH_AXIS_Y(raw->max);
-    sdata->right_calib_y.min = sdata->right_calib_y.center - SWITCH_AXIS_Y(raw->min);
+    sdata->right_calib_y.max = SWITCH_AXIS_Y(raw->max);
+    sdata->right_calib_y.min = SWITCH_AXIS_Y(raw->min);
+    finalizeStickCalibration(&sdata->right_calib_y);
 }
 
 static int16_t calibrateStickAxis(SwitchStickCalibration* calib, uint32_t value)
@@ -280,6 +291,21 @@ static int16_t calibrateStickAxis(SwitchStickCalibration* calib, uint32_t value)
     }
 
     return (int16_t) CLAMP(calibrated, -AXIS_NORMALIZE_VALUE, AXIS_NORMALIZE_VALUE);
+}
+
+static int16_t remapBasicStickAxis(SwitchStickExtent* extent, uint16_t rawValue)
+{
+    int16_t value = (int16_t) rawValue - BASIC_JOYSTICK_CENTER;
+
+    // Dynamically adjust extents
+    if (value > extent->max) {
+        extent->max = value;
+    }
+    if (value < extent->min) {
+        extent->min = value;
+    }
+
+    return remapStickAxis(value, extent->min, extent->max);
 }
 
 static void sendCommand(Controller* controller, SwitchCommandRequest* req, uint32_t req_data_size)
@@ -586,14 +612,14 @@ static void handle_basic_input_report(Controller* controller, SwitchBasicInputRe
 
     // Make sure the controller actually has the stick in question, to avoid invalid data
     if (sdata->device != SWITCH_DEVICE_JOYCON_RIGHT && sdata->device != SWITCH_DEVICE_TP_JOYCON_RIGHT) {
-        rep->left_stick_x = scaleStickAxis(bswap16(inRep->left_stick_x), 65536);
-        rep->left_stick_y = scaleStickAxis(bswap16(inRep->left_stick_y), 65536);
+        rep->left_stick_x = remapBasicStickAxis(&sdata->left_extent_x, bswap16(inRep->left_stick_x));
+        rep->left_stick_y = remapBasicStickAxis(&sdata->left_extent_y, bswap16(inRep->left_stick_y));
     }
 
 
     if (sdata->device != SWITCH_DEVICE_JOYCON_LEFT && sdata->device != SWITCH_DEVICE_TP_JOYCON_LEFT && sdata->device != SWITCH_DEVICE_N64) {
-        rep->right_stick_x = scaleStickAxis(bswap16(inRep->right_stick_x), 65536);
-        rep->right_stick_y = scaleStickAxis(bswap16(inRep->right_stick_y), 65536);
+        rep->right_stick_x = remapBasicStickAxis(&sdata->right_extent_x, bswap16(inRep->right_stick_x));
+        rep->right_stick_y = remapBasicStickAxis(&sdata->right_extent_y, bswap16(inRep->right_stick_y));
     }
 
     rep->buttons = 0;
@@ -664,7 +690,12 @@ void controllerInit_switch(Controller* controller)
 
     SwitchData* sdata = (SwitchData*) IOS_Alloc(LOCAL_PROCESS_HEAP_ID, sizeof(SwitchData));
     memset(sdata, 0, sizeof(SwitchData));
-    sdata->first_report = 1; 
+    sdata->first_report = 1;
+ 
+    // Initial basic extents (start with the partial stick range, which gets dynamically extended)
+    // Note that these values shouldn't be too small, otherwise the resting values get scaled by a big factor, messing with the initial calibration
+    sdata->left_extent_x.max = sdata->right_extent_x.max = sdata->left_extent_y.max = sdata->right_extent_y.max = 26214; // 32767 * 0.8f;
+    sdata->left_extent_x.min = sdata->right_extent_x.min = sdata->left_extent_y.min = sdata->right_extent_y.min = -26214; //-32768 * 0.8f;
 
     controller->additionalData = sdata;
 
