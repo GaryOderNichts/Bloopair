@@ -41,9 +41,11 @@ typedef struct {
     uint8_t led;
 
     // Calibration for full reports
+    uint8_t has_left_calib;
     SwitchStickCalibration left_calib_x;
-    SwitchStickCalibration right_calib_x;
     SwitchStickCalibration left_calib_y;
+    uint8_t has_right_calib;
+    SwitchStickCalibration right_calib_x;
     SwitchStickCalibration right_calib_y;
 
     // Extents for basic reports
@@ -83,14 +85,11 @@ enum {
 #define SWITCH_AXIS_Y(data) ((data[1] >> 4) | (data[2] << 4))
 typedef uint8_t SwitchAxis[3];
 
-#define SWITCH_LEFT_FACTORY_CALIBRATION_ADDRESS      0x603d
-#define SWITCH_RIGHT_FACTORY_CALIBRATION_ADDRESS     0x6046
+// https://github.com/ndeadly/MissionControl/blob/c3157607eb1dedf78fc23835d7d0af4fe05a513a/mc_mitm/source/controllers/emulated_switch_controller.cpp#L274-L281
+#define SWITCH_FACTORY_CALIBRATION_ADDRESS      0x603d
+#define SWITCH_USER_CALIBRATION_ADDRESS         0x8010
 
-#define SWITCH_LEFT_USER_CALIBRATION_MAGIC_ADDRESS   0x8010
-#define SWITCH_LEFT_USER_CALIBRATION_ADDRESS         0x8012
-
-#define SWITCH_RIGHT_USER_CALIBRATION_MAGIC_ADDRESS  0x801b
-#define SWITCH_RIGHT_USER_CALIBRATION_ADDRESS        0x801d
+#define SWITCH_USER_CALIBRATION_MAGIC           0xb2a1
 
 typedef struct PACKED {
     SwitchAxis max;
@@ -105,6 +104,20 @@ typedef struct PACKED {
     SwitchAxis max;
 } SwitchRawStickCalibrationRight;
 CHECK_SIZE(SwitchRawStickCalibrationRight, 0x09);
+
+typedef struct PACKED {
+    uint16_t left_magic;
+    SwitchRawStickCalibrationLeft left_calibration;
+    uint16_t right_magic;
+    SwitchRawStickCalibrationRight right_calibration;
+} SwitchRawUserStickCalibration;
+CHECK_SIZE(SwitchRawUserStickCalibration, 0x16);
+
+typedef struct PACKED {
+    SwitchRawStickCalibrationLeft left_calibration;
+    SwitchRawStickCalibrationRight right_calibration;
+} SwitchRawFactoryStickCalibration;
+CHECK_SIZE(SwitchRawFactoryStickCalibration, 0x12);
 
 typedef struct PACKED {
     uint8_t command;

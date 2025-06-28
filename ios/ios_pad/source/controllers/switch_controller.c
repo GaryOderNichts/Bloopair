@@ -444,10 +444,10 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
 {
     SwitchData* sdata = (SwitchData*) controller->additionalData;
 
-    DEBUG_PRINT("subcmd respone %d\n", resp->command);
+    DEBUG_PRINT("subcmd respone 0x%x\n", resp->command);
 
     if ((resp->ack & 0x80) == 0) {
-        DEBUG_PRINT("switch subcmd %d failed\n", resp->command);
+        DEBUG_PRINT("switch subcmd 0x%x failed\n", resp->command);
         // if we failed during one of the stages, just fall back to simple input
         controller->isReady = 1;
         return;
@@ -455,7 +455,7 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
 
     if (resp->command == SWITCH_COMMAND_REQUEST_DEVICE_INFO) {
         sdata->device = resp->device_info.device_type;
-        DEBUG_PRINT("device type %d\n", sdata->device);
+        DEBUG_PRINT("device type 0x%x\n", sdata->device);
 
         // Get the configuration again, now that we have the actual device type
         controller->type = switchDeviceToControllerType(sdata->device);
@@ -474,8 +474,8 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
              sdata->device == SWITCH_DEVICE_JOYCON_RIGHT || /*sdata->device == SWITCH_DEVICE_TP_JOYCON_RIGHT ||*/
              sdata->device == SWITCH_DEVICE_PRO || /*sdata->device == SWITCH_DEVICE_TP_PRO ||*/
              sdata->device == SWITCH_DEVICE_N64) && switchConfigCalibrationEnabled(controller)) {
-            // Start by reading the left user calibration magic to check if user calibration exists
-            readSpiFlash(controller, SWITCH_LEFT_USER_CALIBRATION_MAGIC_ADDRESS, 2);
+            // Start by reading the user calibration
+            readSpiFlash(controller, SWITCH_USER_CALIBRATION_ADDRESS, sizeof(SwitchRawUserStickCalibration));
         } else {
             // Don't need to wait for calibration, controller is ready now
             controller->isReady = 1;
@@ -484,42 +484,42 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
         uint32_t address = bswap32(resp->spi_flash_read.address);
 
         switch (address) {
-        case SWITCH_LEFT_USER_CALIBRATION_MAGIC_ADDRESS:
-            // Check for user calibration
-            if (resp->spi_flash_read.data[0] == 0xb2 && resp->spi_flash_read.data[1] == 0xa1) {
-                // Read user calibration
-                readSpiFlash(controller, SWITCH_LEFT_USER_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibrationLeft));
-            } else {
-                // Fall back to factory calibration
-                readSpiFlash(controller, SWITCH_LEFT_FACTORY_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibrationLeft));
-            }
-            break;
-        case SWITCH_LEFT_FACTORY_CALIBRATION_ADDRESS:
-        case SWITCH_LEFT_USER_CALIBRATION_ADDRESS:
-            // parse the calibration data
-            parseLeftRawStickCalibration(sdata, (SwitchRawStickCalibrationLeft*) resp->spi_flash_read.data);
+        case SWITCH_USER_CALIBRATION_ADDRESS: {
+            SwitchRawUserStickCalibration* calibration = (SwitchRawUserStickCalibration*) resp->spi_flash_read.data;
 
-            // continue with reading the right calibration magic
-            readSpiFlash(controller, SWITCH_RIGHT_USER_CALIBRATION_MAGIC_ADDRESS, 2);
-            break;
-        case SWITCH_RIGHT_USER_CALIBRATION_MAGIC_ADDRESS:
-            // Check for user calibration
-            if (resp->spi_flash_read.data[0] == 0xb2 && resp->spi_flash_read.data[1] == 0xa1) {
-                // Read user calibration
-                readSpiFlash(controller, SWITCH_RIGHT_USER_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibrationRight));
+            if (calibration->left_magic == SWITCH_USER_CALIBRATION_MAGIC) {
+                parseLeftRawStickCalibration(sdata, &calibration->left_calibration);
+                sdata->has_left_calib = 1;
+            }
+            if (calibration->right_magic == SWITCH_USER_CALIBRATION_MAGIC) {
+                parseRightRawStickCalibration(sdata, &calibration->right_calibration);
+                sdata->has_right_calib = 1;
+            }
+
+            // Check if we have both calibrations already or if we need to read factory calibrations
+            if (sdata->has_left_calib && sdata->has_right_calib) {
+                setInputReportMode(controller, SWITCH_INPUT_REPORT_ID);
             } else {
-                // Fall back to factory calibration
-                readSpiFlash(controller, SWITCH_RIGHT_FACTORY_CALIBRATION_ADDRESS, sizeof(SwitchRawStickCalibrationRight));
+                readSpiFlash(controller, SWITCH_FACTORY_CALIBRATION_ADDRESS, sizeof(SwitchRawFactoryStickCalibration));
             }
             break;
-        case SWITCH_RIGHT_FACTORY_CALIBRATION_ADDRESS:
-        case SWITCH_RIGHT_USER_CALIBRATION_ADDRESS:
-            // parse the calibration data
-            parseRightRawStickCalibration(sdata, (SwitchRawStickCalibrationRight*) resp->spi_flash_read.data);
+        }
+        case SWITCH_FACTORY_CALIBRATION_ADDRESS: {
+            SwitchRawFactoryStickCalibration* calibration = (SwitchRawFactoryStickCalibration*) resp->spi_flash_read.data;
+            
+            if (!sdata->has_left_calib) {
+                parseLeftRawStickCalibration(sdata, &calibration->left_calibration);
+                sdata->has_left_calib = 1;
+            }
+            if (!sdata->has_right_calib) {
+                parseRightRawStickCalibration(sdata, &calibration->right_calibration);
+                sdata->has_right_calib = 1;
+            }
 
             // we can now enable full reports
             setInputReportMode(controller, SWITCH_INPUT_REPORT_ID);
             break;
+        }
         default:
             DEBUG_PRINT("switch: unknown SPI read from %lx size %d\n", address, resp->spi_flash_read.size);
             break;
