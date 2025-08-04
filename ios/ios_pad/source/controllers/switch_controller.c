@@ -479,7 +479,7 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
         } else {
             // Don't need to wait for calibration, controller is ready now
             controller->isReady = 1;
-        }  
+        }
     } else if (resp->command == SWITCH_COMMAND_SPI_FLASH_READ) {
         uint32_t address = bswap32(resp->spi_flash_read.address);
 
