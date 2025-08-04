@@ -466,6 +466,10 @@ static void handle_command_response(Controller* controller, SwitchCommandRespons
         // set the leds now that we know the device type
         setPlayerLeds(controller);
     } else if (resp->command == SWITCH_COMMAND_SET_PLAYER_LEDS) {
+        // Early return for controllers that are already initialized
+        if(controller->isReady) {
+            return;
+        }
         // enable rumble
         setVibration(controller, 1);
     } else if (resp->command == SWITCH_COMMAND_ENABLE_VIBRATION) {
