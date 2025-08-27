@@ -68,11 +68,24 @@ static void sendRumbleLedState(Controller* controller)
 
     rep.report_id = DUALSHOCK3_OUTPUT_REPORT_ID;
 
-    rep.right_motor_duration = 1;
-    rep.right_motor_force = ds_data->rumble;
-    rep.left_motor_duration = 1;
-    rep.left_motor_force = ds_data->rumble * 64;
+    // Treat ds_data->rumble as a 0..255 scale for the big (left) motor.
+    // If ds_data->rumble is non-zero, we can also turn on the small (right) motor.
+    // Typically just consider a threshold for small motor or keep it always on if rumble > 0.
 
+    rep.right_motor_duration = 0xFF;
+    rep.left_motor_duration  = 0xFF;
+
+    // Small motor: either on/off
+    if (ds_data->rumble > 0) {
+        rep.right_motor_force = 0x01;  // turn small motor on
+    } else {
+        rep.right_motor_force = 0x00;  // turn small motor off
+    }
+
+    // Big motor: 0..255 intensity
+    rep.left_motor_force = ds_data->rumble;
+
+    // LED setup as before
     rep.led_mask = ds_data->led_mask << 1;
     memcpy(&rep.leds[0], &led_config, sizeof(Dualshock3LedConfig));
     memcpy(&rep.leds[1], &led_config, sizeof(Dualshock3LedConfig));
@@ -81,6 +94,7 @@ static void sendRumbleLedState(Controller* controller)
 
     setReport(controller->handle, BTA_HH_RPTT_OUTPUT, &rep, sizeof(rep));
 }
+
 
 void controllerRumble_dualshock3(Controller* controller, uint8_t rumble)
 {
