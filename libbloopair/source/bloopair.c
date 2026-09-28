@@ -186,6 +186,30 @@ IOSError Bloopair_GetControllerInformation(IOSHandle handle, WPADChan chan, Bloo
     return res;
 }
 
+IOSError Bloopair_GetControllerPairing(IOSHandle handle, WPADChan chan, BloopairControllerPairingData* data)
+{
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_GET_CONTROLLER_PAIRING);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+
+    BloopairControllerRequestData* request = (BloopairControllerRequestData*) ioctlv->request.data;
+    request->handle = getHandleForChannel(chan);
+
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+    if (res >= 0) {
+        if (res != sizeof(*data)) {
+            freeBtrmIoctlv(ioctlv);
+            return IOS_ERROR_INVALIDSIZE;
+        }
+        memcpy(data, ioctlv->response.data, sizeof(*data));
+        res = IOS_ERROR_OK;
+    }
+
+    freeBtrmIoctlv(ioctlv);
+    return res;
+}
+
 IOSError Bloopair_ReadRawReport(IOSHandle handle, WPADChan chan, BloopairReportBuffer* outReport)
 {
     BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_READ_RAW_REPORT);

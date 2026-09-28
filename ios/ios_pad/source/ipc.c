@@ -18,6 +18,7 @@
 #include "ipc.h"
 #include "info_store.h"
 #include "controllers.h"
+#include "pairing_export.h"
 #include <bloopair/ipc.h>
 
 static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
@@ -92,6 +93,28 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
         resp->vendor_id = controller->vendor_id;
         resp->product_id = controller->product_id;
 
+        return sizeof(*resp);
+    }
+
+    case BLOOPAIR_FUNC_GET_CONTROLLER_PAIRING: {
+        BloopairControllerRequestData* req = (BloopairControllerRequestData*) request->data;
+        BloopairControllerPairingData* resp = (BloopairControllerPairingData*) response->data;
+        if (req->handle >= BTA_HH_MAX_KNOWN) {
+            return -4;
+        }
+
+        Controller* controller = &controllers[req->handle];
+        if (!controller->isInitialized || controller->type != BLOOPAIR_CONTROLLER_SWITCH_PRO) {
+            return -4;
+        }
+        if (pairing_export_get(controller->bda, resp->link_key, &resp->key_type) < 0) {
+            return -6;
+        }
+
+        memcpy(resp->bd_address, controller->bda, sizeof(resp->bd_address));
+        resp->controller_type = controller->type;
+        resp->vendor_id = controller->vendor_id;
+        resp->product_id = controller->product_id;
         return sizeof(*resp);
     }
     

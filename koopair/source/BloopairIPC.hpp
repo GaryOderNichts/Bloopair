@@ -66,6 +66,8 @@ bool AddControllerPairing(const uint8_t* bda, const uint8_t* link_key, const cha
 
 bool GetControllerInformation(KPADChan chan, BloopairControllerInformationData& outData);
 
+bool GetControllerPairing(KPADChan chan, BloopairControllerPairingData& outData);
+
 bool ReadRawReport(KPADChan chan, BloopairReportBuffer& outReport);
 
 bool ApplyConfiguration(const uint8_t* bda, const BloopairCommonConfiguration& configuration);

@@ -33,6 +33,7 @@
 #define BLOOPAIR_FUNC_GET_CONTROLLER_CONFIG         9
 #define BLOOPAIR_FUNC_GET_CONTROLLER_MAPPING        10
 #define BLOOPAIR_FUNC_GET_CUSTOM_CONFIGURATION      11
+#define BLOOPAIR_FUNC_GET_CONTROLLER_PAIRING        12
 
 #define BLOOPAIR_VERSION_MAJOR(v) (((v) >> 16) & 0xff)
 #define BLOOPAIR_VERSION_MINOR(v) (((v) >> 8) & 0xff)
@@ -67,6 +68,15 @@ typedef struct {
     uint16_t vendor_id;
     uint16_t product_id;
 } BloopairControllerInformationData;
+
+typedef struct {
+    uint8_t bd_address[6];
+    uint8_t link_key[16];
+    uint8_t key_type;
+    uint8_t controller_type;
+    uint16_t vendor_id;
+    uint16_t product_id;
+} BloopairControllerPairingData;
 
 // structure associated with
 // - BLOOPAIR_FUNC_READ_RAW_REPORT

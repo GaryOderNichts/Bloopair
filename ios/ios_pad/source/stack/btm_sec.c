@@ -17,6 +17,7 @@
 
 #include <bt_api.h>
 #include "info_store.h"
+#include "pairing_export.h"
 
 uint8_t (*const real_btm_sec_execute_procedure)(tBTM_SEC_DEV_REC *p_dev_rec) = (void*) DEFINE_REAL(0x11f14f04, 0xe92d41f0);
 
@@ -26,6 +27,7 @@ uint8_t btm_sec_execute_procedure_hook(tBTM_SEC_DEV_REC *p_dev_rec)
 
     // make sure the device info has been read
     store_read_device_info();
+    pairing_export_capture_security_record(p_dev_rec);
 
     StoredInfo* info = store_get_device_info(p_dev_rec->bd_addr);
 

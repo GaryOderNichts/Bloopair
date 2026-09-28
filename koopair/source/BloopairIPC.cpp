@@ -97,6 +97,11 @@ bool GetControllerInformation(KPADChan chan, BloopairControllerInformationData& 
     return Bloopair_GetControllerInformation(bloopairHandle, (WPADChan) chan, &outData) >= 0;
 }
 
+bool GetControllerPairing(KPADChan chan, BloopairControllerPairingData& outData)
+{
+    return Bloopair_GetControllerPairing(bloopairHandle, (WPADChan) chan, &outData) >= 0;
+}
+
 bool ReadRawReport(KPADChan chan, BloopairReportBuffer& outReport)
 {
     return Bloopair_ReadRawReport(bloopairHandle, (WPADChan) chan, &outReport) >= 0;
