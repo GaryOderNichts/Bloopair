@@ -29,8 +29,8 @@ void NintendontPairingScreen::Draw()
 {
     DrawTopBar("Nintendont Pairing Export");
     Gfx::Print(Gfx::SCREEN_WIDTH / 2, Gfx::SCREEN_HEIGHT / 2, 54, Gfx::COLOR_TEXT,
-        "Connect the original Switch Pro Controller through Bloopair.\n"
-        "Press A to export its current pairing for Nintendont.\n\n"
+        "Connect up to four original Switch Pro Controllers through Bloopair.\n"
+        "Press A to export their current pairings for Nintendont.\n\n"
         "The pairing remains local on the SD card.",
         Gfx::ALIGN_CENTER);
     DrawBottomBar("\ue001 Back", nullptr, "\ue000 Export");
@@ -59,23 +59,12 @@ bool NintendontPairingScreen::Update(const CombinedInputController& input)
 
 void NintendontPairingScreen::ExportPairing()
 {
-    const KPADController* selected = nullptr;
     ControllerManager& manager = ControllerManager::Get();
-    for (size_t i = 0; i < ControllerManager::kMaxKPADControllers; i++) {
-        const KPADController& controller = manager.GetKPADController(i);
-        if (controller.IsConnected() && controller.IsBloopairController() &&
-            controller.GetControllerType() == BLOOPAIR_CONTROLLER_SWITCH_PRO) {
-            selected = &controller;
-            break;
-        }
-    }
-
-    BloopairControllerPairingData source{};
     auto consoleBda = BloopairIPC::ReadConsoleBDA();
-    if (!selected || !consoleBda || !BloopairIPC::GetControllerPairing(selected->GetChannel(), source)) {
+    if (!consoleBda) {
         mMessageBox = std::make_unique<MessageBox>(
             "Export failed",
-            "Connect the Switch Pro Controller through Bloopair, then try again.",
+            "The Wii U Bluetooth address could not be read.",
             std::vector{MessageBox::Option{0, "\ue000 Ok", []() {}}});
         return;
     }
@@ -84,13 +73,33 @@ void NintendontPairingScreen::ExportPairing()
     pairing.magic = NINTENDONT_SWITCH_PAIRING_MAGIC;
     pairing.version = NINTENDONT_SWITCH_PAIRING_VERSION;
     pairing.size = sizeof(pairing);
-    memcpy(pairing.controller_bda, source.bd_address, sizeof(pairing.controller_bda));
     memcpy(pairing.console_bda, consoleBda->data(), sizeof(pairing.console_bda));
-    memcpy(pairing.hci_link_key, source.hci_link_key, sizeof(pairing.hci_link_key));
-    pairing.key_type = source.key_type;
-    pairing.controller_type = source.controller_type;
-    pairing.vendor_id = source.vendor_id;
-    pairing.product_id = source.product_id;
+    for (size_t i = 0; i < ControllerManager::kMaxKPADControllers &&
+            pairing.count < NINTENDONT_SWITCH_PAIRING_MAX_CONTROLLERS; i++) {
+        const KPADController& controller = manager.GetKPADController(i);
+        if (!controller.IsConnected() || !controller.IsBloopairController() ||
+            controller.GetControllerType() != BLOOPAIR_CONTROLLER_SWITCH_PRO) {
+            continue;
+        }
+        BloopairControllerPairingData source{};
+        if (!BloopairIPC::GetControllerPairing(controller.GetChannel(), source)) {
+            continue;
+        }
+        NintendontSwitchPairingEntry& entry = pairing.controllers[pairing.count++];
+        memcpy(entry.controller_bda, source.bd_address, sizeof(entry.controller_bda));
+        memcpy(entry.hci_link_key, source.hci_link_key, sizeof(entry.hci_link_key));
+        entry.key_type = source.key_type;
+        entry.controller_type = source.controller_type;
+        entry.vendor_id = source.vendor_id;
+        entry.product_id = source.product_id;
+    }
+    if (pairing.count == 0) {
+        mMessageBox = std::make_unique<MessageBox>(
+            "Export failed",
+            "Connect at least one original Switch Pro Controller through Bloopair.",
+            std::vector{MessageBox::Option{0, "\ue000 Ok", []() {}}});
+        return;
+    }
     pairing.checksum = NintendontSwitchPairingChecksum(&pairing);
 
     std::filesystem::create_directories("wiiu/bloopair");
@@ -113,7 +122,7 @@ void NintendontPairingScreen::ExportPairing()
 
     mMessageBox = std::make_unique<MessageBox>(
         ok ? "Export complete" : "Export failed",
-        ok ? "Nintendont can now use this Bloopair pairing."
+        ok ? "Nintendont can now use the exported Bloopair pairings."
            : "The pairing record could not be written to the SD card.",
         std::vector{MessageBox::Option{0, "\ue000 Ok", []() {}}});
 }
