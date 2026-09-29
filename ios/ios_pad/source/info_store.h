@@ -19,6 +19,7 @@
 
 #include <imports.h>
 #include "bt_api.h"
+#include <bloopair/ipc.h>
 
 enum {
     MAGIC_EMPTY    = 0,
@@ -80,3 +81,6 @@ StoredInfo* store_allocate_device_info(uint8_t* address);
 
 // read and store info from the DI record for the specified device
 void store_read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db);
+
+// Copy non-secret metadata for paired original Switch Pro Controllers.
+size_t store_get_switch_pro_controllers(BloopairStoredSwitchProData* output, size_t capacity);

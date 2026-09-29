@@ -35,6 +35,26 @@ Make sure you're using Aroma or Tiramisu. Follow https://wiiu.hacks.guide/#/ to 
 
 If a controller had been paired in the past, simply turn it on again and it should reconnect.
 
+### Nintendont (Aroma)
+
+The Aroma package includes `bloopair_nintendont_sync.wps`. For original
+Nintendo Switch Pro Controllers it keeps
+`sd:/wiiu/bloopair/nintendont-switch-pro.bin` synchronized automatically.
+After pairing through Bloopair, start vWii/Nintendont normally; no export or
+copy step is required. Up to four pairings are retained, re-pairing replaces
+the old key, and removing a controller from the Wii U pairing database removes
+its exported entry.
+
+The file contains the Wii U Bluetooth address and, per controller, its address,
+Bluetooth link key, key type and USB identity. Nintendont needs those values to
+authenticate an incoming reconnect after IOSU/Bloopair is no longer running.
+The sync plugin never logs these values and writes through a temporary file.
+The SD card itself provides no per-file secret protection, so treat the pairing
+file like other local console credentials and do not publish or share it.
+
+Tiramisu does not provide Aroma's Wii U Plugin System. Koopair therefore keeps
+the manual **Nintendont Pairing** fallback for that environment.
+
 ## Koopair
 Koopair is the Bloopair companion app which comes with Bloopair.  
 
@@ -93,11 +113,13 @@ Bloopair
 ├── koopair         - Bloopair companion app.
 ├── libbloopair     - Library to communicate with Bloopair IPC.
 ├── loader          - Setup module which loads Bloopair.
+├── nintendont_sync - Aroma plugin that maintains Nintendont pairings.
 └── third_party     - Third-party content included in Bloopair.
 ```
 
 ## Building
-Install devkitPPC, devkitARM and wut.
+The reproducible Docker build installs Wii U Plugin System from a pinned
+artifact image. Alternatively install devkitPPC, devkitARM, wut and WUPS.
 
 **Koopair dependencies**  
 Koopair additionally requires the following packages:

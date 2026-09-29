@@ -8,17 +8,15 @@ on:
 jobs:
   build-binary:
     runs-on: ubuntu-latest
-    container:
-      image: devkitpro/devkitppc:20260221
     steps:
     - uses: actions/checkout@v6
       with:
         submodules: recursive
     - name: build binary
       run: |
-        git config --global --add safe.directory "$GITHUB_WORKSPACE"
-        make -C tests
-        make dist
+        docker build -t bloopair-builder .
+        docker run --rm -v "$GITHUB_WORKSPACE:/project" bloopair-builder sh -lc \
+          'git config --global --add safe.directory /project && make -C tests && make dist'
     - uses: actions/upload-artifact@v7
       with:
        name: Bloopair_nightly

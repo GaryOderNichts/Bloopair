@@ -31,7 +31,7 @@ MenuScreen::MenuScreen()
         { MENU_ID_CONTROLLER_LIST,           { 0xf0ca, "Controller List" }},
         { MENU_ID_CONTROLLER_CONFIGURATIONS, { 0xf11b, "Controller Configurations" }},
         { MENU_ID_CONTROLLER_PAIRING,        { 0xf0c1, "Controller Pairing" }},
-        { MENU_ID_NINTENDONT_PAIRING,        { 0xf019, "Export Pairing to Nintendont" }},
+        { MENU_ID_NINTENDONT_PAIRING,        { 0xf019, "Nintendont Pairing (manual)" }},
         { MENU_ID_SETTINGS,                  { 0xf013, "Settings" }},
         { MENU_ID_ABOUT,                     { 0xf05a, "About Koopair" }},
         // { MENU_ID_EXIT,                   { 0xf057, "Exit" }},

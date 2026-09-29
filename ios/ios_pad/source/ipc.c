@@ -117,6 +117,34 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
         resp->product_id = controller->product_id;
         return sizeof(*resp);
     }
+
+    case BLOOPAIR_FUNC_GET_STORED_SWITCH_PROS: {
+        BloopairStoredSwitchProList* resp = (BloopairStoredSwitchProList*) response->data;
+        memset(resp, 0, sizeof(*resp));
+        resp->count = store_get_switch_pro_controllers(resp->controllers,
+            BLOOPAIR_MAX_STORED_SWITCH_PROS);
+        return sizeof(*resp);
+    }
+
+    case BLOOPAIR_FUNC_GET_PAIRING_BY_ADDRESS: {
+        BloopairPairingAddressRequest* req = (BloopairPairingAddressRequest*) request->data;
+        BloopairControllerPairingData* resp = (BloopairControllerPairingData*) response->data;
+        store_read_device_info();
+        StoredInfo* info = store_get_device_info(req->bd_address);
+        if (!info || !((info->magic == MAGIC_SWITCH) ||
+            (info->magic == MAGIC_BLOOPAIR && info->vendor_id == 0x057e &&
+             info->product_id == 0x2009))) {
+            return -4;
+        }
+        if (pairing_export_get(req->bd_address, resp->hci_link_key, &resp->key_type) < 0) {
+            return -6;
+        }
+        memcpy(resp->bd_address, req->bd_address, sizeof(resp->bd_address));
+        resp->controller_type = BLOOPAIR_CONTROLLER_SWITCH_PRO;
+        resp->vendor_id = info->vendor_id;
+        resp->product_id = info->product_id;
+        return sizeof(*resp);
+    }
     
     case BLOOPAIR_FUNC_READ_RAW_REPORT: {
         DEBUG_PRINT("BLOOPAIR_FUNC_READ_RAW_REPORT\n");

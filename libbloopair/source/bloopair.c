@@ -210,6 +210,46 @@ IOSError Bloopair_GetControllerPairing(IOSHandle handle, WPADChan chan, Bloopair
     return res;
 }
 
+IOSError Bloopair_GetStoredSwitchProControllers(IOSHandle handle, BloopairStoredSwitchProList* data)
+{
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_GET_STORED_SWITCH_PROS);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+    if (res >= 0) {
+        if (res != sizeof(*data)) {
+            freeBtrmIoctlv(ioctlv);
+            return IOS_ERROR_INVALIDSIZE;
+        }
+        memcpy(data, ioctlv->response.data, sizeof(*data));
+        res = IOS_ERROR_OK;
+    }
+    freeBtrmIoctlv(ioctlv);
+    return res;
+}
+
+IOSError Bloopair_GetControllerPairingByAddress(IOSHandle handle, const uint8_t address[6], BloopairControllerPairingData* data)
+{
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_GET_PAIRING_BY_ADDRESS);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+    BloopairPairingAddressRequest* request = (BloopairPairingAddressRequest*) ioctlv->request.data;
+    memcpy(request->bd_address, address, sizeof(request->bd_address));
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+    if (res >= 0) {
+        if (res != sizeof(*data)) {
+            freeBtrmIoctlv(ioctlv);
+            return IOS_ERROR_INVALIDSIZE;
+        }
+        memcpy(data, ioctlv->response.data, sizeof(*data));
+        res = IOS_ERROR_OK;
+    }
+    freeBtrmIoctlv(ioctlv);
+    return res;
+}
+
 IOSError Bloopair_ReadRawReport(IOSHandle handle, WPADChan chan, BloopairReportBuffer* outReport)
 {
     BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_READ_RAW_REPORT);

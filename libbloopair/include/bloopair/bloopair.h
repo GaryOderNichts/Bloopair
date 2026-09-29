@@ -150,6 +150,12 @@ IOSError Bloopair_GetControllerInformation(IOSHandle handle, WPADChan chan, Bloo
 
 IOSError Bloopair_GetControllerPairing(IOSHandle handle, WPADChan chan, BloopairControllerPairingData* outData);
 
+/** Returns non-secret metadata for original Switch Pro Controllers that remain paired. */
+IOSError Bloopair_GetStoredSwitchProControllers(IOSHandle handle, BloopairStoredSwitchProList* outData);
+
+/** Returns a cached pairing only for a stored original Switch Pro address. */
+IOSError Bloopair_GetControllerPairingByAddress(IOSHandle handle, const uint8_t address[6], BloopairControllerPairingData* outData);
+
 /**
  * Read a raw report buffer from the specified channel;
  * 

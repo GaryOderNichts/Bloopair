@@ -13,15 +13,17 @@ ifeq ($(DEBUG), 1)
 	export BLOOPAIR_COMMIT_HASH := $(or $(shell git rev-parse HEAD),"ffffffffffffffffffffffffffffffffffffffff")
 endif
 
-.PHONY: all clean ios_kernel ios_usb ios_pad libbloopair loader koopair
+.PHONY: all clean ios_kernel ios_usb ios_pad libbloopair loader koopair nintendont_sync
 
-all: loader koopair
+all: loader koopair nintendont_sync
 	@echo -e "\033[92mDone!\033[0m"
 
 dist: all
 	mkdir -p dist/wiiu/apps/Koopair/
 	cp koopair/Koopair.rpx dist/wiiu/apps/Koopair/
 	cp koopair/Koopair.wuhb dist/wiiu/apps/Koopair/
+	mkdir -p dist/wiiu/environments/aroma/plugins/
+	cp nintendont_sync/bloopair_nintendont_sync.wps dist/wiiu/environments/aroma/plugins/
 	cp loader/30_bloopair.rpx dist/
 
 ios_kernel: ios_usb ios_pad
@@ -48,6 +50,10 @@ koopair: libbloopair
 	@echo -e "\033[92mBuilding $@...\033[0m"
 	@$(MAKE) --no-print-directory -C $(CURDIR)/koopair
 
+nintendont_sync: libbloopair
+	@echo -e "\033[92mBuilding $@...\033[0m"
+	@$(MAKE) --no-print-directory -C $(CURDIR)/nintendont_sync
+
 clean:
 	@$(MAKE) --no-print-directory -C $(CURDIR)/ios/ios_kernel clean
 	@$(MAKE) --no-print-directory -C $(CURDIR)/ios/ios_usb clean
@@ -55,3 +61,4 @@ clean:
 	@$(MAKE) --no-print-directory -C $(CURDIR)/loader clean
 	@$(MAKE) --no-print-directory -C $(CURDIR)/libbloopair clean
 	@$(MAKE) --no-print-directory -C $(CURDIR)/koopair clean
+	@$(MAKE) --no-print-directory -C $(CURDIR)/nintendont_sync clean

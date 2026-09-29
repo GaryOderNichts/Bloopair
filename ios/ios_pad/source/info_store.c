@@ -53,6 +53,39 @@ void store_read_device_info(void)
     }
 }
 
+size_t store_get_switch_pro_controllers(BloopairStoredSwitchProData* output, size_t capacity)
+{
+    size_t count = 0;
+    store_read_device_info();
+    size_t entries = bt_devInfo->num_entries;
+    if (entries > 10) {
+        entries = 10;
+    }
+    for (size_t i = 0; i < entries && count < capacity; i++) {
+        BT_DevInfo_Entry* entry = &bt_devInfo->entries[i];
+        StoredInfo* info = store_get_device_info(entry->address);
+        uint8_t magic = entry->magic;
+        uint16_t vendor_id = entry->vendor_id;
+        uint16_t product_id = entry->product_id;
+        if (info) {
+            magic = info->magic;
+            vendor_id = info->vendor_id;
+            product_id = info->product_id;
+        }
+        if (!((magic == MAGIC_SWITCH) ||
+              (magic == MAGIC_BLOOPAIR && vendor_id == 0x057e && product_id == 0x2009))) {
+            continue;
+        }
+        memcpy(output[count].bd_address, entry->address, BD_ADDR_LEN);
+        output[count].controller_type = BLOOPAIR_CONTROLLER_SWITCH_PRO;
+        output[count].reserved = 0;
+        output[count].vendor_id = vendor_id;
+        output[count].product_id = product_id;
+        count++;
+    }
+    return count;
+}
+
 
 StoredInfo* store_get_device_info(uint8_t* address)
 {

@@ -27,11 +27,11 @@ NintendontPairingScreen::~NintendontPairingScreen()
 
 void NintendontPairingScreen::Draw()
 {
-    DrawTopBar("Nintendont Pairing Export");
+    DrawTopBar("Nintendont Pairing (manual)");
     Gfx::Print(Gfx::SCREEN_WIDTH / 2, Gfx::SCREEN_HEIGHT / 2, 54, Gfx::COLOR_TEXT,
-        "Connect up to four original Switch Pro Controllers through Bloopair.\n"
-        "Press A to export their current pairings for Nintendont.\n\n"
-        "The pairing remains local on the SD card.",
+        "Aroma syncs original Switch Pro pairings automatically.\n"
+        "This action is only a fallback for Tiramisu or troubleshooting.\n\n"
+        "Connect up to four controllers, then press A to export.",
         Gfx::ALIGN_CENTER);
     DrawBottomBar("\ue001 Back", nullptr, "\ue000 Export");
 
