@@ -17,6 +17,7 @@ jobs:
     - name: build binary
       run: |
         git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        make -C tests
         make dist
     - uses: actions/upload-artifact@v7
       with:

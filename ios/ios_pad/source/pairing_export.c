@@ -1,5 +1,6 @@
 #include "pairing_export.h"
 
+#include <bloopair/nintendont_pairing.h>
 #include <string.h>
 
 typedef struct {
@@ -42,9 +43,9 @@ void pairing_export_capture_security_record(tBTM_SEC_DEV_REC* record)
     }
 }
 
-int pairing_export_get(const uint8_t* address, uint8_t* link_key, uint8_t* key_type)
+int pairing_export_get(const uint8_t* address, uint8_t* hci_link_key, uint8_t* key_type)
 {
-    if (!address || !link_key || !key_type) {
+    if (!address || !hci_link_key || !key_type) {
         return -4;
     }
 
@@ -58,8 +59,8 @@ int pairing_export_get(const uint8_t* address, uint8_t* link_key, uint8_t* key_t
             return -6;
         }
 
-        memcpy(link_key, record->link_key, LINK_KEY_LEN);
-        *key_type = record->link_key_type;
+        NintendontSwitchPairingBroadcomKeyToHci(hci_link_key, record->link_key);
+        *key_type = NINTENDONT_SWITCH_PAIRING_KEY_TYPE_UNKNOWN;
         return 0;
     }
 

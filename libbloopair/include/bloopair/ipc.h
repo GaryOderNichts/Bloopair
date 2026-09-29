@@ -71,7 +71,9 @@ typedef struct {
 
 typedef struct {
     uint8_t bd_address[6];
-    uint8_t link_key[16];
+    /* HCI Link Key Request Reply payload order, not Broadcom internal order. */
+    uint8_t hci_link_key[16];
+    /* Not exported from the private security-record layout. */
     uint8_t key_type;
     uint8_t controller_type;
     uint16_t vendor_id;

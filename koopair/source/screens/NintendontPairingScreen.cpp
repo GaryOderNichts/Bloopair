@@ -86,7 +86,7 @@ void NintendontPairingScreen::ExportPairing()
     pairing.size = sizeof(pairing);
     memcpy(pairing.controller_bda, source.bd_address, sizeof(pairing.controller_bda));
     memcpy(pairing.console_bda, consoleBda->data(), sizeof(pairing.console_bda));
-    memcpy(pairing.link_key, source.link_key, sizeof(pairing.link_key));
+    memcpy(pairing.hci_link_key, source.hci_link_key, sizeof(pairing.hci_link_key));
     pairing.key_type = source.key_type;
     pairing.controller_type = source.controller_type;
     pairing.vendor_id = source.vendor_id;

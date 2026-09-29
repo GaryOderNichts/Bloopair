@@ -107,7 +107,7 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
         if (!controller->isInitialized || controller->type != BLOOPAIR_CONTROLLER_SWITCH_PRO) {
             return -4;
         }
-        if (pairing_export_get(controller->bda, resp->link_key, &resp->key_type) < 0) {
+        if (pairing_export_get(controller->bda, resp->hci_link_key, &resp->key_type) < 0) {
             return -6;
         }
 
