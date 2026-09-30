@@ -145,6 +145,12 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
         resp->product_id = info->product_id;
         return sizeof(*resp);
     }
+
+    case BLOOPAIR_FUNC_GET_PAIRING_CHANGE_GENERATION: {
+        uint32_t generation = pairing_export_get_generation();
+        memcpy(response->data, &generation, sizeof(generation));
+        return sizeof(generation);
+    }
     
     case BLOOPAIR_FUNC_READ_RAW_REPORT: {
         DEBUG_PRINT("BLOOPAIR_FUNC_READ_RAW_REPORT\n");

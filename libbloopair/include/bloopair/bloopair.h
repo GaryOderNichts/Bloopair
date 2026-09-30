@@ -156,6 +156,9 @@ IOSError Bloopair_GetStoredSwitchProControllers(IOSHandle handle, BloopairStored
 /** Returns a cached pairing only for a stored original Switch Pro address. */
 IOSError Bloopair_GetControllerPairingByAddress(IOSHandle handle, const uint8_t address[6], BloopairControllerPairingData* outData);
 
+/** Returns a monotonic generation changed only when the Nintendont pairing snapshot changes. */
+IOSError Bloopair_GetPairingChangeGeneration(IOSHandle handle, uint32_t* outGeneration);
+
 /**
  * Read a raw report buffer from the specified channel;
  * 

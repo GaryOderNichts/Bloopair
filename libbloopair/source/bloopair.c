@@ -250,6 +250,20 @@ IOSError Bloopair_GetControllerPairingByAddress(IOSHandle handle, const uint8_t 
     return res;
 }
 
+IOSError Bloopair_GetPairingChangeGeneration(IOSHandle handle, uint32_t* generation)
+{
+    if (!generation) return IOS_ERROR_INVALIDARG;
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_GET_PAIRING_CHANGE_GENERATION);
+    if (!ioctlv) return IOS_ERROR_FAILALLOC;
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+    if (res >= 0) {
+        if (res != sizeof(*generation)) res = IOS_ERROR_INVALIDSIZE;
+        else { memcpy(generation, ioctlv->response.data, sizeof(*generation)); res = IOS_ERROR_OK; }
+    }
+    freeBtrmIoctlv(ioctlv);
+    return res;
+}
+
 IOSError Bloopair_ReadRawReport(IOSHandle handle, WPADChan chan, BloopairReportBuffer* outReport)
 {
     BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_READ_RAW_REPORT);

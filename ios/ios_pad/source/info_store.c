@@ -17,6 +17,7 @@
 
 #include "info_store.h"
 #include "controllers.h"
+#include "pairing_export.h"
 
 static BT_DevInfo* bt_devInfo = (BT_DevInfo*) 0x12157778;
 
@@ -133,7 +134,9 @@ int writeDevInfo_hook(void* callback)
         entry->product_id = info->product_id;
     }
 
-    return real_writeDevInfo(callback);
+    int result = real_writeDevInfo(callback);
+    if (result >= 0) pairing_export_refresh_generation();
+    return result;
 }
 
 void store_read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db)
@@ -167,4 +170,5 @@ void store_read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db)
 
     info->vendor_id = vendor_id;
     info->product_id = product_id;
+    pairing_export_refresh_generation();
 }

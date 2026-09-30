@@ -15,7 +15,7 @@
 
 WUPS_PLUGIN_NAME("Bloopair Nintendont sync");
 WUPS_PLUGIN_DESCRIPTION("Keeps original Switch Pro pairings available to Nintendont");
-WUPS_PLUGIN_VERSION("0.1.0");
+WUPS_PLUGIN_VERSION("0.2.0");
 WUPS_PLUGIN_AUTHOR("Bloopair contributors");
 WUPS_PLUGIN_LICENSE("GPLv2");
 WUPS_USE_WUT_DEVOPTAB();
@@ -26,6 +26,7 @@ constexpr const char* kPath = "fs:/vol/external01/wiiu/bloopair/nintendont-switc
 constexpr const char* kTemporaryPath = "fs:/vol/external01/wiiu/bloopair/nintendont-switch-pro.tmp";
 constexpr const char* kBackupPath = "fs:/vol/external01/wiiu/bloopair/nintendont-switch-pro.bak";
 constexpr uint32_t kStackSize = 16 * 1024;
+constexpr uint32_t kGenerationCheckMilliseconds = 100;
 
 OSThread* gThread = nullptr;
 void* gStack = nullptr;
@@ -54,7 +55,7 @@ bool WriteRecord(const NintendontSwitchPairing& record) {
     FILE* file = std::fopen(kTemporaryPath, "wb");
     if (!file) return false;
     bool ok = std::fwrite(&record, 1, sizeof(record), file) == sizeof(record) &&
-              std::fflush(file) == 0;
+              std::fflush(file) == 0 && fsync(fileno(file)) == 0;
     std::fclose(file);
     if (!ok) {
         unlink(kTemporaryPath);
@@ -69,6 +70,17 @@ bool WriteRecord(const NintendontSwitchPairing& record) {
     }
     if (hadActive) unlink(kBackupPath);
     return true;
+}
+
+bool ReadGeneration(uint32_t& generation) {
+    IOSHandle handle = Bloopair_Open();
+    if (handle < 0 || !Bloopair_IsActive(handle)) {
+        if (handle >= 0) Bloopair_Close(handle);
+        return false;
+    }
+    const bool ok = Bloopair_GetPairingChangeGeneration(handle, &generation) >= 0;
+    Bloopair_Close(handle);
+    return ok;
 }
 
 void SyncOnce() {
@@ -131,12 +143,28 @@ void SyncOnce() {
     WriteRecord(next);
 }
 
-int32_t SyncThread([[maybe_unused]] int argc, [[maybe_unused]] const char** argv) {
-    while (!gStop.load()) {
+void SyncUntilStable() {
+    for (;;) {
+        uint32_t before = 0;
+        uint32_t after = 0;
+        const bool haveBefore = ReadGeneration(before);
         SyncOnce();
-        for (int i = 0; i < 20 && !gStop.load(); i++) {
-            OSSleepTicks(OSMillisecondsToTicks(250));
+        const bool haveAfter = ReadGeneration(after);
+        if (!haveBefore || !haveAfter || before == after) return;
+    }
+}
+
+int32_t SyncThread([[maybe_unused]] int argc, [[maybe_unused]] const char** argv) {
+    uint32_t observedGeneration = 0;
+    SyncUntilStable();
+    ReadGeneration(observedGeneration);
+    while (!gStop.load()) {
+        uint32_t generation = observedGeneration;
+        if (ReadGeneration(generation) && generation != observedGeneration) {
+            SyncUntilStable();
+            ReadGeneration(observedGeneration);
         }
+        OSSleepTicks(OSMillisecondsToTicks(kGenerationCheckMilliseconds));
     }
     return 0;
 }
@@ -168,4 +196,4 @@ void StopThread() {
 INITIALIZE_PLUGIN() {}
 DEINITIALIZE_PLUGIN() { StopThread(); }
 ON_APPLICATION_START() { StartThread(); }
-ON_APPLICATION_REQUESTS_EXIT() { StopThread(); }
+ON_APPLICATION_REQUESTS_EXIT() { StopThread(); SyncUntilStable(); }

@@ -40,14 +40,39 @@ Bloopair runtime dependency.
 
 1. Bloopair pairs or reconnects an original Switch Pro Controller.
 2. Its existing security hook captures that controller's resolved link key.
-3. `bloopair_nintendont_sync.wps` polls bounded IPC every five seconds.
-4. A metadata-only IPC call enumerates original Switch Pro addresses still in
+3. `pairing_export_capture_security_record()` retains the security-record
+   pointer reached from `btm_sec_execute_procedure_hook()`. The link key may be
+   filled later by the Broadcom stack, so Bloopair derives a non-secret,
+   monotonic generation from the current stored-device metadata and the
+   availability/content of each cached key. `store_read_DI_record()` refreshes
+   it after Switch VID/PID discovery; `writeDevInfo_hook()` refreshes it after
+   the native device table accepts a write, covering normal pairing and
+   removal. A changed key changes the generation and therefore covers re-pair.
+4. `/dev/usb/btrm` offers synchronous request/response IPC, not a push channel.
+   Holding an ioctl open as a wait primitive would block the same BTRM service
+   that must finish security and HID work. The plugin therefore reads only the
+   32-bit generation every 100 ms. This is the remaining technical polling;
+   it performs no enumeration and no filesystem I/O while unchanged.
+5. On plugin/application start, and only after a generation change, a
+   metadata-only IPC call enumerates original Switch Pro addresses still in
    the Wii U device table. A second call returns a cached key only for one of
    those validated addresses.
-5. The plugin merges up to four entries, replaces re-paired keys, removes
-   deleted devices, and writes a checksummed v3 record by temp/backup/rename.
-6. Nintendont validates the record and uses it after entering vWii.
+6. The plugin merges up to four entries, replaces re-paired keys, removes
+   deleted devices, and writes a checksummed v3 record only when its bytes
+   changed. It writes a temporary file, calls `fflush()` and `fsync()`, closes
+   it, then activates it by backup/rename.
+7. `ON_APPLICATION_REQUESTS_EXIT()` first joins the worker, then synchronously
+   repeats `generation before -> complete sync/write -> generation after`
+   until both generations match. The hook does not return while an observed
+   change is still unwritten. This is the boundary that covers pairing and
+   immediately launching vWii/Nintendont.
+8. Nintendont validates the fixed
+   `sd:/wiiu/bloopair/nintendont-switch-pro.bin` record when it starts and uses
+   it after entering vWii.
 
-The code proves the bounded merge, stale-entry filtering, atomic replacement
-and absence of secret logging. Hardware must still prove WUPS lifecycle timing,
-fresh pairing, cold restart, re-pairing, removal and two-controller reconnect.
+The code proves generation changes for a new key, key replacement and removal;
+bounded merge, stale-entry filtering, changed-content-only writes, durable
+temporary-file completion, atomic replacement and absence of secret logging.
+Hardware must still prove WUPS lifecycle timing, fresh pairing followed by an
+immediate vWii launch, cold restart, re-pairing, removal and two-controller
+reconnect.
