@@ -70,6 +70,14 @@ typedef struct {
     uint16_t product_id;
 } StoredInfo;
 
+static inline int store_is_original_switch_pro(uint8_t magic,
+                                                uint16_t vendor_id,
+                                                uint16_t product_id)
+{
+    return (magic == MAGIC_SWITCH || magic == MAGIC_BLOOPAIR) &&
+           vendor_id == 0x057e && product_id == 0x2009;
+}
+
 // read the device info and add it to the store
 void store_read_device_info(void);
 

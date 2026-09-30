@@ -73,8 +73,9 @@ size_t store_get_switch_pro_controllers(BloopairStoredSwitchProData* output, siz
             vendor_id = info->vendor_id;
             product_id = info->product_id;
         }
-        if (!((magic == MAGIC_SWITCH) ||
-              (magic == MAGIC_BLOOPAIR && vendor_id == 0x057e && product_id == 0x2009))) {
+        /* MAGIC_SWITCH covers third-party Switch-compatible controllers too.
+         * Export only the identity whose protocol Nintendont implements. */
+        if (!store_is_original_switch_pro(magic, vendor_id, product_id)) {
             continue;
         }
         memcpy(output[count].bd_address, entry->address, BD_ADDR_LEN);

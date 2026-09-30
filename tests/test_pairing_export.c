@@ -6,6 +6,7 @@
 #include <bloopair/controllers/common.h>
 
 #include "pairing_export.h"
+#include "info_store.h"
 
 static BloopairStoredSwitchProData stored[BLOOPAIR_MAX_STORED_SWITCH_PROS];
 static size_t stored_count;
@@ -24,6 +25,12 @@ int main(void)
     uint8_t key_type = 0;
     unsigned int i;
 
+    assert(store_is_original_switch_pro(MAGIC_SWITCH, 0x057e, 0x2009));
+    assert(store_is_original_switch_pro(MAGIC_BLOOPAIR, 0x057e, 0x2009));
+    assert(!store_is_original_switch_pro(MAGIC_SWITCH, 0, 0));
+    assert(!store_is_original_switch_pro(MAGIC_SWITCH, 0xffff, 0xffff));
+    assert(!store_is_original_switch_pro(MAGIC_BLOOPAIR, 0x20d6, 0xa711));
+
     memset(&record, 0, sizeof(record));
     for (i = 0; i < BD_ADDR_LEN; i++) {
         record.bd_addr[i] = (uint8_t) (i + 1);
@@ -32,13 +39,21 @@ int main(void)
         record.link_key[i] = (uint8_t) (0x10 + i);
     }
 
+    /* A key can arrive before definitive SDP metadata.  It must not become
+     * exportable until the supported identity appears, and that transition
+     * must advance the generation. */
+    stored_count = 0;
+    pairing_export_capture_security_record(&record);
+    uint32_t metadata_pending_generation = pairing_export_get_generation();
+
     memcpy(stored[0].bd_address, record.bd_addr, BD_ADDR_LEN);
     stored[0].controller_type = BLOOPAIR_CONTROLLER_SWITCH_PRO;
     stored[0].vendor_id = 0x057e;
     stored[0].product_id = 0x2009;
     stored_count = 1;
 
-    pairing_export_capture_security_record(&record);
+    pairing_export_refresh_generation();
+    assert(pairing_export_get_generation() != metadata_pending_generation);
     uint32_t paired_generation = pairing_export_get_generation();
     assert(pairing_export_get(record.bd_addr, hci_link_key, &key_type) == 0);
     for (i = 0; i < LINK_KEY_LEN; i++) {

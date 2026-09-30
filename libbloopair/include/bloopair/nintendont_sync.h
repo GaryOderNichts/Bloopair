@@ -8,6 +8,13 @@ static inline int NintendontSyncSameAddress(const uint8_t a[6], const uint8_t b[
     return memcmp(a, b, 6) == 0;
 }
 
+static inline int NintendontSyncIsSupported(
+    const BloopairControllerPairingData* source)
+{
+    return source && source->controller_type == NINTENDONT_SWITCH_PRO_TYPE &&
+           source->vendor_id == 0x057e && source->product_id == 0x2009;
+}
+
 static inline int NintendontSyncIsStored(const BloopairStoredSwitchProList* stored,
                                          const uint8_t address[6])
 {
@@ -29,6 +36,7 @@ static inline int NintendontSyncHasAddress(const NintendontSwitchPairing* record
 static inline void NintendontSyncAddOrReplace(NintendontSwitchPairing* record,
                                                const BloopairControllerPairingData* source)
 {
+    if (!record || !NintendontSyncIsSupported(source)) return;
     uint8_t index = record->count;
     for (uint8_t i = 0; i < record->count; i++) {
         if (NintendontSyncSameAddress(record->controllers[i].controller_bda,

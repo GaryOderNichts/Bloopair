@@ -40,9 +40,9 @@ Bloopair runtime dependency.
 
 1. Bloopair pairs or reconnects an original Switch Pro Controller.
 2. Its existing security hook captures that controller's resolved link key.
-3. `pairing_export_capture_security_record()` retains the security-record
-   pointer reached from `btm_sec_execute_procedure_hook()`. The link key may be
-   filled later by the Broadcom stack, so Bloopair derives a non-secret,
+3. `pairing_export_capture_security_record()` copies a resolved link key from
+   the security record reached by `btm_sec_execute_procedure_hook()`; no
+   pointer into Broadcom-owned storage survives the callback. Bloopair derives a non-secret,
    monotonic generation from the current stored-device metadata and the
    availability/content of each cached key. `store_read_DI_record()` refreshes
    it after Switch VID/PID discovery; `writeDevInfo_hook()` refreshes it after
@@ -57,7 +57,10 @@ Bloopair runtime dependency.
 5. On plugin/application start, and only after a generation change, a
    metadata-only IPC call enumerates original Switch Pro addresses still in
    the Wii U device table. A second call returns a cached key only for one of
-   those validated addresses.
+   those validated addresses. Both calls require the complete supported
+   identity: Switch metadata plus Nintendo VID/PID `057e:2009`. Unknown or
+   third-party metadata is not exportable and is filtered before the four-entry
+   limit; later definitive metadata changes the generation and retries sync.
 6. The plugin merges up to four entries, replaces re-paired keys, removes
    deleted devices, and writes a checksummed v3 record only when its bytes
    changed. It writes a temporary file, calls `fflush()` and `fsync()`, closes
@@ -75,7 +78,17 @@ Bloopair runtime dependency.
    vWii/Nintendont when storage is healthy.
 8. Nintendont validates the fixed
    `sd:/wiiu/bloopair/nintendont-switch-pro.bin` record when it starts and uses
-   it after entering vWii.
+   it after entering vWii. It rejects a damaged envelope (format, length,
+   version or checksum), but filters an otherwise intact record per entry so
+   an unsupported controller cannot suppress supported entries.
+
+## Compatibility invariant
+
+Original Switch Pro Controllers must continue to work within the available
+GameCube channels regardless of other Bloopair pairings, connection state or
+activation order. Unsupported controllers are neither exported nor claimed by
+Nintendont, and do not consume one of the four handoff entries. They remain
+untouched in Bloopair and are not thereby made compatible with Nintendont.
 
 The code proves generation changes for a new key, key replacement and removal;
 bounded merge, stale-entry filtering, changed-content-only writes, durable
