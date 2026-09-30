@@ -104,9 +104,7 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
         }
 
         Controller* controller = &controllers[req->handle];
-        if (!controller->isInitialized ||
-            !store_is_original_switch_pro(MAGIC_SWITCH, controller->vendor_id,
-                                          controller->product_id)) {
+        if (!controller->isInitialized || controller->type != BLOOPAIR_CONTROLLER_SWITCH_PRO) {
             return -4;
         }
         if (pairing_export_get(controller->bda, resp->hci_link_key, &resp->key_type) < 0) {
@@ -133,8 +131,9 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
         BloopairControllerPairingData* resp = (BloopairControllerPairingData*) response->data;
         store_read_device_info();
         StoredInfo* info = store_get_device_info(req->bd_address);
-        if (!info || !store_is_original_switch_pro(info->magic, info->vendor_id,
-                                                   info->product_id)) {
+        if (!info || !((info->magic == MAGIC_SWITCH) ||
+            (info->magic == MAGIC_BLOOPAIR && info->vendor_id == 0x057e &&
+             info->product_id == 0x2009))) {
             return -4;
         }
         if (pairing_export_get(req->bd_address, resp->hci_link_key, &resp->key_type) < 0) {
