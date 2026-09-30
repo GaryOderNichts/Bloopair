@@ -43,7 +43,8 @@ Nintendo Switch Pro Controllers it keeps
 After pairing through Bloopair, start vWii/Nintendont normally; no export or
 copy step is required. Up to four pairings are retained, re-pairing replaces
 the old key, and removing a controller from the Wii U pairing database removes
-its exported entry.
+its exported entry. Storage failures keep the last valid record when possible
+and are retried later without blocking normal Wii U use indefinitely.
 
 The file contains the Wii U Bluetooth address and, per controller, its address,
 Bluetooth link key, key type and USB identity. Nintendont needs those values to

@@ -5,10 +5,11 @@ CFLAGS := -std=c11 -Wall -Wextra -Werror \
 CXXFLAGS := -std=c++20 -Wall -Wextra -Werror \
 	-I../libbloopair/include
 
-all: test_nintendont_pairing test_pairing_export test_nintendont_sync
+all: test_nintendont_pairing test_pairing_export test_nintendont_sync test_nintendont_sync_state
 	./test_nintendont_pairing
 	./test_pairing_export
 	./test_nintendont_sync
+	./test_nintendont_sync_state
 
 test_nintendont_pairing: test_nintendont_pairing.cpp
 	$(CXX) $(CXXFLAGS) $< -o $@
@@ -20,5 +21,8 @@ test_pairing_export: test_pairing_export.c \
 test_nintendont_sync: test_nintendont_sync.cpp
 	$(CXX) $(CXXFLAGS) $< -o $@
 
+test_nintendont_sync_state: test_nintendont_sync_state.cpp
+	$(CXX) $(CXXFLAGS) $< -o $@
+
 clean:
-	$(RM) test_nintendont_pairing test_pairing_export test_nintendont_sync
+	$(RM) test_nintendont_pairing test_pairing_export test_nintendont_sync test_nintendont_sync_state

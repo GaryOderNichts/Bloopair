@@ -51,7 +51,8 @@ Bloopair runtime dependency.
 4. `/dev/usb/btrm` offers synchronous request/response IPC, not a push channel.
    Holding an ioctl open as a wait primitive would block the same BTRM service
    that must finish security and HID work. The plugin therefore reads only the
-   32-bit generation every 100 ms. This is the remaining technical polling;
+   32-bit generation every 500 ms through one worker-owned handle. This is the
+   remaining technical polling;
    it performs no enumeration and no filesystem I/O while unchanged.
 5. On plugin/application start, and only after a generation change, a
    metadata-only IPC call enumerates original Switch Pro addresses still in
@@ -61,11 +62,17 @@ Bloopair runtime dependency.
    deleted devices, and writes a checksummed v3 record only when its bytes
    changed. It writes a temporary file, calls `fflush()` and `fsync()`, closes
    it, then activates it by backup/rename.
+   Write, flush, fsync, close, backup removal and both renames are checked.
+   A failed operation leaves the generation pending and retries with bounded
+   exponential backoff (500 ms through 8 seconds). The last valid active or
+   backup record is retained whenever activation fails.
 7. `ON_APPLICATION_REQUESTS_EXIT()` first joins the worker, then synchronously
    repeats `generation before -> complete sync/write -> generation after`
-   until both generations match. The hook does not return while an observed
-   change is still unwritten. This is the boundary that covers pairing and
-   immediately launching vWii/Nintendont.
+   until both generations match, with at most three attempts. The hook never
+   waits indefinitely for a missing, full or read-only SD card; on failure the
+   generation remains uncommitted for a later application start. This bounded
+   barrier is the boundary that covers pairing and immediately launching
+   vWii/Nintendont when storage is healthy.
 8. Nintendont validates the fixed
    `sd:/wiiu/bloopair/nintendont-switch-pro.bin` record when it starts and uses
    it after entering vWii.

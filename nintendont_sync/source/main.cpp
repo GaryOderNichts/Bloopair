@@ -1,6 +1,7 @@
 #include <bloopair/bloopair.h>
 #include <bloopair/nintendont_pairing.h>
 #include <bloopair/nintendont_sync.h>
+#include <bloopair/nintendont_sync_state.h>
 
 #include <coreinit/thread.h>
 #include <coreinit/time.h>
@@ -10,6 +11,7 @@
 #include <wups.h>
 
 #include <atomic>
+#include <cerrno>
 #include <cstdio>
 #include <cstring>
 
@@ -26,7 +28,9 @@ constexpr const char* kPath = "fs:/vol/external01/wiiu/bloopair/nintendont-switc
 constexpr const char* kTemporaryPath = "fs:/vol/external01/wiiu/bloopair/nintendont-switch-pro.tmp";
 constexpr const char* kBackupPath = "fs:/vol/external01/wiiu/bloopair/nintendont-switch-pro.bak";
 constexpr uint32_t kStackSize = 16 * 1024;
-constexpr uint32_t kGenerationCheckMilliseconds = 100;
+constexpr uint32_t kGenerationCheckMilliseconds = 500;
+constexpr uint32_t kMaximumRetryMilliseconds = 8000;
+constexpr uint32_t kExitAttempts = 3;
 
 OSThread* gThread = nullptr;
 void* gStack = nullptr;
@@ -41,64 +45,68 @@ bool ReadRecordAt(const char* path, NintendontSwitchPairing& record) {
     return ok && NintendontSwitchPairingIsValid(&record);
 }
 
-bool ReadRecord(NintendontSwitchPairing& record) {
-    if (ReadRecordAt(kPath, record)) return true;
-    if (!ReadRecordAt(kBackupPath, record)) return false;
-    unlink(kPath);
-    rename(kBackupPath, kPath);
-    return true;
+bool ReadBestRecord(NintendontSwitchPairing& record, bool& activeValid) {
+    activeValid = ReadRecordAt(kPath, record);
+    if (activeValid) return true;
+    return ReadRecordAt(kBackupPath, record);
 }
 
 bool WriteRecord(const NintendontSwitchPairing& record) {
-    mkdir("fs:/vol/external01/wiiu", 0777);
-    mkdir(kDirectory, 0777);
+    if (mkdir("fs:/vol/external01/wiiu", 0777) != 0 && errno != EEXIST) return false;
+    if (mkdir(kDirectory, 0777) != 0 && errno != EEXIST) return false;
     FILE* file = std::fopen(kTemporaryPath, "wb");
     if (!file) return false;
-    bool ok = std::fwrite(&record, 1, sizeof(record), file) == sizeof(record) &&
-              std::fflush(file) == 0 && fsync(fileno(file)) == 0;
-    std::fclose(file);
+    bool ok = std::fwrite(&record, 1, sizeof(record), file) == sizeof(record);
+    if (ok) ok = std::fflush(file) == 0;
+    if (ok) ok = fsync(fileno(file)) == 0;
+    if (std::fclose(file) != 0) ok = false;
     if (!ok) {
         unlink(kTemporaryPath);
         return false;
     }
-    unlink(kBackupPath);
-    const bool hadActive = rename(kPath, kBackupPath) == 0;
-    if (rename(kTemporaryPath, kPath) != 0) {
-        if (hadActive) rename(kBackupPath, kPath);
+    if (unlink(kBackupPath) != 0 && errno != ENOENT) {
         unlink(kTemporaryPath);
         return false;
     }
-    if (hadActive) unlink(kBackupPath);
+    bool hadActive = rename(kPath, kBackupPath) == 0;
+    if (!hadActive && errno != ENOENT) {
+        unlink(kTemporaryPath);
+        return false;
+    }
+    if (rename(kTemporaryPath, kPath) != 0) {
+        if (hadActive && rename(kBackupPath, kPath) != 0) {
+            /* Keep both paths untouched from here; a later retry can recover. */
+        }
+        unlink(kTemporaryPath);
+        return false;
+    }
+    if (hadActive && unlink(kBackupPath) != 0 && errno != ENOENT) return false;
     return true;
 }
 
-bool ReadGeneration(uint32_t& generation) {
-    IOSHandle handle = Bloopair_Open();
-    if (handle < 0 || !Bloopair_IsActive(handle)) {
-        if (handle >= 0) Bloopair_Close(handle);
-        return false;
-    }
-    const bool ok = Bloopair_GetPairingChangeGeneration(handle, &generation) >= 0;
-    Bloopair_Close(handle);
+bool RemoveExport() {
+    bool ok = true;
+    if (unlink(kPath) != 0 && errno != ENOENT) ok = false;
+    if (unlink(kTemporaryPath) != 0 && errno != ENOENT) ok = false;
+    if (unlink(kBackupPath) != 0 && errno != ENOENT) ok = false;
     return ok;
 }
 
-void SyncOnce() {
-    IOSHandle handle = Bloopair_Open();
-    if (handle < 0 || !Bloopair_IsActive(handle)) {
-        if (handle >= 0) Bloopair_Close(handle);
-        return;
-    }
+bool ReadGeneration(IOSHandle handle, uint32_t& generation) {
+    return Bloopair_GetPairingChangeGeneration(handle, &generation) >= 0;
+}
+
+bool SyncOnce(IOSHandle handle) {
     BloopairStoredSwitchProList stored{};
     uint8_t consoleBda[6]{};
     if (Bloopair_ReadConsoleBDA(handle, consoleBda) < 0 ||
         Bloopair_GetStoredSwitchProControllers(handle, &stored) < 0) {
-        Bloopair_Close(handle);
-        return;
+        return false;
     }
 
     NintendontSwitchPairing previous{};
-    const bool previousValid = ReadRecord(previous) &&
+    bool activeValid = false;
+    const bool previousValid = ReadBestRecord(previous, activeValid) &&
                                std::memcmp(previous.console_bda, consoleBda, 6) == 0;
     NintendontSwitchPairing next{};
     next.magic = NINTENDONT_SWITCH_PAIRING_MAGIC;
@@ -131,42 +139,81 @@ void SyncOnce() {
             NintendontSyncAddOrReplace(&next, &source);
         }
     }
-    Bloopair_Close(handle);
-
-    if (!captured && !previousValid) return;
+    if (!captured && !previousValid && stored.count != 0) return false;
     if (next.count == 0) {
-        unlink(kPath);
-        return;
+        return RemoveExport();
     }
     next.checksum = NintendontSwitchPairingChecksum(&next);
-    if (previousValid && std::memcmp(&previous, &next, sizeof(next)) == 0) return;
-    WriteRecord(next);
+    if (activeValid && previousValid && std::memcmp(&previous, &next, sizeof(next)) == 0) {
+        bool clean = true;
+        if (unlink(kTemporaryPath) != 0 && errno != ENOENT) clean = false;
+        if (unlink(kBackupPath) != 0 && errno != ENOENT) clean = false;
+        return clean;
+    }
+    return WriteRecord(next);
 }
 
-void SyncUntilStable() {
-    for (;;) {
+bool SyncUntilStable(IOSHandle handle, uint32_t maximumAttempts,
+                     uint32_t& committedGeneration) {
+    for (uint32_t attempt = 0; attempt < maximumAttempts; attempt++) {
         uint32_t before = 0;
         uint32_t after = 0;
-        const bool haveBefore = ReadGeneration(before);
-        SyncOnce();
-        const bool haveAfter = ReadGeneration(after);
-        if (!haveBefore || !haveAfter || before == after) return;
+        if (!ReadGeneration(handle, before)) return false;
+        if (!SyncOnce(handle)) return false;
+        if (!ReadGeneration(handle, after)) return false;
+        if (before == after) {
+            committedGeneration = after;
+            return true;
+        }
     }
+    return false;
 }
 
 int32_t SyncThread([[maybe_unused]] int argc, [[maybe_unused]] const char** argv) {
-    uint32_t observedGeneration = 0;
-    SyncUntilStable();
-    ReadGeneration(observedGeneration);
-    while (!gStop.load()) {
-        uint32_t generation = observedGeneration;
-        if (ReadGeneration(generation) && generation != observedGeneration) {
-            SyncUntilStable();
-            ReadGeneration(observedGeneration);
-        }
-        OSSleepTicks(OSMillisecondsToTicks(kGenerationCheckMilliseconds));
+    IOSHandle handle = Bloopair_Open();
+    if (handle < 0 || !Bloopair_IsActive(handle)) {
+        if (handle >= 0) Bloopair_Close(handle);
+        return 0;
     }
+    uint32_t initialGeneration = 1;
+    ReadGeneration(handle, initialGeneration);
+    NintendontSyncState state{};
+    NintendontSyncStateInit(&state, initialGeneration, kGenerationCheckMilliseconds);
+    while (!gStop.load()) {
+        uint32_t generation = state.pending_generation;
+        if (ReadGeneration(handle, generation)) NintendontSyncStateObserve(&state, generation);
+        if (NintendontSyncStatePending(&state)) {
+            uint32_t committed = 0;
+            if (SyncUntilStable(handle, 3, committed)) {
+                NintendontSyncStateCommitted(&state, committed,
+                    kGenerationCheckMilliseconds);
+                if (ReadGeneration(handle, generation))
+                    NintendontSyncStateObserve(&state, generation);
+            } else {
+                NintendontSyncStateFailed(&state, kMaximumRetryMilliseconds);
+            }
+        }
+        uint32_t slept = 0;
+        const uint32_t delay = NintendontSyncStatePending(&state) ?
+            state.retry_milliseconds : kGenerationCheckMilliseconds;
+        while (!gStop.load() && slept < delay) {
+            OSSleepTicks(OSMillisecondsToTicks(kGenerationCheckMilliseconds));
+            slept += kGenerationCheckMilliseconds;
+        }
+    }
+    Bloopair_Close(handle);
     return 0;
+}
+
+void FlushOnExit() {
+    IOSHandle handle = Bloopair_Open();
+    if (handle < 0 || !Bloopair_IsActive(handle)) {
+        if (handle >= 0) Bloopair_Close(handle);
+        return;
+    }
+    uint32_t committed = 0;
+    SyncUntilStable(handle, kExitAttempts, committed);
+    Bloopair_Close(handle);
 }
 
 void StartThread() {
@@ -196,4 +243,4 @@ void StopThread() {
 INITIALIZE_PLUGIN() {}
 DEINITIALIZE_PLUGIN() { StopThread(); }
 ON_APPLICATION_START() { StartThread(); }
-ON_APPLICATION_REQUESTS_EXIT() { StopThread(); SyncUntilStable(); }
+ON_APPLICATION_REQUESTS_EXIT() { StopThread(); FlushOnExit(); }

@@ -6,7 +6,8 @@
 
 typedef struct {
     uint8_t address[BD_ADDR_LEN];
-    tBTM_SEC_DEV_REC* record;
+    uint8_t link_key[LINK_KEY_LEN];
+    uint8_t valid;
 } PairingExportEntry;
 
 static PairingExportEntry entries[BTA_HH_MAX_KNOWN];
@@ -32,19 +33,22 @@ void pairing_export_capture_security_record(tBTM_SEC_DEV_REC* record)
     }
 
     for (unsigned int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
-        if (entries[i].record && memcmp(entries[i].address, record->bd_addr, BD_ADDR_LEN) == 0) {
-            entries[i].record = record;
+        if (entries[i].valid && memcmp(entries[i].address, record->bd_addr, BD_ADDR_LEN) == 0) {
+            if (key_is_nonzero(record->link_key)) {
+                memcpy(entries[i].link_key, record->link_key, LINK_KEY_LEN);
+            }
             pairing_export_refresh_generation();
             return;
         }
-        if (!entries[i].record && !free_entry) {
+        if (!entries[i].valid && !free_entry) {
             free_entry = &entries[i];
         }
     }
 
-    if (free_entry) {
+    if (free_entry && key_is_nonzero(record->link_key)) {
         memcpy(free_entry->address, record->bd_addr, BD_ADDR_LEN);
-        free_entry->record = record;
+        memcpy(free_entry->link_key, record->link_key, LINK_KEY_LEN);
+        free_entry->valid = 1;
     }
     pairing_export_refresh_generation();
 }
@@ -65,11 +69,11 @@ void pairing_export_refresh_generation(void)
             fingerprint = fingerprint_byte(fingerprint, ((const uint8_t*) &stored[i])[j]);
         }
         for (size_t j = 0; j < BTA_HH_MAX_KNOWN; j++) {
-            tBTM_SEC_DEV_REC* record = entries[j].record;
-            if (!record || memcmp(record->bd_addr, stored[i].bd_address, BD_ADDR_LEN) != 0 ||
-                !key_is_nonzero(record->link_key)) continue;
+            PairingExportEntry* entry = &entries[j];
+            if (!entry->valid || memcmp(entry->address, stored[i].bd_address, BD_ADDR_LEN) != 0)
+                continue;
             for (size_t k = 0; k < LINK_KEY_LEN; k++) {
-                fingerprint = fingerprint_byte(fingerprint, record->link_key[k]);
+                fingerprint = fingerprint_byte(fingerprint, entry->link_key[k]);
             }
             break;
         }
@@ -97,16 +101,11 @@ int pairing_export_get(const uint8_t* address, uint8_t* hci_link_key, uint8_t* k
     }
 
     for (unsigned int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
-        tBTM_SEC_DEV_REC* record = entries[i].record;
-        if (!record || memcmp(entries[i].address, address, BD_ADDR_LEN) != 0 ||
-            memcmp(record->bd_addr, address, BD_ADDR_LEN) != 0) {
+        PairingExportEntry* entry = &entries[i];
+        if (!entry->valid || memcmp(entry->address, address, BD_ADDR_LEN) != 0) {
             continue;
         }
-        if (!key_is_nonzero(record->link_key)) {
-            return -6;
-        }
-
-        NintendontSwitchPairingBroadcomKeyToHci(hci_link_key, record->link_key);
+        NintendontSwitchPairingBroadcomKeyToHci(hci_link_key, entry->link_key);
         *key_type = NINTENDONT_SWITCH_PAIRING_KEY_TYPE_UNKNOWN;
         return 0;
     }
