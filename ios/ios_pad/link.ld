@@ -34,6 +34,6 @@ SECTIONS {
     }
 }
 
-/* Only mapping 0x6000 in the kernel for now, make sure this isn't bigger than that */
-ASSERT(_text_end - _text_start < 0x6000, "ios_pad text is too big");
+/* Only mapping 0x10000 in the kernel for now, make sure this isn't bigger than that */
+ASSERT(_text_end - _text_start < 0x10000, "ios_pad text is too big");
 ASSERT(_bss_end - _bss_start < 0x6000, "ios_pad bss is too big");

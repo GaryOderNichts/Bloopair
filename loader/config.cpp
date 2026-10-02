@@ -78,6 +78,13 @@ static const std::map<std::string, BloopairControllerType> bloopairControllerTyp
     { "Switch-Pro",             BLOOPAIR_CONTROLLER_SWITCH_PRO },
     { "Switch-N64",             BLOOPAIR_CONTROLLER_SWITCH_N64 },
     { "Xbox-One",               BLOOPAIR_CONTROLLER_XBOX_ONE },
+    { "Xbox-Series",            BLOOPAIR_CONTROLLER_XBOX_SERIES },
+    { "Switch2-JoyCon-Left",    BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT },
+    { "Switch2-JoyCon-Right",   BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_RIGHT },
+    { "Switch2-JoyCon-Dual",    BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_DUAL },
+    { "Switch2-Pro",            BLOOPAIR_CONTROLLER_SWITCH2_PRO },
+    { "Switch2-Gamecube",       BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE },
+    { "Stadia",                 BLOOPAIR_CONTROLLER_STADIA },
 };
 
 static bool LoadCommonConfiguration(const nlohmann::json& common, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
@@ -189,6 +196,16 @@ static bool LoadXboxOneCustomConfiguration(const nlohmann::json& custom, IOSHand
     return true;
 }
 
+static bool LoadSwitch2CustomConfiguration(const nlohmann::json& custom, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
+{
+    return true;
+}
+
+static bool LoadStadiaCustomConfiguration(const nlohmann::json& custom, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
+{
+    return true;
+}
+
 static bool LoadCustomConfiguration(const nlohmann::json& custom, IOSHandle handle, BloopairControllerType type, const uint8_t* bda)
 {
     switch (type) {
@@ -206,7 +223,16 @@ static bool LoadCustomConfiguration(const nlohmann::json& custom, IOSHandle hand
         case BLOOPAIR_CONTROLLER_SWITCH_N64:
             return LoadSwitchCustomConfiguration(custom, handle, type, bda);
         case BLOOPAIR_CONTROLLER_XBOX_ONE:
+        case BLOOPAIR_CONTROLLER_XBOX_SERIES:
             return LoadXboxOneCustomConfiguration(custom, handle, type, bda);
+        case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT:
+        case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_RIGHT:
+        case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_DUAL:
+        case BLOOPAIR_CONTROLLER_SWITCH2_PRO:
+        case BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE:
+            return LoadSwitch2CustomConfiguration(custom, handle, type, bda);
+        case BLOOPAIR_CONTROLLER_STADIA:
+            return LoadStadiaCustomConfiguration(custom, handle, type, bda);
         default: break;
     }
 
