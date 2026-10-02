@@ -18,7 +18,7 @@
 #include "bta_hh.h"
 #include "bt_api.h"
 #include <controllers.h>
-#include <info_store.h>
+#include <device_info.h>
 
 void bta_hh_sm_execute(tBTA_HH_DEV_CB *p_cb, uint16_t event, void * p_data);
 void bta_hh_start_sdp(tBTA_HH_DEV_CB *p_cb, void *p_data);
@@ -44,11 +44,8 @@ void name_read_cback(tBTM_REMOTE_DEV_NAME* name)
 
     retry = 0;
 
-    StoredInfo* info = store_get_device_info(bta_hh_cb->p_cur->addr);
-    if (!info) {
-        info = store_allocate_device_info(bta_hh_cb->p_cur->addr);
-    }
-
+    DeviceInfo* info = DeviceInfo_GetOrAllocate(bta_hh_cb->p_cur->addr);
+    info->flush = 1;
     if (isOfficialName((const char*) name->remote_bd_name)) {
         info->magic = MAGIC_OFFICIAL;
     } else if (isSwitchControllerName((const char*) name->remote_bd_name)) {
@@ -65,18 +62,18 @@ void name_read_cback(tBTM_REMOTE_DEV_NAME* name)
     }
 }
 
-void bta_hh_di_sdp_callback(uint16_t result)
+void bta_hh_di_sdp_cback(uint16_t result)
 {
-    DEBUG_PRINT("bta_hh_di_sdp_callback called res: %u\n", result);
+    DEBUG_PRINT("bta_hh_di_sdp_cback called res: %u\n", result);
 
     // make sure the device info has been read
-    store_read_device_info();
+    DeviceInfo_Init();
 
     static int retry = 0;
     if (result != 0) {
         if (retry++ < 4) {
             // retry until we succeed
-            SDP_DiDiscover(bta_hh_cb->p_cur->addr, bta_hh_cb->p_disc_db, sdp_db_size, bta_hh_di_sdp_callback);
+            SDP_DiDiscover(bta_hh_cb->p_cur->addr, bta_hh_cb->p_disc_db, sdp_db_size, bta_hh_di_sdp_cback);
         } else {
             retry = 0;
             utl_freebuf((void **)&bta_hh_cb->p_disc_db);
@@ -90,30 +87,10 @@ void bta_hh_di_sdp_callback(uint16_t result)
     retry = 0;
 
     // add info from the read DI record
-    store_read_DI_record(bta_hh_cb->p_cur->addr, bta_hh_cb->p_disc_db);
+    DeviceInfo_ParseDIRecord(bta_hh_cb->p_cur->addr, bta_hh_cb->p_disc_db);
 
     // proceed with reading the name
     BTM_ReadRemoteDeviceName(bta_hh_cb->p_cur->addr, name_read_cback);
-}
-
-void name_read_cback_open(tBTM_REMOTE_DEV_NAME* name)
-{
-    DEBUG_PRINT("open: got name %s status %d\n", name->remote_bd_name, name->status);
-
-    if (name->status == 0) {
-        StoredInfo* info = store_get_device_info(bta_hh_cb->p_cur->addr);
-        if (!info) {
-            info = store_allocate_device_info(bta_hh_cb->p_cur->addr);
-        }
-
-        if (isOfficialName((const char*) name->remote_bd_name)) {
-            info->magic = MAGIC_OFFICIAL;
-        } else {
-            info->magic = MAGIC_BLOOPAIR;
-        }
-    }
-
-    bta_hh_sm_execute(bta_hh_cb->p_cur, BTA_HH_OPEN_CMPL_EVT, NULL);
 }
 
 void bta_hh_open_act(tBTA_HH_DEV_CB *p_cb, void *p_data)
@@ -123,19 +100,11 @@ void bta_hh_open_act(tBTA_HH_DEV_CB *p_cb, void *p_data)
     DEBUG_PRINT("bta_hh_open_act handle %d %d\n", p_cb->hid_handle, p_cb->app_id);
 
     // make sure the device info has been read
-    store_read_device_info();
+    DeviceInfo_Init();
 
     /* SDP has been done */
     if (p_cb->app_id != 0) {
-        StoredInfo* info = store_get_device_info(p_cb->addr);
-
-        // controllers paired without bloopair running have an unknown entry in the store
-        if (info && info->magic == MAGIC_UNKNOWN) {
-            bta_hh_cb->p_cur = p_cb;
-            BTM_ReadRemoteDeviceName(p_cb->addr, name_read_cback_open);
-        } else {
-            bta_hh_sm_execute(p_cb, BTA_HH_OPEN_CMPL_EVT, p_data);
-        }
+        bta_hh_sm_execute(p_cb, BTA_HH_OPEN_CMPL_EVT, p_data);
     }
     else
     /*  app_id == 0 indicates an incoming conenction request arrives without SDP

@@ -88,7 +88,18 @@ ControllerListOptionsScreen::ControllerListOptionsScreen(const KPADController* c
                 BloopairIPC::GetCustomConfiguration(mController->GetChannel(), mCustomConfiguration.switch_);
                 break;
             case BLOOPAIR_CONTROLLER_XBOX_ONE:
+            case BLOOPAIR_CONTROLLER_XBOX_SERIES:
                 BloopairIPC::GetCustomConfiguration(mController->GetChannel(), mCustomConfiguration.xboxOne);
+                break;
+            case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT:
+            case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_RIGHT:
+            case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_DUAL:
+            case BLOOPAIR_CONTROLLER_SWITCH2_PRO:
+            case BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE:
+                BloopairIPC::GetCustomConfiguration(mController->GetChannel(), mCustomConfiguration.switch2);
+                break;
+            case BLOOPAIR_CONTROLLER_STADIA:
+                BloopairIPC::GetCustomConfiguration(mController->GetChannel(), mCustomConfiguration.stadia);
                 break;
             default: break;
         }
@@ -339,8 +350,21 @@ void ControllerListOptionsScreen::SaveAndApply()
                 cfg.SetCustomConfiguraion(mCustomConfiguration.switch_);
                 break;
             case BLOOPAIR_CONTROLLER_XBOX_ONE:
+            case BLOOPAIR_CONTROLLER_XBOX_SERIES:
                 BloopairIPC::ApplyCustomConfiguration(bda.data(), mCustomConfiguration.xboxOne);
                 cfg.SetCustomConfiguraion(mCustomConfiguration.xboxOne);
+                break;
+            case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT:
+            case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_RIGHT:
+            case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_DUAL:
+            case BLOOPAIR_CONTROLLER_SWITCH2_PRO:
+            case BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE:
+                BloopairIPC::ApplyCustomConfiguration(bda.data(), mCustomConfiguration.switch2);
+                cfg.SetCustomConfiguraion(mCustomConfiguration.switch2);
+                break;
+            case BLOOPAIR_CONTROLLER_STADIA:
+                BloopairIPC::ApplyCustomConfiguration(bda.data(), mCustomConfiguration.stadia);
+                cfg.SetCustomConfiguraion(mCustomConfiguration.stadia);
                 break;
             default: break;
         }
@@ -402,8 +426,21 @@ void ControllerListOptionsScreen::SaveAndApplyAll()
                 cfg.SetCustomConfiguraion(mCustomConfiguration.switch_);
                 break;
             case BLOOPAIR_CONTROLLER_XBOX_ONE:
+            case BLOOPAIR_CONTROLLER_XBOX_SERIES:
                 BloopairIPC::ApplyCustomConfiguration(type, mCustomConfiguration.xboxOne);
                 cfg.SetCustomConfiguraion(mCustomConfiguration.xboxOne);
+                break;
+            case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT:
+            case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_RIGHT:
+            case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_DUAL:
+            case BLOOPAIR_CONTROLLER_SWITCH2_PRO:
+            case BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE:
+                BloopairIPC::ApplyCustomConfiguration(type, mCustomConfiguration.switch2);
+                cfg.SetCustomConfiguraion(mCustomConfiguration.switch2);
+                break;
+            case BLOOPAIR_CONTROLLER_STADIA:
+                BloopairIPC::ApplyCustomConfiguration(type, mCustomConfiguration.stadia);
+                cfg.SetCustomConfiguraion(mCustomConfiguration.stadia);
                 break;
             default: break;
         }

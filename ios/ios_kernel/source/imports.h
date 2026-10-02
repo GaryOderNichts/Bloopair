@@ -17,6 +17,7 @@
 #define enable_interrupts           ((int(*)(int))0x0812E78C)
 #define kernel_bsp_command_5        ((int (*)(const char*, int offset, const char*, int size, void *buffer))0x0812EC40)
 #define kernel_ios_shutdown         ((void (*)(int)) 0xffffdc48)
+#define setClientCapabilities       ((void (*)(int, int, uint64_t)) 0x081260a8)
 
 static inline unsigned int disable_mmu(void)
 {

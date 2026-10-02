@@ -1,3 +1,20 @@
+/******************************************************************************
+ *
+ *  Copyright (C) 1999-2012 Broadcom Corporation
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at:
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ ******************************************************************************/
 #pragma once
 
 #include <imports.h>
@@ -16,6 +33,14 @@ typedef uint8_t DEV_CLASS[DEV_CLASS_LEN];     /* Device class */
 
 #define LINK_KEY_LEN    16
 typedef uint8_t LINK_KEY[LINK_KEY_LEN];       /* Link Key */
+
+typedef struct {
+    uint16_t event;
+    uint16_t len;
+    uint16_t offset;
+    uint16_t layer_specific;
+} BT_HDR;
+CHECK_SIZE(BT_HDR, 0x8);
 
 /* Structure returned with remote name  request */
 typedef struct
@@ -39,6 +64,8 @@ typedef struct
 extern uint16_t sdp_db_size;
 
 /* BTA HID Host callback events */
+#define BTA_HH_ENABLE_EVT       0       /* HH enabled */
+#define BTA_HH_DISABLE_EVT      1       /* HH disabled */
 #define BTA_HH_OPEN_EVT         2       /* connection opened */
 #define BTA_HH_CLOSE_EVT        3       /* connection closed */
 #define BTA_HH_GET_DSCP_EVT     10      /* Get report descripotor */
@@ -122,40 +149,22 @@ typedef struct
     uint8_t                 cnt_num;                /* connected device number */
     uint8_t                 w4_disable;             /* w4 disable flag */
 } tBTA_HH_CB;
+CHECK_SIZE(tBTA_HH_CB, 0x230);
 
 /* Inquiry modes */
 #define BTM_GENERAL_INQUIRY         0
 #define BTM_LIMITED_INQUIRY         1
+#define BTM_BR_INQUIRY_MASK         0x0f
+/* high byte of inquiry mode for BLE inquiry mode */
+#define BTM_BLE_INQUIRY_NONE        0x00
+#define BTM_BLE_GENERAL_INQUIRY     0x10
+#define BTM_BLE_LIMITED_INQUIRY     0x20
+#define BTM_BLE_INQUIRY_MASK        (BTM_BLE_GENERAL_INQUIRY|BTM_BLE_LIMITED_INQUIRY)
 
 /* Inquiry Filter Condition types  */
 #define BTM_CLR_INQUIRY_FILTER          0 /* Inquiry Filtering is turned off */
 #define BTM_FILTER_COND_DEVICE_CLASS    1 /* Filter on device class */
 #define BTM_FILTER_COND_BD_ADDR         2 /* Filter on device addr */
-
-/* Inquiry filter device class condition */
-typedef struct
-{
-    DEV_CLASS       dev_class;        /* device class of interest */
-    DEV_CLASS       dev_class_mask;   /* mask to determine the bits of device class of interest */
-} tBTA_DM_COD_COND;
-
-/* Inquiry Filter Condition */
-typedef union
-{
-    BD_ADDR              bd_addr;            /* BD address of  device to filter. */
-    tBTA_DM_COD_COND     dev_class_cond;     /* Device class filter condition */
-} tBTA_DM_INQ_COND;
-
-/* Inquiry Parameters */
-typedef struct
-{
-    uint8_t             mode;           /* Inquiry mode, limited or general. */
-    uint8_t             duration;       /* Inquiry duration in 1.28 sec units. */
-    uint8_t             max_resps;      /* Maximum inquiry responses.  Set to zero for unlimited responses. */
-    uint8_t             report_dup;     /* report duplicated inquiry response with higher RSSI value */
-    uint8_t             filter_type;    /* Filter condition type. */
-    tBTA_DM_INQ_COND    filter_cond;    /* Filter condition data. */
-} tBTA_DM_INQ;
 
 /* minor device class field for Peripheral Major Class */
 #define BTM_COD_MINOR_JOYSTICK              0x04
@@ -171,57 +180,23 @@ typedef struct
 #define BTM_COD_MINOR_CLASS_MASK      0xFC
 #define BTM_COD_MAJOR_CLASS_MASK      0x1F
 
-/* Search callback events */
-#define BTA_DM_INQ_RES_EVT              0       /* Inquiry result for a peer device. */
-#define BTA_DM_INQ_CMPL_EVT             1       /* Inquiry complete. */
-#define BTA_DM_DISC_RES_EVT             2       /* Discovery result for a peer device. */
-#define BTA_DM_SEARCH_CANCEL_CMPL_EVT   6       /* Search cancelled */
+/* Address types
+*/
+#define BLE_ADDR_PUBLIC         0x00
+#define BLE_ADDR_RANDOM         0x01
+#define BLE_ADDR_IS_STATIC(x)   ((x[0] & 0xC0) == 0xC0)
 
-/* Structure associated with BTA_DM_DISC_RES_EVT */
-typedef struct {
-    BD_ADDR  bd_addr;        /* BD address peer device. */
-    BD_NAME  bd_name;        /* Name of peer device. */
-    uint32_t services;       /* Services found on peer device. */
-    uint8_t result;
-} tBTA_DM_DISC_RES;
+/* Device Types
+*/
+#define BT_DEVICE_TYPE_BREDR   0x01
+#define BT_DEVICE_TYPE_BLE     0x02
 
-/* Structure associated with BTA_DM_INQ_RES_EVT */
-typedef struct
+enum
 {
-    BD_ADDR       bd_addr;               /* BD address peer device. */
-    DEV_CLASS     dev_class;             /* Device class of peer device. */
-    uint8_t       remt_name_not_required;   /* Application sets this flag if it already knows the name of the device */
-                                            /* If the device name is known to application BTA skips the remote name request */
-    uint8_t       is_limited;               /* TRUE, if the limited inquiry bit is set in the CoD */
-    int8_t        rssi;                     /* The rssi value */
-    uint8_t       *p_eir;                   /* received EIR */
-    uint8_t       inq_result_type;
-    uint8_t       ble_addr_type;
-    uint8_t       ble_evt_type;
-    uint8_t       device_type;
-} tBTA_DM_INQ_RES;
-
-/* Security Callback Events */
-#define BTA_DM_SP_CFM_REQ_EVT 10 /* Simple Pairing User Confirmation request. */
-
-typedef struct {
-    BT_HDR  hdr;
-    BD_ADDR bd_addr;
-    uint8_t accept;
-} tBTA_DM_API_CONFIRM;
-
-/* Structure associated with BTA_DM_SP_CFM_REQ_EVT */
-typedef struct {
-    BD_ADDR   bd_addr;        /* peer address */
-    DEV_CLASS dev_class;      /* peer CoD */
-    BD_NAME   bd_name;        /* peer device name */
-    uint32_t  num_val;        /* the numeric value for comparison. If just_works, do not show this number to UI */
-    uint8_t   just_works;     /* TRUE, if "Just Works" association model */
-    uint8_t   loc_auth_req;   /* Authentication required for local device */
-    uint8_t   rmt_auth_req;   /* Authentication required for peer device */
-    uint8_t   loc_io_caps;    /* IO Capabilities of local device */
-    uint8_t   rmt_io_caps;    /* IO Capabilities of remote device */
-} tBTA_DM_SP_CFM_REQ;
+    BTM_BLE_CONN_NONE,
+    BTM_BLE_CONN_AUTO,
+    BTM_BLE_CONN_SELECTIVE
+};
 
 enum
 {
@@ -232,43 +207,6 @@ enum
 };
 
 #define HID_TRANS_SET_REPORT    (5)
-
-/*
-** Define structure for Security Device Record.
-** A record exists for each device authenticated with this device
-*/
-#define BTM_SEC_SERVICE_ARRAY_SIZE 3
-typedef struct PACKED
-{
-    void                *p_cur_service;
-    void                *p_callback;
-    void                *p_ref_data;
-    uint32_t             timestamp;         /* Timestamp of the last connection   */
-    uint32_t             trusted_mask[BTM_SEC_SERVICE_ARRAY_SIZE];  /* Bitwise OR of trusted services     */
-    uint16_t             hci_handle;        /* Handle to connection when exists   */
-    uint16_t             clock_offset;      /* Latest known clock offset          */
-    BD_ADDR              bd_addr;           /* BD_ADDR of the device              */
-    DEV_CLASS            dev_class;         /* DEV_CLASS of the device            */
-    LINK_KEY             link_key;          /* Device link key                    */
-
-    uint8_t         sec_bd_name[68];    /* User friendly name of the device. (may be truncated to save space in dev_rec table) */
-    uint8_t         sec_flags;          /* Current device security state      */
-    uint8_t         features[8];        /* Features suported by the device    */
-
-    uint8_t     sec_state;              /* Operating state                    */
-    uint8_t     is_originator;          /* TRUE if device is originating connection */
-    uint8_t     role_master;            /* TRUE if current mode is master     */
-    uint16_t    security_required;      /* Security required for connection   */
-    uint8_t     link_key_not_sent;      /* link key notification has not been sent waiting for name */
-    uint8_t     link_key_type;          /* Type of key used in pairing   */
-    uint8_t     link_key_changed;       /* Changed link key during current connection */
-
-    uint8_t     sm4;                    /* BTM_SM4_TRUE, if the peer supports SM4 */
-    uint8_t     rmt_io_caps;            /* IO capability of the peer device */
-    uint8_t     rmt_auth_req;           /* the auth_req flag as in the IO caps rsp evt */
-
-    uint8_t     ble[30];
-} tBTM_SEC_DEV_REC;
 
 /* Security Service Levels [bit mask] (BTM_SetSecurityLevel)
 ** Encryption should not be used without authentication
@@ -288,3 +226,140 @@ typedef struct PACKED
 #define BTM_SEC_ATTEMPT_SLAVE      0x0800 /* Try to switch connection to be slave */
 #define BTM_SEC_IN_MITM            0x1000 /* inbound Do man in the middle protection */
 #define BTM_SEC_OUT_MITM           0x2000 /* outbound Do man in the middle protection */
+
+/* Security Flags [bit mask] (BTM_GetSecurityFlags)
+*/
+#define BTM_SEC_FLAG_AUTHORIZED     0x01
+#define BTM_SEC_FLAG_AUTHENTICATED  0x02
+#define BTM_SEC_FLAG_ENCRYPTED      0x04
+#define BTM_SEC_FLAG_LKEY_KNOWN     0x10
+#define BTM_SEC_FLAG_LKEY_AUTHED    0x20
+
+typedef struct
+{
+    void    *p_first;
+    void    *p_last;
+    uint16_t count;
+} BUFFER_Q;
+
+#define BTM_BLE_CACHE_ADV_DATA_MAX      62
+#define BTM_BLE_ADV_DATA_LEN_MAX        31
+
+#define BTM_BLE_AD_TYPE_FLAG            0x01
+#define BTM_BLE_AD_TYPE_SRV_PART        0x02
+#define BTM_BLE_AD_TYPE_SRV_CMPL        0x03
+#define BTM_BLE_AD_TYPE_NAME_SHORT      0x08
+#define BTM_BLE_AD_TYPE_NAME_CMPL       0x09
+#define BTM_BLE_AD_TYPE_TX_PWR          0x0A
+#define BTM_BLE_AD_TYPE_DEV_CLASS       0x0D
+#define BTM_BLE_AD_TYPE_ATTR            0x10
+#define BTM_BLE_AD_TYPE_MANU            0xff
+#define BTM_BLE_AD_TYPE_INT_RANGE       0x12
+#define BTM_BLE_AD_TYPE_SOL_SRV_UUID    0x14
+// wiiu-edit: these were added by myself
+#define BTM_BLE_AD_TYPE_APPEARANCE      0x19
+
+#define L2CAP_MIN_OFFSET    13     /* plus control(2), SDU length(2) */
+
+/* local Bluetooth controller id for AMP HCI */
+#define LOCAL_BR_EDR_CONTROLLER_ID      0
+
+#define BT_EVT_MASK                 0xFF00
+#define BT_SUB_EVT_MASK             0x00FF
+
+#define BT_EVT_TO_BTU_HCI_EVT       0x1000      /* HCI Event                        */
+#define BT_EVT_TO_BTU_HCI_ACL       0x1100      /* ACL Data from HCI                */
+#define BT_EVT_TO_BTU_HCI_SCO       0x1200      /* SCO Data from HCI                */
+#define BT_EVT_TO_LM_HCI_CMD        0x2000      /* HCI Command                      */
+#define BT_EVT_TO_LM_HCI_ACL        0x2100      /* HCI ACL Data                     */
+#define BT_EVT_TO_LM_HCI_SCO        0x2200      /* HCI SCO Data                     */
+
+#define BT_EVT_TO_BTU_L2C_SEG_XMIT  0x1900      /* L2CAP segment(s) transmitted     */
+
+/* Structure returned with Vendor Specific Command complete callback */
+typedef struct
+{
+    uint16_t  opcode;
+    uint16_t  param_len;
+    uint8_t*  p_param_buf;
+} tBTM_VSC_CMPL;
+CHECK_SIZE(tBTM_VSC_CMPL, 8);
+
+/* VSC callback function for notifying an application that a synchronous
+** BTM function is complete. The pointer contains the address of any returned data.
+*/
+typedef void (tBTM_VSC_CMPL_CB) (tBTM_VSC_CMPL* p1);
+
+/* General callback function for notifying an application that a synchronous
+** BTM function is complete. The pointer contains the address of any returned data.
+*/
+typedef void (tBTM_CMPL_CB) (void *p1);
+
+/* Timer list entry callback type
+*/
+typedef void (TIMER_CBACK)(void *p_tle);
+
+/* Define a timer list entry
+*/
+typedef struct _tle
+{
+    struct _tle  *p_next;
+    struct _tle  *p_prev;
+    TIMER_CBACK  *p_cback;
+    int32_t       ticks;
+    uint32_t      param;
+    uint16_t      event;
+    uint8_t       in_use;
+} TIMER_LIST_ENT;
+CHECK_SIZE(TIMER_LIST_ENT, 0x18);
+
+/* Define a timer list queue
+*/
+typedef struct
+{
+    TIMER_LIST_ENT   *p_first;
+    TIMER_LIST_ENT   *p_last;
+    int32_t          last_ticks;
+} TIMER_LIST_Q;
+
+typedef struct
+{
+    // force 32-bit alignment
+    uint32_t force_alignment;
+    uint8_t _todo[0x44];
+} tL2CAP_CFG_INFO;
+CHECK_SIZE(tL2CAP_CFG_INFO, 0x48);
+
+/* Structure returned with Rand/Encrypt complete callback */
+typedef struct
+{
+    uint8_t   status;
+    uint8_t   param_len;
+    uint16_t  opcode;
+    uint8_t   param_buf[16];
+} tBTM_RAND_ENC;
+CHECK_SIZE(tBTM_RAND_ENC, 0x14);
+
+void bdcpy(uint8_t* a, const uint8_t* b);
+void* GKI_getbuf(uint32_t size);
+void GKI_freebuf(void* p_buf);
+void* GKI_getpoolbuf(uint8_t pool_id);
+uint8_t GKI_get_taskid(void);
+void GKI_send_msg(uint8_t task_id, uint8_t mbox, void *msg);
+void utl_freebuf(void **p);
+void bta_sys_sendmsg(void* msg);
+void bta_sys_stop_timer(TIMER_LIST_ENT* p_tle);
+void bta_sys_start_timer(TIMER_LIST_ENT* p_tle, uint16_t type, int32_t timeout);
+void bta_hh_snd_write_dev(uint8_t dev_handle, uint8_t t_type, uint8_t param, uint16_t data, uint8_t rpt_id, BT_HDR *p_data);
+void BTA_HhSendData(uint8_t dev_handle, uint8_t* dev_bda, BT_HDR *p_buf);
+void BTA_HhClose(uint8_t dev_handle);
+void BTA_HhAddDev(uint8_t* bda, uint16_t attr_mask, uint8_t sub_class, uint8_t app_id, uint32_t dl_len, uint8_t* dsc_list);
+void BTA_HhRemoveDev(uint8_t dev_handle);
+uint8_t BTM_ReadRemoteDeviceName(uint8_t* remote_bda, void *p_cb);
+uint8_t BTM_WriteStoredLinkKey(uint8_t num_keys, uint8_t *bd_addr, uint8_t *link_key, void *p_cb);
+uint8_t* BTM_CheckAdvData(uint8_t* p_adv, uint8_t type, uint8_t* p_length);
+void BTM_ReadDevInfo(BD_ADDR remote_bda, uint8_t* p_dev_type, uint8_t* p_addr_type);
+uint8_t BTM_VendorSpecificCommand(uint16_t opcode, uint8_t param_len, uint8_t* p_param_buf, tBTM_VSC_CMPL_CB* p_cb);
+void BTM_DeviceReset(tBTM_CMPL_CB *p_cb);
+void btu_hcif_send_cmd(uint8_t controller_id, BT_HDR* p_buf);
+int UUSB_Write(uint8_t type, void* buf, uint16_t len, BT_HDR* p_msg);

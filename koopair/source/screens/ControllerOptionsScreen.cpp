@@ -69,6 +69,15 @@ ControllerOptionsScreen::ControllerOptionsScreen(const KPADController* controlle
             });
             break;
         case BLOOPAIR_CONTROLLER_XBOX_ONE:
+        case BLOOPAIR_CONTROLLER_XBOX_SERIES:
+            break;
+        case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT:
+        case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_RIGHT:
+        case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_DUAL:
+        case BLOOPAIR_CONTROLLER_SWITCH2_PRO:
+        case BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE:
+            break;
+        case BLOOPAIR_CONTROLLER_STADIA:
             break;
         default: break;
     }

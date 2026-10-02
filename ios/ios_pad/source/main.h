@@ -20,6 +20,9 @@
 #include "imports.h"
 #include "utils.h"
 
+#define BLOOPAIR_MOUNT_PATH     "/vol/storage_bloo"
+#define BLOOPAIR_DEVICES_PATH   BLOOPAIR_MOUNT_PATH "/wiiu/bloopair/devices"
+
 // Info about the reports can be found here:
 // - <https://wiibrew.org/wiki/Wiimote>
 
@@ -168,8 +171,17 @@ typedef struct PACKED {
 } SMDOutputMessage;
 CHECK_SIZE(SMDOutputMessage, 0x88);
 
+extern int gFsaHandle;
+
+void Bloopair_Init(void);
+
+void Bloopair_Deinit(void);
+
 void sendInputData(uint8_t dev_handle, const void* data, uint16_t len);
 
 void sendOutputData(uint8_t dev_handle, const void* data, uint16_t len);
 
 void setReport(uint8_t dev_handle, uint8_t type, const void* data, uint16_t len);
+
+void bta_hh_co_data(uint8_t dev_handle, uint8_t *p_rpt, uint16_t len, uint8_t mode,
+                    uint8_t sub_class, uint8_t ctry_code, uint8_t* peer_addr, uint8_t app_id);

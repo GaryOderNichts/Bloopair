@@ -17,19 +17,7 @@
 
 #include <imports.h>
 #include <bt_api.h>
-
-void BTA_DmConfirm(uint8_t* bd_addr, uint8_t accept)
-{
-    tBTA_DM_API_CONFIRM    *p_msg;
-
-    if ((p_msg = (tBTA_DM_API_CONFIRM *) GKI_getbuf(sizeof(tBTA_DM_API_CONFIRM))) != NULL)
-    {
-        p_msg->hdr.event = 0x114; // BTA_DM_API_CONFIRM_EVT
-        bdcpy(p_msg->bd_addr, bd_addr);
-        p_msg->accept = accept;
-        bta_sys_sendmsg(p_msg);
-    }
-}
+#include <bta/bta_api.h>
 
 void (*const real_bta_sec_callback)(uint8_t event, void *p_data) = (void*) 0x11f3fd88;
 void bta_sec_callback(uint8_t event, void *p_data)

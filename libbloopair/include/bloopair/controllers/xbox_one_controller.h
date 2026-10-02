@@ -41,6 +41,9 @@ enum {
     // technically not button bits, but mapped to those from analog triggers
     XBOX_ONE_TRIGGER_R,
     XBOX_ONE_TRIGGER_L,
+
+    // Xbox Series controller share button
+    XBOX_SERIES_BUTTON_SHARE,
 };
 
 typedef struct {

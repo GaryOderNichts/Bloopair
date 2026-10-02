@@ -1,3 +1,4 @@
+/* stdlib */
 printf = 0x11f7ef98;
 usleep = 0x11f84134;
 memcpy = 0x11f833ec;
@@ -7,13 +8,16 @@ strncmp = 0x11f83edc;
 strnlen = 0x11f83f60;
 strncpy = 0x11f83e80;
 vsnprintf = 0x11f83e04;
+snprintf = 0x11f83e50;
 
+/* IOS */
 IOS_CreateThread = 0x11f82e68;
 IOS_JoinThread = 0x11f82e70;
 IOS_CancelThread = 0x11f82e78;
 IOS_GetCurrentThreadID = 0x11f82e80;
 IOS_StartThread = 0x11f82ea0;
 IOS_SuspendThread = 0x11f82ea8;
+IOS_YieldCurrentThread = 0x11f82eb0;
 IOS_GetThreadPriority = 0x11f82eb8;
 IOS_CreateMessageQueue = 0x11f82ec8;
 IOS_DestroyMessageQueue = 0x11f82ed0;
@@ -22,6 +26,8 @@ IOS_ReceiveMessage = 0x11f82ee8;
 IOS_CreateTimer = 0x11f82f00;
 IOS_DestroyTimer = 0x11f82f18;
 IOS_GetUpTime64 = 0x11f82f38;
+IOS_GetAbsTimeCalendar = 0x11f82f48;
+IOS_GetAbsTime64 = 0x11f82f50;
 IOS_Open = 0x11f83000;
 IOS_Close = 0x11f83008;
 IOS_Ioctl = 0x11f83028;
@@ -31,45 +37,129 @@ IOS_CreateSemaphore = 0x11f83120;
 IOS_WaitSemaphore = 0x11f83128;
 IOS_SignalSemaphore = 0x11f83130;
 IOS_DestroySemaphore = 0x11f83138;
+IOS_FlushDCache = 0x11f830f8;
 IOS_VirtToPhys = 0x11f83118;
 IOS_Alloc = 0x11f82fa0;
 IOS_AllocAligned = 0x11f82fa8;
 IOS_Free = 0x11f82fb0;
 
+/* IOSC */
+_ioscOpen = 0x11f47d30;
+IOSC_CreateObject = 0x11f81320;
+IOSC_DeleteObject = 0x11f47150;
+IOSC_ImportSecretKey = 0x11f81004;
+IOSC_EncryptBlocks = 0x11f80cf4;
+cryptoHandle = 0x11ff8088;
+
+/* UC */
+UCOpen = 0x11f8093c;
+UCClose = 0x11f80938;
+UCReadSysConfig = 0x11f804e0;
+UCWriteSysConfig = 0x11f80210;
+
+/* misc */
+smdIopSendMessage = 0x11f7e104;
+smdIopReceive = 0x11f7e154;
+bdaddr_to_string = 0x11f40150;
+deleteDevice = 0x11f04ec8;
+
+isSmdReady = 0x11fd5218;
+smdIopIndex = 0x11fd5210;
+
+/* misc BT */
 bdcpy = 0x11f082a0;
 GKI_getbuf = 0x11f2ecb0;
 GKI_freebuf = 0x11f2eb5c;
 GKI_getpoolbuf = 0x11f2ee64;
 GKI_get_taskid = 0x11f2f9c4;
+GKI_send_msg = 0x11f2ef24;
 utl_freebuf = 0x11f08ec0;
 bta_sys_sendmsg = 0x11f08818;
+bta_sys_stop_timer = 0x11f087ec;
+bta_sys_start_timer = 0x11f087fc;
 bta_hh_snd_write_dev = 0x11f07744;
 BTA_HhSendData = 0x11f077c4;
 BTA_HhClose = 0x11f07634;
 BTA_HhAddDev = 0x11f07678;
+BTA_HhRemoveDev = 0x11f075e8;
 BTM_ReadRemoteDeviceName = 0x11f11820;
 BTM_WriteStoredLinkKey = 0x11f0e3ec;
-BTA_DmSetAfhChannels = 0x11f04cdc;
-BTA_DmAddDevice = 0x11f04d88;
-smdIopSendMessage = 0x11f7e104;
-smdIopReceive = 0x11f7e154;
-btm_remove_acl = 0x11f09b58;
-deleteDevice = 0x11f04ec8;
-registerNewDevice = 0x11f41370;
-bdaddr_to_string = 0x11f40150;
+BTM_CheckAdvData = 0x11f0c2a4;
+BTM_ReadDevInfo = 0x11f34088;
+BTM_VendorSpecificCommand = 0x11f0e80c;
+BTM_DeviceReset = 0x11f0f83c;
+btu_hcif_send_cmd = 0x11f1a868;
+UUSB_Write = 0x11f3c150;
 
 bta_hh_sm_execute = 0x11f07a88;
 bta_hh_start_sdp = 0x11f06d5c;
 bta_hh_sdp_cback = 0x11f06fa4;
 
+/* BTA */
+bta_dmexecutecallback = 0x11f04bf4;
+BTA_DmSetAfhChannels = 0x11f04cdc;
+BTA_DmAddDevice = 0x11f04d88;
+
+/* SDP */
 SDP_InitDiscoveryDb = 0x11f2aefc;
 SDP_ServiceSearchRequest = 0x11f2aec8;
 HID_HostGetSDPRecord = 0x11f1f840;
 SDP_FindAttributeInRec = 0x11f2a6dc;
 SDP_FindServiceUUIDInDb = 0x11f2ada0;
 
-isSmdReady = 0x11fd5218;
-smdIopIndex = 0x11fd5210;
-local_device_bdaddr = 0x1215775a;
-
 sdp_db_size = 0x11fca8cc;
+
+/* L2C */
+l2cu_find_lcb_by_bd_addr = 0x11f2994c;
+l2cu_process_fixed_chnl_resp = 0x11f28310;
+l2cu_initialize_fixed_ccb = 0x11f27f54;
+l2c_enqueue_peer_data = 0x11f228b4;
+l2c_link_check_send_pkts = 0x11f24418;
+l2cu_no_dynamic_ccbs = 0x11f27904;
+l2cu_release_ccb = 0x11f28184;
+L2CA_ConnectFixedChnl = 0x11f21040;
+L2CA_CancelBleConnectReq = 0x11f22758;
+
+l2cb = 0x12151478;
+
+/* HID */
+HID_HostAddDev = 0x11f1f604;
+hh_cb = 0x12151068;
+
+/* BTM */
+BTM_IsAclConnectionUp = 0x11f0a060;
+btm_ble_start_auto_conn = 0x11f0bdd4;
+btm_ble_start_select_conn = 0x11f0bcc8;
+btm_ble_resume_bg_conn = 0x11f0bf00;
+btm_remove_acl = 0x11f09b58;
+btm_find_dev = 0x11f0d8e8;
+btm_find_dev_by_handle = 0x11f0d878;
+
+btm_cb = 0x1214da98;
+
+/* BTU */
+btu_cb = 0x12150fb0;
+
+/* HCI */
+btsnd_hcic_ble_set_scan_enable = 0x11f1c750;
+btsnd_hcic_ble_rand = 0x11f1c308;
+btsnd_hcic_ble_upd_ll_conn_params = 0x11f1c3d4;
+
+/* WUD */
+WUDRegisterDevice = 0x11f41370;
+WUDiGetDiscoverDevice = 0x11f41670;
+WUDiGetDevInfo = 0x11f42084;
+WUDiSetDevAddrForHandle = 0x11f4165c;
+WUDiSetQueueSizeForHandle = 0x11f03d60;
+WUDiMoveTopStdDevInfoPtr = 0x11f41f74;
+WUDiMoveBottomStdDevInfoPtr = 0x11f41e64;
+WUDiMoveTopOfDisconnectedStdDevice = 0x11f4210c;
+WUDiRemoveDevice = 0x11f42430;
+WUDIsLinkedWBC = 0x11f40ab0;
+wud_serial_flash_test_mode = 0x11f3d8bc;
+
+gWUDContext = 0x12156fd8;
+gWBC = 0x121570e4;
+
+bt_rm_ppc_response_hid_event = 0x11f01504;
+bt_rm_ppc_response_DevNum = 0x11f0122c;

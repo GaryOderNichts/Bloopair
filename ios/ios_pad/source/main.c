@@ -16,9 +16,15 @@
  */
 
 #include "main.h"
-#include "wiimote_crypto.h"
 #include "controllers.h"
+#include "device_info.h"
+#include "fsa.h"
+#include "bleext/hid_ble.h"
+#include "bleext/hid_switch2.h"
 #include "utils.h"
+#include "wiimote_crypto.h"
+#include "wud.h"
+#include "romdump.h"
 
 #define HH_SEND_DATA_OFFSET 0x29
 
@@ -31,6 +37,139 @@ static const uint8_t wiiu_pro_controller_mpls_config[] = {
     0x00, 0xa4, 0x20, 0x00,
     0x05, // 0x05 == has mplus
 };
+
+int gFsaHandle = -1;
+
+static int mountSDCard(void)
+{
+    int handle = FSA_Open();
+    if (handle < 0) {
+        return handle;
+    }
+
+    int res = FSA_Mount(handle, "/dev/sdcard01", BLOOPAIR_MOUNT_PATH, FSA_MOUNT_FLAG_GLOBAL_MOUNT, NULL, 0);
+    if (res < 0) {
+        DEBUG_PRINT("Bloopair: Failed to mount SD Card\n");
+        FSA_Close(handle);
+        return res;
+    }
+
+    FSA_MakeDir(handle, BLOOPAIR_DEVICES_PATH, 0x600);
+
+#ifdef PACKETLOGGER
+    FSA_MakeDir(handle, BLOOPAIR_MOUNT_PATH "/wiiu/bloopair/logs", 0x600);
+#endif
+
+    gFsaHandle = handle;
+    return handle;
+}
+
+static void unmountSDCard(void)
+{
+    FSA_Unmount(gFsaHandle, BLOOPAIR_MOUNT_PATH, FSA_UNMOUNT_FLAG_FORCE);
+    FSA_Close(gFsaHandle);
+    gFsaHandle = -1;
+}
+
+static void Bloopair_HID_BLE_Callback(HIDBLEEvent event, HIDBLEEventData* eventData)
+{
+    switch (event) {
+    case HID_BLE_EVENT_CONNECT: {
+        HIDBLEConnectEventData* connectData = &eventData->connect;
+        DEBUG_PRINT("HID BLE device %s connected %d\n", bdaddr_to_string(connectData->addr), connectData->status);
+
+        if (connectData->status != HID_BLE_STATUS_SUCCESS) {
+            WUD_ConnectDevice(connectData->handle, connectData->addr, 1);
+            return;
+        }
+
+        initController(connectData->addr, connectData->handle);
+
+        if (!WUD_ConnectDevice(connectData->handle, connectData->addr, 0)) {
+            HID_BLE_Close(connectData->handle);
+        }
+        break;
+    }
+    case HID_BLE_EVENT_DISCONNECT: {
+        HIDBLEDisconnectEventData* disconnectData = &eventData->disconnect;
+        DEBUG_PRINT("HID BLE device %s disconnected\n", bdaddr_to_string(disconnectData->addr));
+
+        WUD_DisconnectDevice(disconnectData->handle, disconnectData->addr);
+        break;
+    }
+    };
+}
+
+static void Bloopair_HID_SW2_Callback(HIDSW2Event event, HIDSW2EventData* eventData)
+{
+    switch (event) {
+    case HID_SW2_EVENT_CONNECT: {
+        HIDSW2ConnectEventData* connectData = &eventData->connect;
+        DEBUG_PRINT("HID SW2 device %s connected %d\n", bdaddr_to_string(connectData->addr), connectData->status);
+
+        if (connectData->status != HID_SW2_STATUS_SUCCESS) {
+            WUD_ConnectDevice(connectData->handle, connectData->addr, 1);
+            return;
+        }
+
+        initController(connectData->addr, connectData->handle);
+
+        if (!WUD_ConnectDevice(connectData->handle, connectData->addr, 0)) {
+            HID_SW2_Close(connectData->handle);
+        }
+        break;
+    }
+    case HID_SW2_EVENT_DISCONNECT: {
+        HIDSW2DisconnectEventData* disconnectData = &eventData->disconnect;
+        DEBUG_PRINT("HID SW2 device %s disconnected\n", bdaddr_to_string(disconnectData->addr));
+
+        WUD_DisconnectDevice(disconnectData->handle, disconnectData->addr);
+        break;
+    }
+    };
+}
+
+void Bloopair_Init(void)
+{
+    // mount SD Card
+    mountSDCard();
+
+    // ensure config is initialized
+    Configuration_Init();
+
+    // Initialize device info
+    DeviceInfo_Init();
+
+    // Initialize our BLE subsystem
+    HID_BLE_Init(&Bloopair_HID_BLE_Callback);
+    HID_SW2_Init(&Bloopair_HID_SW2_Callback);
+
+// #define ROMDUMP
+#ifdef ROMDUMP
+    DEBUG_PRINT("Starting rom dump...\n");
+    romdump_dump();
+#endif
+}
+
+void Bloopair_Deinit(void)
+{
+    // deinitialize all controllers
+    for (int i = 0; i < BTA_HH_MAX_KNOWN; i++) {
+        if (controllers[i].isInitialized) {
+            if (controllers[i].deinit) {
+                controllers[i].deinit(&controllers[i]);
+            }
+            controllers[i].isInitialized = 0;
+        }
+    }
+
+    // stop report thread
+    deinitReportThread();
+
+    Configuration_Deinit();
+
+    unmountSDCard();
+}
 
 void sendInputData(uint8_t dev_handle, const void* data, uint16_t len)
 {
@@ -50,11 +189,18 @@ void sendInputData(uint8_t dev_handle, const void* data, uint16_t len)
     msg.app_id = 3;
     memcpy(msg.data, data, len);
 
+    // TODO add lock around this?, smdIopInit is initialized without lock
     smdIopSendMessage(smdIopIndex, &msg, sizeof(msg));
 }
 
 void sendOutputData(uint8_t dev_handle, const void* data, uint16_t len)
 {
+    // Redirect to BLE subsystem, if BLE handle
+    if (HID_BLE_IsActiveHandle(dev_handle)) {
+        HID_BLE_SendData(dev_handle, data, len);
+        return;
+    }
+
     BT_HDR* p_buf = GKI_getpoolbuf(3);
     if (!p_buf) {
         return;

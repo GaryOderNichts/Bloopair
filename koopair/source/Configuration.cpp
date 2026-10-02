@@ -99,6 +99,13 @@ const std::map<BloopairControllerType, std::string> bloopairControllerTypes = {
     { BLOOPAIR_CONTROLLER_SWITCH_PRO,            "Switch-Pro", },
     { BLOOPAIR_CONTROLLER_SWITCH_N64,            "Switch-N64", },
     { BLOOPAIR_CONTROLLER_XBOX_ONE,              "Xbox-One", },
+    { BLOOPAIR_CONTROLLER_XBOX_SERIES,           "Xbox-Series", },
+    { BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT,   "Switch2-JoyCon-Left", },
+    { BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_RIGHT,  "Switch2-JoyCon-Right", },
+    { BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_DUAL,   "Switch2-JoyCon-Dual", },
+    { BLOOPAIR_CONTROLLER_SWITCH2_PRO,           "Switch2-Pro", },
+    { BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE,      "Switch2-Gamecube", },
+    { BLOOPAIR_CONTROLLER_STADIA,                "Stadia", },
 };
 
 const std::map<std::string, BloopairControllerType> bloopairControllerTypeValues = {
@@ -112,6 +119,13 @@ const std::map<std::string, BloopairControllerType> bloopairControllerTypeValues
     { "Switch-Pro",             BLOOPAIR_CONTROLLER_SWITCH_PRO },
     { "Switch-N64",             BLOOPAIR_CONTROLLER_SWITCH_N64 },
     { "Xbox-One",               BLOOPAIR_CONTROLLER_XBOX_ONE },
+    { "Xbox-Series",            BLOOPAIR_CONTROLLER_XBOX_SERIES },
+    { "Switch2-JoyCon-Left",    BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT },
+    { "Switch2-JoyCon-Right",   BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_RIGHT },
+    { "Switch2-JoyCon-Dual",    BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_DUAL },
+    { "Switch2-Pro",            BLOOPAIR_CONTROLLER_SWITCH2_PRO },
+    { "Switch2-Gamecube",       BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE },
+    { "Stadia",                 BLOOPAIR_CONTROLLER_STADIA },
 };
 
 bool HexToBDA(const std::string& hex, uint8_t* bda)
@@ -270,7 +284,25 @@ void Configuration::SetCustomConfiguraion(const SwitchConfiguration& config)
 
 void Configuration::SetCustomConfiguraion(const XboxOneConfiguration& config)
 {
-    if (mControllerType != BLOOPAIR_CONTROLLER_XBOX_ONE) {
+    if (mControllerType != BLOOPAIR_CONTROLLER_XBOX_ONE && mControllerType != BLOOPAIR_CONTROLLER_XBOX_SERIES) {
+        return;
+    }
+
+    // mJson["custom"]["someCustomField"] = config.SomeCustomField;
+}
+
+void Configuration::SetCustomConfiguraion(const Switch2Configuration& config)
+{
+    if (mControllerType < BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT || mControllerType > BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE) {
+        return;
+    }
+
+    // mJson["custom"]["someCustomField"] = config.SomeCustomField;
+}
+
+void Configuration::SetCustomConfiguraion(const StadiaConfiguration& config)
+{
+    if (mControllerType != BLOOPAIR_CONTROLLER_STADIA) {
         return;
     }
 

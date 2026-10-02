@@ -53,6 +53,9 @@ static const MappingConfiguration default_xbox_one_mapping = {
         { XBOX_ONE_BUTTON_XBOX,         BLOOPAIR_PRO_BUTTON_HOME, },
         { XBOX_ONE_BUTTON_MENU,         BLOOPAIR_PRO_BUTTON_PLUS, },
         { XBOX_ONE_BUTTON_VIEW,         BLOOPAIR_PRO_BUTTON_MINUS, },
+
+        // map the share button to the reserved button bit
+        { XBOX_SERIES_BUTTON_SHARE,     BLOOPAIR_PRO_RESERVED, },
     },
 };
 
@@ -116,8 +119,17 @@ void controllerData_xbox_one(Controller* controller, uint8_t* buf, uint16_t len)
                 rep->buttons |= BTN(XBOX_ONE_BUTTON_LSTICK);
             if (inRep->buttons.rstick)
                 rep->buttons |= BTN(XBOX_ONE_BUTTON_RSTICK);
-            if (inRep->buttons.view)
-                rep->buttons |= BTN(XBOX_ONE_BUTTON_VIEW);
+
+            // Handle new share button bits
+            if (controller->type == BLOOPAIR_CONTROLLER_XBOX_SERIES) {
+                if (inRep->buttons.view)
+                    rep->buttons |= BTN(XBOX_ONE_BUTTON_VIEW);
+                if (inRep->buttons.share)
+                    rep->buttons |= BTN(XBOX_SERIES_BUTTON_SHARE);
+            } else {
+                if (inRep->buttons.view || inRep->buttons.share)
+                    rep->buttons |= BTN(XBOX_ONE_BUTTON_VIEW);
+            }
         } else {
             // old format
             if (inRep->buttons.old.a)
@@ -191,7 +203,12 @@ void controllerInit_xbox_one(Controller* controller)
     controller->battery = 4;
     controller->isCharging = 0;
 
-    controller->type = BLOOPAIR_CONTROLLER_XBOX_ONE;
+    if (controller->vendor_id == 0x045e && controller->product_id == 0x0b13) {
+        controller->type = BLOOPAIR_CONTROLLER_XBOX_SERIES;
+    } else {
+        controller->type = BLOOPAIR_CONTROLLER_XBOX_ONE;
+    }
+
     Configuration_GetAll(controller->type, controller->bda,
         &controller->commonConfig, &controller->mapping,
         &controller->customConfig, &controller->customConfigSize);
@@ -200,4 +217,5 @@ void controllerInit_xbox_one(Controller* controller)
 void controllerModuleInit_xbox_one(void)
 {
     Configuration_SetFallback(BLOOPAIR_CONTROLLER_XBOX_ONE, NULL, &default_xbox_one_mapping, NULL, 0);
+    Configuration_SetFallback(BLOOPAIR_CONTROLLER_XBOX_SERIES, NULL, &default_xbox_one_mapping, NULL, 0);
 }

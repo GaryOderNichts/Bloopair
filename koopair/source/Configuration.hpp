@@ -25,6 +25,8 @@
 #include <bloopair/controllers/dualshock4_controller.h>
 #include <bloopair/controllers/switch_controller.h>
 #include <bloopair/controllers/xbox_one_controller.h>
+#include <bloopair/controllers/switch2_controller.h>
+#include <bloopair/controllers/stadia_controller.h>
 
 class Configuration {
 public:
@@ -46,6 +48,8 @@ public:
     void SetCustomConfiguraion(const Dualshock4Configuration& config);
     void SetCustomConfiguraion(const SwitchConfiguration& config);
     void SetCustomConfiguraion(const XboxOneConfiguration& config);
+    void SetCustomConfiguraion(const Switch2Configuration& config);
+    void SetCustomConfiguraion(const StadiaConfiguration& config);
 
     void Remove();
     static void Remove(BloopairControllerType type);

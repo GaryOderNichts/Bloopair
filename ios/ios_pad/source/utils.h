@@ -25,6 +25,7 @@
 #define PACKED __attribute__ ((__packed__))
 
 #define CHECK_SIZE(type, size) static_assert(sizeof(type) == size, #type " must be " #size " bytes")
+#define CHECK_OFFSET(type, offset, member) static_assert(offsetof(type, member) == offset, #type "::" #member " must be at offset " #offset)
 
 // This macro is somewhat hacky and relies on the fact that rodata is mapped as executable
 #define DEFINE_REAL(addr, instr) \
@@ -33,6 +34,9 @@
     0xe51ff004, /* ldr pc, [pc, #-4] */ \
     addr, \
     });
+
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 #define CLAMP(x, low, high) (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 
@@ -43,7 +47,17 @@
 
 uint32_t crc32(uint32_t seed, const void* data, size_t len);
 
-void dumpHex(const void *data, size_t size);
+void reverseBDA(uint8_t* buf, const uint8_t* bda);
+
+int generateRandom(void* rand, uint32_t size);
+
+int* createIOSCAesKeyHandle(const void* key, uint32_t keySize);
+
+void destroyIOSCAesKeyHandle(int* handlePtr);
+
+int aesEcbEncrypt(int* handlePtr, const void* inData, uint32_t inSize, void* outData, uint32_t outSize);
+
+void dumpHex(const void* data, size_t size);
 
 #ifndef NDEBUG
 #define DEBUG_PRINT(x, ...) printf(x, ##__VA_ARGS__)

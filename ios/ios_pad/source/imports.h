@@ -29,17 +29,19 @@
 #define CROSS_PROCESS_HEAP_ID 0xcaff
 
 typedef struct {
-    uint16_t event;
-    uint16_t len;
-    uint16_t offset;
-    uint16_t layer_specific;
-} BT_HDR;
-
-typedef struct {
 	void* ptr;
 	uint32_t len;
 	uint32_t unk;
 } IOSVec_t;
+
+typedef struct {
+    uint32_t year;
+    uint32_t month;
+    uint32_t day;
+    uint32_t hour;
+    uint32_t minute;
+    uint32_t second;
+} IOSCalendarTime_t;
 
 int IOS_CreateThread(int (*fun)(void* arg), void* arg, void* stack_top, uint32_t stacksize, int priority, uint32_t flags);
 int IOS_JoinThread(int threadid, uint32_t *returned_value);
@@ -47,6 +49,7 @@ int IOS_CancelThread(int threadid, int return_value);
 int IOS_GetCurrentThreadID(void);
 int IOS_StartThread(int threadid);
 int IOS_SuspendThread(int threadid);
+int IOS_YieldCurrentThread(void);
 int IOS_GetThreadPriority(int threadid);
 int IOS_CreateMessageQueue(uint32_t *ptr, uint32_t n_msgs);
 int IOS_DestroyMessageQueue(int queueid);
@@ -55,6 +58,8 @@ int IOS_ReceiveMessage(int queueid, uint32_t *message, uint32_t flags);
 int IOS_CreateTimer(int time_us, int repeat_time_us, int queueid, uint32_t message);
 int IOS_DestroyTimer(int timerid);
 int IOS_GetUpTime64(uint64_t* outTime);
+int IOS_GetAbsTimeCalendar(IOSCalendarTime_t* time);
+int IOS_GetAbsTime64(uint64_t* outTime);
 int IOS_Open(const char* device, int mode);
 int IOS_Close(int fd);
 int IOS_Ioctl(int fd, uint32_t request, void *input_buffer, uint32_t input_buffer_len, void *output_buffer, uint32_t output_buffer_len);
@@ -64,33 +69,31 @@ int IOS_CreateSemaphore(int32_t maxCount, int32_t initialCount);
 int IOS_WaitSemaphore(int id, uint32_t tryWait);
 int IOS_SignalSemaphore(int id);
 int IOS_DestroySemaphore(int id);
+void IOS_FlushDCache(void* ptr, uint32_t len);
 uint32_t IOS_VirtToPhys(uint32_t address);
 void* IOS_Alloc(uint32_t heap, uint32_t size);
 void* IOS_AllocAligned(uint32_t heap, uint32_t size, uint32_t alignment);
 void IOS_Free(uint32_t heap, void* ptr);
 
-void bdcpy(uint8_t* a, const uint8_t* b);
-void* GKI_getbuf(uint32_t size);
-void GKI_freebuf(void* p_buf);
-void* GKI_getpoolbuf(uint8_t pool_id);
-uint8_t GKI_get_taskid(void);
-void utl_freebuf(void **p);
-void bta_sys_sendmsg(void* msg);
-void bta_hh_snd_write_dev(uint8_t dev_handle, uint8_t t_type, uint8_t param, uint16_t data, uint8_t rpt_id, BT_HDR *p_data);
-void BTA_HhSendData(uint8_t dev_handle, uint8_t* dev_bda, BT_HDR *p_buf);
-void BTA_HhClose(uint8_t dev_handle);
-void BTA_HhAddDev(uint8_t* bda, uint16_t attr_mask, uint8_t sub_class, uint8_t app_id, uint32_t dl_len, uint8_t* dsc_list);
-uint8_t BTM_ReadRemoteDeviceName(uint8_t* remote_bda, void *p_cb);
-uint8_t BTM_WriteStoredLinkKey(uint8_t num_keys, uint8_t *bd_addr, uint8_t *link_key, void *p_cb);
-void BTA_DmSetAfhChannels(uint8_t first, uint8_t last);
-void BTA_DmAddDevice(uint8_t* bd_addr, uint8_t* dev_class, uint8_t* link_key, uint32_t trusted_mask, uint8_t is_trusted, uint8_t key_type, uint8_t io_cap);
+typedef enum {
+	IOSC_AES_MODE_ECB = 0x00,
+	IOSC_AES_MODE_CBC = 0x01,
+	IOSC_AES_MODE_CTR = 0x02,
+} IOSCAesMode;
+
+int _ioscOpen(void);
+int IOSC_CreateObject(int* handle, int type, int subtype);
+int IOSC_DeleteObject(int* handle);
+int IOSC_ImportSecretKey(int importedHandle, int verifyHandle, int decryptHandle, int flags, void* signature,
+	uint32_t signatureSize, void* ivData, uint32_t ivSize, void* key, uint32_t keySize); 
+int IOSC_EncryptBlocks(int handle, IOSCAesMode mode, void* ivOrNonce, uint32_t ivOrNonceSize, void* inData,
+	uint32_t inSize, void* outData, uint32_t outSize);
+
 int smdIopSendMessage(int idx, void* ptr, uint32_t size);
 int smdIopReceive(int idx, void* ptr);
-uint8_t btm_remove_acl(uint8_t* bd_addr);
 int deleteDevice(uint8_t* bd_addr);
-int registerNewDevice(uint8_t* addr, uint8_t* link_key, uint8_t* name);
 const char* bdaddr_to_string(uint8_t* bd_addr);
 
+extern int cryptoHandle;
 extern uint32_t isSmdReady;
 extern uint32_t smdIopIndex;
-extern uint8_t local_device_bdaddr[6];
