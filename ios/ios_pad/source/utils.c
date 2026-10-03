@@ -38,8 +38,113 @@ uint32_t crc32(uint32_t seed, const void* data, size_t len)
     return crc;
 }
 
+void reverseBDA(uint8_t* buf, const uint8_t* bda)
+{
+    buf[0] = bda[5];
+    buf[1] = bda[4];
+    buf[2] = bda[3];
+    buf[3] = bda[2];
+    buf[4] = bda[1];
+    buf[5] = bda[0];
+}
+
+int generateRandom(void* rand, uint32_t size)
+{
+    void* buffer = IOS_AllocAligned(CROSS_PROCESS_HEAP_ID, size, 0x20);
+    if (!buffer) {
+        return -1;
+    }
+
+    if (_ioscOpen() != 0) {
+        return -1;
+    }
+
+    /* IOSC_GenerateRand */
+    int res = IOS_Ioctl(cryptoHandle, 0x15, NULL, 0, buffer, size);
+    if (res == 0) {
+        memcpy(rand, buffer, size);
+    }
+
+    IOS_Free(CROSS_PROCESS_HEAP_ID, buffer);
+    return res;
+}
+
+int* createIOSCAesKeyHandle(const void* key, uint32_t keySize)
+{
+    int res;
+
+    int* keyHandle = IOS_AllocAligned(CROSS_PROCESS_HEAP_ID, sizeof(int), 0x20);
+    if (!keyHandle) {
+        return NULL;
+    }
+
+    if ((res = IOSC_CreateObject(keyHandle, 0, 0)) != 0) {
+        IOS_Free(CROSS_PROCESS_HEAP_ID, keyHandle);
+        return NULL;
+    }
+
+    void* keyBuffer = IOS_AllocAligned(CROSS_PROCESS_HEAP_ID, keySize, 0x20);
+    if (!keyBuffer) {
+        destroyIOSCAesKeyHandle(keyHandle);
+        return NULL;
+    }
+
+    memcpy(keyBuffer, key, keySize);
+    res = IOSC_ImportSecretKey(*keyHandle, 0, 0, 0, NULL, 0, NULL, 0, keyBuffer, keySize);
+    IOS_Free(CROSS_PROCESS_HEAP_ID, keyBuffer);
+    if (res != 0) {
+        destroyIOSCAesKeyHandle(keyHandle);
+        return NULL;
+    }
+
+    return keyHandle;
+}
+
+void destroyIOSCAesKeyHandle(int* handlePtr)
+{
+    _ioscOpen(); // Need to call this since IOSC_DeleteObject uses a different handle
+    IOSC_DeleteObject(handlePtr);
+    IOS_Free(CROSS_PROCESS_HEAP_ID, handlePtr);
+}
+
+int aesEcbEncrypt(int* handlePtr, const void* inData, uint32_t inSize, void* outData, uint32_t outSize)
+{
+    // We need to provide an IV, even if we use ECB ¯\_(ツ)_/¯
+    void* iv = IOS_AllocAligned(CROSS_PROCESS_HEAP_ID, 0x10, 0x20);
+    if (!iv) {
+        return -1;
+    }
+
+    memset(iv, 0, 0x10);
+
+    void* inDataBuf = IOS_AllocAligned(CROSS_PROCESS_HEAP_ID, inSize, 0x20);
+    if (!inDataBuf) {
+        IOS_Free(CROSS_PROCESS_HEAP_ID, iv);
+        return -1;
+    }
+
+    memcpy(inDataBuf, inData, inSize);
+
+    void* outDataBuf = IOS_AllocAligned(CROSS_PROCESS_HEAP_ID, outSize, 0x20);
+    if (!outDataBuf) {
+        IOS_Free(CROSS_PROCESS_HEAP_ID, iv);
+        IOS_Free(CROSS_PROCESS_HEAP_ID, inDataBuf);
+        return -1;
+    }
+
+    int ret = IOSC_EncryptBlocks(*handlePtr, IOSC_AES_MODE_ECB, iv, 0x10, inDataBuf, inSize, outDataBuf, outSize);
+    if (ret == 0) {
+        memcpy(outData, outDataBuf, outSize);
+    }
+
+    IOS_Free(CROSS_PROCESS_HEAP_ID, iv);
+    IOS_Free(CROSS_PROCESS_HEAP_ID, inDataBuf);
+    IOS_Free(CROSS_PROCESS_HEAP_ID, outDataBuf);
+    return ret;
+}
+
 // https://gist.github.com/ccbrown/9722406
-void dumpHex(const void *data, size_t size)
+void dumpHex(const void* data, size_t size)
 {
 #ifndef NDEBUG
     char ascii[17];

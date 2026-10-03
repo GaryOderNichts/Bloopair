@@ -74,10 +74,6 @@ Pull requests for different controllers are always welcome.
 Bloopair loads configuration files from the `wiiu/bloopair` folder on your SD Card.  
 This means configurations work across multiple environments.
 
-## To-Do
-- Support more controllers
-- Bluetooth LE support (Unlikely, only partially supported by the Bluetooth Stack)
-
 ## How it works
 Bloopair will patch the IOSU's IOS-PAD module in memory. It will make sure any bluetooth peripheral can be paired to the console.  
 Once paired and connected it will convert received HID reports to the Pro Controller HID report format, which padscore expects.

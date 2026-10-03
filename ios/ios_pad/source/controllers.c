@@ -17,7 +17,7 @@
 
 #include "controllers.h"
 #include "utils.h"
-#include "info_store.h"
+#include "device_info.h"
 
 #define WPAD_PRO_AXIS_BASE            0x800
 #define WPAD_PRO_AXIS_NORMALIZE_VALUE 1140
@@ -124,10 +124,12 @@ void controllerInit_xbox_one(Controller* controller);
 void controllerInit_dualsense(Controller* controller);
 void controllerInit_dualshock4(Controller* controller);
 void controllerInit_dualshock3(Controller* controller);
+void controllerInit_stadia(Controller* controller);
+void controllerInit_switch2(Controller* controller);
 
 int initController(uint8_t* bda, uint8_t handle)
 {
-    StoredInfo* info = store_get_device_info(bda);
+    DeviceInfo* info = DeviceInfo_Get(bda);
     if (!info) {
         DEBUG_PRINT("Failed to get info for device\n");
         return -1;
@@ -168,7 +170,7 @@ int initController(uint8_t* bda, uint8_t handle)
     if (magic == MAGIC_OFFICIAL) {
         controller->type = BLOOPAIR_CONTROLLER_OFFICIAL;
         return 0;
-    } else if (magic == MAGIC_BLOOPAIR) {
+    } else if (magic == MAGIC_BLOOPAIR || magic == MAGIC_BLOOPAIR_BLE) {
         if ((vendor_id == 0x057e && product_id == 0x2006) || // joycon l
             (vendor_id == 0x057e && product_id == 0x2007) || // joycon r
             (vendor_id == 0x057e && product_id == 0x2009) || // switch pro controller
@@ -185,7 +187,9 @@ int initController(uint8_t* bda, uint8_t handle)
                    (vendor_id == 0x045e && product_id == 0x02fd) || // xbox one s controller
                    (vendor_id == 0x045e && product_id == 0x0b00) || // xbox one elite controller
                    (vendor_id == 0x045e && product_id == 0x0b05) || // xbox one elite controller
-                   (vendor_id == 0x045e && product_id == 0x0b0a)) { // xbox one adaptive controller
+                   (vendor_id == 0x045e && product_id == 0x0b0a) || // xbox one adaptive controller
+                   (vendor_id == 0x045e && product_id == 0x0b20) || // xbox one s controller (BLE)
+                   (vendor_id == 0x045e && product_id == 0x0b13)) { // xbox one series s/x controller (BLE)
             controllerInit_xbox_one(controller);
             return 0;
         } else if ((vendor_id == 0x054c && product_id == 0x0ce6) || // dualsense
@@ -202,9 +206,15 @@ int initController(uint8_t* bda, uint8_t handle)
         } else if (vendor_id == 0x054c && product_id == 0x0268) { // dualshock 3
             controllerInit_dualshock3(controller);
             return 0;
+        } else if (vendor_id == 0x18d1 && product_id == 0x9400) { // stadia controller
+            controllerInit_stadia(controller);
+            return 0;
         }
     } else if (magic == MAGIC_SWITCH) {
         controllerInit_switch(controller);
+        return 0;
+    } else if (magic == MAGIC_SWITCH2) {
+        controllerInit_switch2(controller);
         return 0;
     }
 

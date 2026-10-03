@@ -25,6 +25,7 @@
 #include <bloopair/controllers/dualshock4_controller.h>
 #include <bloopair/controllers/switch_controller.h>
 #include <bloopair/controllers/xbox_one_controller.h>
+#include <bloopair/controllers/stadia_controller.h>
 
 namespace
 {
@@ -164,6 +165,7 @@ std::string GetButtonName(BloopairControllerType type, uint8_t button)
                 case SWITCH_BUTTON_RIGHT: return "\ue07c";
             }
         case BLOOPAIR_CONTROLLER_XBOX_ONE:
+        case BLOOPAIR_CONTROLLER_XBOX_SERIES:
             switch (button) {
                 case XBOX_ONE_BUTTON_UP: return "\ue079";
                 case XBOX_ONE_BUTTON_DOWN: return "\ue07a";
@@ -182,6 +184,63 @@ std::string GetButtonName(BloopairControllerType type, uint8_t button)
                 case XBOX_ONE_BUTTON_VIEW: return "View";
                 case XBOX_ONE_TRIGGER_R: return "Trigger (R)";
                 case XBOX_ONE_TRIGGER_L: return "Trigger (L)";
+                case XBOX_SERIES_BUTTON_SHARE: return "Share";
+            }
+            break;
+        case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT:
+        case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_RIGHT:
+        case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_DUAL:
+        case BLOOPAIR_CONTROLLER_SWITCH2_PRO:
+        case BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE:
+            switch (button) {
+                case SWITCH2_TRIGGER_ZR: return "\ue086";
+                case SWITCH2_TRIGGER_R: return "\ue084";
+                case SWITCH2_TRIGGER_SL_R: return "SL (R)";
+                case SWITCH2_TRIGGER_SR_R: return "SR (R)";
+                case SWITCH2_BUTTON_A: return "\ue000";
+                case SWITCH2_BUTTON_B: return "\ue001";
+                case SWITCH2_BUTTON_X: return "\ue002";
+                case SWITCH2_BUTTON_Y: return "\ue003";
+                case SWITCH2_BUTTON_C: return "C";
+                case SWITCH2_BUTTON_CAPTURE: return "\ue01e";
+                case SWITCH2_BUTTON_HOME: return "\ue044";
+                case SWITCH2_BUTTON_STICK_L: return "\ue08a";
+                case SWITCH2_BUTTON_STICK_R: return "\ue08b";
+                case SWITCH2_BUTTON_PLUS: return "\ue045";
+                case SWITCH2_BUTTON_MINUS: return "\ue046";
+                case SWITCH2_TRIGGER_ZL: return "\ue085";
+                case SWITCH2_TRIGGER_L: return "\ue083";
+                case SWITCH2_TRIGGER_SL_L: return "SL (L)";
+                case SWITCH2_TRIGGER_SR_L: return "SR (L)";
+                case SWITCH2_BUTTON_UP: return "\ue079";
+                case SWITCH2_BUTTON_DOWN: return "\ue07a";
+                case SWITCH2_BUTTON_LEFT: return "\ue07b";
+                case SWITCH2_BUTTON_RIGHT: return "\ue07c";
+                case SWITCH2_BUTTON_GL: return "GL";
+                case SWITCH2_BUTTON_GR: return "GR";
+            }
+            break;
+        case BLOOPAIR_CONTROLLER_STADIA:
+            switch (button) {
+                case STADIA_BUTTON_UP: return "\ue079";
+                case STADIA_BUTTON_DOWN: return "\ue07a";
+                case STADIA_BUTTON_LEFT: return "\ue07b";
+                case STADIA_BUTTON_RIGHT: return "\ue07c";
+                case STADIA_BUTTON_STADIA: return "Stadia";
+                case STADIA_BUTTON_MENU: return "Menu";
+                case STADIA_BUTTON_OPTIONS: return "Options";
+                case STADIA_BUTTON_CAPTURE: return "Capture";
+                case STADIA_BUTTON_ASSISTANT: return "Assistant";
+                case STADIA_BUTTON_L3: return "\ue08a";
+                case STADIA_BUTTON_R3: return "\ue08b";
+                case STADIA_BUTTON_A: return "\ue000";
+                case STADIA_BUTTON_B: return "\ue001";
+                case STADIA_BUTTON_X: return "\ue002";
+                case STADIA_BUTTON_Y: return "\ue003";
+                case STADIA_TRIGGER_R2: return "R2";
+                case STADIA_TRIGGER_L2: return "L2";
+                case STADIA_TRIGGER_R1: return "R1";
+                case STADIA_TRIGGER_L1: return "L1";
             }
             break;
         default: break;

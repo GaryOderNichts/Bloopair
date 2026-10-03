@@ -14,12 +14,14 @@
  *   You should have received a copy of the GNU General Public License
  *   along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+#pragma once
 #include <controllers.h>
 
 // Info about the reports can be found here:
 // - <https://github.com/atar-axis/xpadneo/blob/master/hid-xpadneo/src/hid-xpadneo.c>
 // - <https://github.com/atar-axis/xpadneo/blob/master/hid-xpadneo/src/xpadneo.h>
+// - <https://github.com/libsdl-org/SDL/blob/99fe610117119b807a466a02fb524cdc9299184c/src/joystick/hidapi/SDL_hidapi_xboxone.c>
+// - <https://github.com/torvalds/linux/blob/551c722f40809618230001baccf219193e22fc5a/drivers/hid/hid-microsoft.c>
 
 enum {
     XBOX_ONE_RUMBLE_WEAK          = 1 << 0,
@@ -65,10 +67,11 @@ typedef struct PACKED {
                 uint8_t lstick : 1;
                 uint8_t xbox : 1;
                 uint8_t menu : 1;
-                uint8_t : 3;
+                uint8_t view : 1;
+                uint8_t : 2;
 
                 uint8_t : 7;
-                uint8_t view : 1;
+                uint8_t share : 1;
             };
             struct {
                 uint8_t menu : 1;
@@ -87,6 +90,7 @@ typedef struct PACKED {
         };
     } buttons;
 } XboxOneInputReport;
+CHECK_SIZE(XboxOneInputReport, 0x11);
 
 #define XBOX_ONE_XB_BUTTON_INPUT_REPORT_ID 0x02
 

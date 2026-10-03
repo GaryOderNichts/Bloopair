@@ -17,27 +17,28 @@
 
 #pragma once
 
-#include <imports.h>
 #include "bt_api.h"
+#include <imports.h>
 
 enum {
-    MAGIC_EMPTY    = 0,
-    MAGIC_OFFICIAL = 0xB0,
-    MAGIC_BLOOPAIR = 0xB1,
-    MAGIC_SWITCH   = 0xB2,
-    MAGIC_UNKNOWN  = 0xFF,
+    MAGIC_EMPTY        = 0,
+    MAGIC_OFFICIAL     = 0xB0,
+    MAGIC_BLOOPAIR     = 0xB1,
+    MAGIC_SWITCH       = 0xB2,
+    MAGIC_SWITCH2      = 0xB3,
+    MAGIC_BLOOPAIR_BLE = 0xB4,
+    MAGIC_UNKNOWN      = 0xFF,
 };
 
 typedef struct PACKED {
     BD_ADDR address;
-    //uint8_t name[64];
+    // uint8_t name[64];
 
-/*
-    Bloopair specific:
-    We use the last few bytes of the name to store additional data,
-    that way we don't have to create a custom userconfig entry and don't leave back
-    any traces on the console
-*/
+    /*
+        Bloopair specific:
+        We used to store additional information at the end of the name field.
+        Everything is stored on the SD Card now, but we migrate existing pairings for now.
+    */
     uint8_t name[56];
     uint8_t reserved[3];
     uint8_t magic;
@@ -62,21 +63,63 @@ typedef struct PACKED {
 } BT_DevInfo;
 CHECK_SIZE(BT_DevInfo, 0x461);
 
+typedef struct PACKED {
+    uint8_t file_version;
+    uint8_t device_magic;
+    uint16_t vendor_id;
+    uint16_t product_id;
+} BloopairStoredDeviceHeader;
+CHECK_SIZE(BloopairStoredDeviceHeader, 0x6);
+
+typedef struct PACKED {
+    uint8_t address_type;
+    uint8_t ltk[16];
+    uint8_t rand[8];
+    uint16_t ediv;
+} BloopairStoredDeviceBLEData;
+CHECK_SIZE(BloopairStoredDeviceBLEData, 0x1B);
+
 typedef struct {
     uint8_t magic;
     BD_ADDR address;
     uint16_t vendor_id;
     uint16_t product_id;
-} StoredInfo;
+    uint8_t flush;
+
+    union {
+        // BR/EDR data
+        struct {
+            uint8_t link_key[16];
+        } classic;
+
+        // Switch 2 data
+        struct {
+            uint8_t pairing_complete;
+            uint8_t ltk[16];
+        } switch2;
+
+        // BLE data
+        struct {
+            uint8_t address_type;
+            uint8_t ltk[16];
+            uint8_t rand[8];
+            uint16_t ediv;
+        } ble;
+    };
+} DeviceInfo;
 
 // read the device info and add it to the store
-void store_read_device_info(void);
+void DeviceInfo_Init(void);
 
 // get the info for the specified address
-StoredInfo* store_get_device_info(uint8_t* address);
+DeviceInfo* DeviceInfo_Get(const uint8_t* address);
 
 // allocate a new info for the specified address
-StoredInfo* store_allocate_device_info(uint8_t* address);
+DeviceInfo* DeviceInfo_Allocate(const uint8_t* address);
+
+DeviceInfo* DeviceInfo_GetOrAllocate(const uint8_t* address);
+
+void DeviceInfo_AddToBgConn(DeviceInfo* info);
 
 // read and store info from the DI record for the specified device
-void store_read_DI_record(uint8_t* bda, tSDP_DISCOVERY_DB* db);
+void DeviceInfo_ParseDIRecord(const uint8_t* bda, tSDP_DISCOVERY_DB* db);

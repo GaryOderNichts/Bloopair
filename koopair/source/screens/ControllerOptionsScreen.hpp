@@ -25,6 +25,8 @@
 #include <bloopair/controllers/dualshock4_controller.h>
 #include <bloopair/controllers/switch_controller.h>
 #include <bloopair/controllers/xbox_one_controller.h>
+#include <bloopair/controllers/switch2_controller.h>
+#include <bloopair/controllers/stadia_controller.h>
 
 class ControllerOptionsScreen : public Screen
 {
@@ -36,6 +38,8 @@ public:
         Dualshock4Configuration dualshock4;
         SwitchConfiguration switch_;
         XboxOneConfiguration xboxOne;
+        Switch2Configuration switch2;
+        StadiaConfiguration stadia;
     };
 
     ControllerOptionsScreen(const KPADController* controller, BloopairCommonConfiguration& common, CustomConfiguration& custom);
