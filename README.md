@@ -13,12 +13,16 @@ It temporarily applies patches to the IOS-PAD module responsible for Bluetooth c
 - Nintendo Switch Pro Controller
 - Nintendo Switch Joy-Con
 - Nintendo Switch Online SNES / N64 Controller
+- Nintendo Switch 2 Pro Controller
+- Nintendo Switch 2 Joy-Con
+- Nintendo Switch 2 Gamecube Controller
 - Microsoft Xbox One S/X Controller  
-Note: The latest firmware versions and all Series S/X Controllers are currently not supported due to missing Bluetooth LE support.
+- Microsoft Xbox Series S/X Controller
 - Sony DualShock 3 Controller  
 To pair a DualShock 3 to the console, see the [Pairing a DualShock 3](#pairing-a-dualshock-3) section.
 - Sony DualShock 4 Controller
 - Sony DualSense Controller
+- Google Stadia Controller
 
 ## Installation
 - Download and extract the latest .zip from the [releases page](https://github.com/GaryOderNichts/Bloopair/releases).
@@ -73,6 +77,10 @@ Pull requests for different controllers are always welcome.
 **Where are configuration files stored?**
 Bloopair loads configuration files from the `wiiu/bloopair` folder on your SD Card.  
 This means configurations work across multiple environments.
+
+**Where are device pairings stored?**
+Starting with Bloopair v1.1.0 pairings are stored in the `wiiu/bloopair/devices` folder on your SD Card.  
+See the [wiki](https://github.com/GaryOderNichts/Bloopair/wiki/SD-Card-Pairing-Information) for more information about this format.
 
 ## How it works
 Bloopair will patch the IOSU's IOS-PAD module in memory. It will make sure any bluetooth peripheral can be paired to the console.  
