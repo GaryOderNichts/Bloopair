@@ -19,7 +19,7 @@
 #include <bloopair/controllers/xbox_one_controller.h>
 
 static const MappingConfiguration default_xbox_one_mapping = {
-    .num = 25,
+    .num = 26,
     .mappings = {
         { BLOOPAIR_PRO_STICK_L_UP,      BLOOPAIR_PRO_STICK_L_UP, },
         { BLOOPAIR_PRO_STICK_L_DOWN,    BLOOPAIR_PRO_STICK_L_DOWN, },
