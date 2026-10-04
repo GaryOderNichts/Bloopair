@@ -588,6 +588,8 @@ static void handle_input_report(Controller* controller, SwitchInputReport* inRep
     if (inRep->buttons.zl)
         rep->buttons |= BTN(BLOOPAIR_PRO_TRIGGER_ZL);
 
+    sendControllerInput(controller);
+
     if (!controller->isReady) {
         controller->isReady = 1;
     }

@@ -94,7 +94,7 @@ void bta_hh_api_disable(void)
     }
 
     // stop report thread
-    deinitReportThread();
+    // deinitReportThread();
 
     Configuration_Deinit();
 

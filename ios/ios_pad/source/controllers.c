@@ -30,6 +30,7 @@
 
 Controller controllers[BTA_HH_MAX_KNOWN] = { 0 };
 
+#if 0
 static void* report_thread_stack_base;
 static int report_thread_id;
 static uint8_t report_thread_running = 0;
@@ -96,6 +97,7 @@ void deinitReportThread(void)
     // free stack
     IOS_Free(LOCAL_PROCESS_HEAP_ID, report_thread_stack_base);
 }
+#endif
 
 #define COMPARE_NAME(x) (strncmp(name, x, sizeof(x) - 1) == 0)
 int isOfficialName(const char* name)
@@ -139,9 +141,9 @@ int initController(uint8_t* bda, uint8_t handle)
 
     DEBUG_PRINT("initController handle %u magic %x vid %x pid %x\n", handle, magic, vendor_id, product_id);
 
-    if (!report_thread_running) {
-        initReportThread();
-    }
+    // if (!report_thread_running) {
+    //     initReportThread();
+    // }
 
     // Make sure the config is initialized at this point
     Configuration_Init();
