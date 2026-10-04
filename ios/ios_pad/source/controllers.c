@@ -25,8 +25,8 @@
 
 #define REPORT_THREAD_STACK_SIZE 0x800
 
-// send a report every 10 ms
-#define REPORT_INTERVAL (10 * 1000)
+// send a report every 5 ms
+#define REPORT_INTERVAL (5 * 1000)
 
 Controller controllers[BTA_HH_MAX_KNOWN] = { 0 };
 
