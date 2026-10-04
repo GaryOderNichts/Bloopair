@@ -217,8 +217,8 @@ int initController(uint8_t* bda, uint8_t handle)
 void sendControllerInput(Controller* controller)
 {
     // map the raw controller input to the wii u pro mapping
-    BloopairReportBuffer repBuf;
-    mapControllerInput(controller, &controller->reportBuffer, &repBuf);
+    BloopairReportBuffer repBuf = controller->reportBuffer;
+    // mapControllerInput(controller, &controller->reportBuffer, &repBuf);
 
     WPADProReport report;
     memset(&report, 0, sizeof(report));

@@ -554,49 +554,39 @@ static void handle_input_report(Controller* controller, SwitchInputReport* inRep
     }
 
     if (inRep->buttons.y)
-        rep->buttons |= BTN(SWITCH_BUTTON_Y);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_Y);
     if (inRep->buttons.x)
-        rep->buttons |= BTN(SWITCH_BUTTON_X);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_X);
     if (inRep->buttons.b)
-        rep->buttons |= BTN(SWITCH_BUTTON_B);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_B);
     if (inRep->buttons.a)
-        rep->buttons |= BTN(SWITCH_BUTTON_A);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_A);
     if (inRep->buttons.r)
-        rep->buttons |= BTN(SWITCH_TRIGGER_R);
+        rep->buttons |= BTN(BLOOPAIR_PRO_TRIGGER_R);
     if (inRep->buttons.zr)
-        rep->buttons |= BTN(SWITCH_TRIGGER_ZR);
+        rep->buttons |= BTN(BLOOPAIR_PRO_TRIGGER_ZR);
     if (inRep->buttons.minus)
-        rep->buttons |= BTN(SWITCH_BUTTON_MINUS);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_MINUS);
     if (inRep->buttons.plus)
-        rep->buttons |= BTN(SWITCH_BUTTON_PLUS);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_PLUS);
     if (inRep->buttons.rstick)
-        rep->buttons |= BTN(SWITCH_BUTTON_STICK_R);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_STICK_R);
     if (inRep->buttons.lstick)
-        rep->buttons |= BTN(SWITCH_BUTTON_STICK_L);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_STICK_L);
     if (inRep->buttons.home)
-        rep->buttons |= BTN(SWITCH_BUTTON_HOME);
-    if (inRep->buttons.capture)
-        rep->buttons |= BTN(SWITCH_BUTTON_CAPTURE);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_HOME);
     if (inRep->buttons.down)
-        rep->buttons |= BTN(SWITCH_BUTTON_DOWN);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_DOWN);
     if (inRep->buttons.up)
-        rep->buttons |= BTN(SWITCH_BUTTON_UP);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_UP);
     if (inRep->buttons.right)
-        rep->buttons |= BTN(SWITCH_BUTTON_RIGHT);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_RIGHT);
     if (inRep->buttons.left)
-        rep->buttons |= BTN(SWITCH_BUTTON_LEFT);
+        rep->buttons |= BTN(BLOOPAIR_PRO_BUTTON_LEFT);
     if (inRep->buttons.l)
-        rep->buttons |= BTN(SWITCH_TRIGGER_L);
+        rep->buttons |= BTN(BLOOPAIR_PRO_TRIGGER_L);
     if (inRep->buttons.zl)
-        rep->buttons |= BTN(SWITCH_TRIGGER_ZL);
-    if (inRep->buttons.sl_r)
-        rep->buttons |= BTN(SWITCH_TRIGGER_SL_R);
-    if (inRep->buttons.sr_r)
-        rep->buttons |= BTN(SWITCH_TRIGGER_SR_R);
-    if (inRep->buttons.sl_l)
-        rep->buttons |= BTN(SWITCH_TRIGGER_SL_L);
-    if (inRep->buttons.sr_l)
-        rep->buttons |= BTN(SWITCH_TRIGGER_SR_L);
+        rep->buttons |= BTN(BLOOPAIR_PRO_TRIGGER_ZL);
 
     if (!controller->isReady) {
         controller->isReady = 1;
