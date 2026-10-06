@@ -20,10 +20,23 @@
 #include "controllers.h"
 #include <bloopair/ipc.h>
 
+static int device_name_set = 0;
+
+static void setDeviceName(void)
+{
+    if (device_name_set) {
+        return;
+    }
+    device_name_set = 1;
+
+    BTA_DmSetDeviceName("Nintendo Wii U");
+}
+
 static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
 {
     // ensure config is initialized
     Configuration_Init();
+    setDeviceName();
 
     switch (request->func) {
     case BLOOPAIR_FUNC_GET_VERSION:

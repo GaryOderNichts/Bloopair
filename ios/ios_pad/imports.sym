@@ -51,6 +51,7 @@ BTM_ReadRemoteDeviceName = 0x11f11820;
 BTM_WriteStoredLinkKey = 0x11f0e3ec;
 BTA_DmSetAfhChannels = 0x11f04cdc;
 BTA_DmAddDevice = 0x11f04d88;
+BTA_DmSetDeviceName = 0x11f04f04;
 smdIopSendMessage = 0x11f7e104;
 smdIopReceive = 0x11f7e154;
 btm_remove_acl = 0x11f09b58;
