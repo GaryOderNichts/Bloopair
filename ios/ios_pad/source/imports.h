@@ -84,6 +84,7 @@ uint8_t BTM_ReadRemoteDeviceName(uint8_t* remote_bda, void *p_cb);
 uint8_t BTM_WriteStoredLinkKey(uint8_t num_keys, uint8_t *bd_addr, uint8_t *link_key, void *p_cb);
 void BTA_DmSetAfhChannels(uint8_t first, uint8_t last);
 void BTA_DmAddDevice(uint8_t* bd_addr, uint8_t* dev_class, uint8_t* link_key, uint32_t trusted_mask, uint8_t is_trusted, uint8_t key_type, uint8_t io_cap);
+void BTA_DmSetDeviceName(char* p_name);
 int smdIopSendMessage(int idx, void* ptr, uint32_t size);
 int smdIopReceive(int idx, void* ptr);
 uint8_t btm_remove_acl(uint8_t* bd_addr);
