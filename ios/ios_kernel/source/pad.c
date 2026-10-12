@@ -19,6 +19,8 @@
 #include "imports.h"
 #include "../../ios_pad/ios_pad_syms.h"
 
+#define PAD_PHYS_BSS_BASE       0x12159000
+
 void run_ios_pad_patches(void)
 {
     // map memory for our custom ios-pad code
@@ -40,6 +42,9 @@ void run_ios_pad_patches(void)
     map_info.type = 3;              // 0 = undefined, 1 = kernel only, 2 = read only, 3 = read/write
     map_info.cached = 0xFFFFFFFF;
     _iosMapSharedUserExecution(&map_info);
+
+    // memset ios-pad bss
+    kernel_memset((void *) PAD_PHYS_BSS_BASE, 0, _pad_bss_end - _pad_bss_start);
 
     // IOS-PAD needs SD access for reading and storing pairings, packetlogging and romdumping
     setClientCapabilities(6, 0xb, 0xffffffffffffffffllu);

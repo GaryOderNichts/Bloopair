@@ -6,7 +6,7 @@ SECTIONS {
     . = 0x11f86000;
 
     .text : {
-        _text_start = .;
+        _pad_text_start = .;
         *(.text*);
         *(.rodata*);
         *(.data*);
@@ -19,15 +19,15 @@ SECTIONS {
         __sboxes = .;
         . += 0x900;
     }
-    _text_end = .;
+    _pad_text_end = .;
 
     . = 0x12159000;
 
     .bss : {
-        _bss_start = .;
+        _pad_bss_start = .;
         *(.bss*);
     }
-    _bss_end = .;
+    _pad_bss_end = .;
 
     /DISCARD/ : {
         *(*);
@@ -35,5 +35,5 @@ SECTIONS {
 }
 
 /* Only mapping 0x10000 in the kernel for now, make sure this isn't bigger than that */
-ASSERT(_text_end - _text_start < 0x10000, "ios_pad text is too big");
-ASSERT(_bss_end - _bss_start < 0x6000, "ios_pad bss is too big");
+ASSERT(_pad_text_end - _pad_text_start < 0x10000, "ios_pad text is too big");
+ASSERT(_pad_bss_end - _pad_bss_start < 0x6000, "ios_pad bss is too big");
