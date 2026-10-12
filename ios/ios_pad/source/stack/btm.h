@@ -211,6 +211,9 @@ uint8_t btm_ble_resume_bg_conn(tBTM_BLE_SEL_CBACK* p_sele_callback, uint8_t def_
 uint8_t btm_remove_acl(BD_ADDR bd_addr);
 
 // extern
+void btm_remove_sco_links(BD_ADDR bda);
+
+// extern
 tBTM_SEC_DEV_REC* btm_find_dev(BD_ADDR bd_addr);
 
 // extern

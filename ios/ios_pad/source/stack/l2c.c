@@ -17,8 +17,10 @@
  ******************************************************************************/
 #include "l2c.h"
 #include "hci.h"
+#include "btm.h"
 
 tL2C_LCB  *l2cu_find_lcb_by_bd_addr(BD_ADDR p_bd_addr);
+tL2C_LCB  *l2cu_find_lcb_by_handle(uint16_t handle);
 void l2cu_process_fixed_chnl_resp (tL2C_LCB *p_lcb);
 // Huh Wii U doesn't copy p_fcr?
 uint8_t l2cu_initialize_fixed_ccb(tL2C_LCB *p_lcb, uint16_t fixed_cid, tL2CAP_FCR_OPTS *p_fcr);
@@ -140,3 +142,38 @@ uint8_t L2CA_UpdateBleConnParams (BD_ADDR rem_bda, uint16_t min_int, uint16_t ma
 
     return(1);
 }
+
+void l2cu_release_lcb_hook (tL2C_LCB *p_lcb)
+{
+    btm_remove_sco_links(p_lcb->remote_bd_addr);
+
+    // Backport 98657a365c7230b84a005c63ce5bcf036d69f6eb
+    if (p_lcb->sent_not_acked > 0)
+    {
+        DEBUG_PRINT("l2cu_release_lcb_hook: releasing %d sent_not_acked\n", p_lcb->sent_not_acked);
+
+        if (p_lcb->is_ble_link)
+        {
+            l2cb.controller_le_xmit_window += p_lcb->sent_not_acked;
+            if (l2cb.controller_le_xmit_window > l2cb.num_lm_ble_bufs)
+            {
+                l2cb.controller_le_xmit_window = l2cb.num_lm_ble_bufs;
+            }
+        }
+        else
+        {
+            l2cb.controller_xmit_window += p_lcb->sent_not_acked;
+            if (l2cb.controller_xmit_window > l2cb.num_lm_acl_bufs)
+            {
+                l2cb.controller_xmit_window = l2cb.num_lm_acl_bufs;
+            }
+        }
+    }
+}
+
+__asm__ (
+".global l2cu_release_lcb_before_btm_remove_sco_links_hook\n"
+"l2cu_release_lcb_before_btm_remove_sco_links_hook:\n"
+"   mov r0, r4\n"
+"   b l2cu_release_lcb_hook\n"
+);

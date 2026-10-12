@@ -176,6 +176,8 @@ static void _GATT_Start_Callback(TIMER_LIST_ENT* p_tle)
 {
     GATTHandle* handle = (GATTHandle*) p_tle->param;
 
+    DEBUG_PRINT("GATT: Starting MTU exchange\n");
+
     // Handle connected, proceed with MTU exchange
     _GATT_Start_MTUExchange(handle);
 }
@@ -207,6 +209,7 @@ static void _GATT_Connect_Callback(BD_ADDR addr, uint8_t connected, uint16_t rea
             handle->callback = _GATT_GetCallbackForAutoConn(addr);
             if (!handle->callback) {
                 // No one wants this device :(
+                DEBUG_PRINT("GATT: No auto connection callback, ignoring device\n");
                 _GATT_FreeHandle(handle);
                 btm_remove_acl(addr);
                 return;

@@ -111,6 +111,7 @@ sdp_db_size = 0x11fca8cc;
 
 /* L2C */
 l2cu_find_lcb_by_bd_addr = 0x11f2994c;
+l2cu_find_lcb_by_handle = 0x11f2725c;
 l2cu_process_fixed_chnl_resp = 0x11f28310;
 l2cu_initialize_fixed_ccb = 0x11f27f54;
 l2c_enqueue_peer_data = 0x11f228b4;
@@ -132,6 +133,7 @@ btm_ble_start_auto_conn = 0x11f0bdd4;
 btm_ble_start_select_conn = 0x11f0bcc8;
 btm_ble_resume_bg_conn = 0x11f0bf00;
 btm_remove_acl = 0x11f09b58;
+btm_remove_sco_links = 0x11f13e90;
 btm_find_dev = 0x11f0d8e8;
 btm_find_dev_by_handle = 0x11f0d878;
 
