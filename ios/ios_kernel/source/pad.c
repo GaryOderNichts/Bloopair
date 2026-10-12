@@ -79,6 +79,9 @@ void run_ios_pad_patches(void)
     // hook btrm lib handling so we can have custom ipc calls
     *(volatile uint32_t *) 0x11f03428 = ARM_B(0x11f03428, _btrmCustomLibHook);
 
+    // hook sniff mode updates
+    *(volatile uint32_t *) 0x11f40bd8 = ARM_B(0x11f40bd8, WUDSetSniffMode_hook);
+
 #ifdef MORE_LOGS
 /******************************************************************************
 **

@@ -32,6 +32,12 @@ static const uint8_t wiiu_pro_controller_mpls_config[] = {
     0x05, // 0x05 == has mplus
 };
 
+void (*const real_WUDSetSniffMode)(BD_ADDR bda, uint16_t interval) = (void*) DEFINE_REAL(0x11f40bdc, 0xe3510000);
+void WUDSetSniffMode_hook(BD_ADDR bda, uint16_t interval)
+{
+    real_WUDSetSniffMode(bda, 0);
+}
+
 void sendInputData(uint8_t dev_handle, const void* data, uint16_t len)
 {
     if (!len || len > 58) {
