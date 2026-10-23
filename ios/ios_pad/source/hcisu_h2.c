@@ -22,7 +22,7 @@
 
 // We need to hook this to add fragmentation support for BLE ACL data
 // N didn't implement this for BLE (makes sense, they never supported it anyway)
-void hci_h4_send_msg_hook(void*, BT_HDR* p_msg)
+void hcisu_h2_send_msg_now_hook(void*, BT_HDR* p_msg)
 {
     uint8_t type = 0;
     uint8_t* p = ((uint8_t*)(p_msg + 1)) + p_msg->offset;

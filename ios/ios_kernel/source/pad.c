@@ -123,7 +123,7 @@ void run_ios_pad_patches(void)
     *(volatile uint32_t *) 0x11f42430 = ARM_B(0x11f42430, WUDiRemoveDevice_hook);
 
     // Fix the HCI fragmentation logic and support BLE fragmentation
-    *(volatile uint32_t *) 0x11f3b860 = ARM_B(0x11f3b860, hci_h4_send_msg_hook);
+    *(volatile uint32_t *) 0x11f3b860 = ARM_B(0x11f3b860, hcisu_h2_send_msg_now_hook);
 
     // "Back-patch":
     // - https://android.googlesource.com/platform/external/bluetooth/bluedroid/+/c9053e64bd3383ea971582b4395fab9d5d614503%5E!/
