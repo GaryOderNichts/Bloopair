@@ -57,6 +57,7 @@ struct GATTHandle {
         } discoverCharDesc;
 
         struct {
+            tBT_UUID uuid;
             uint16_t handle;
             uint16_t offset;
             uint8_t* buffer;
@@ -299,6 +300,7 @@ static void _GATT_Handle_Error_Response(GATTHandle* handle, uint8_t* p, uint16_t
         // If we did a blob read of a not long attribute the attribute did perfectly fit into the MTU
         if (opcode == ATT_READ_BLOB_REQ && error == ATT_ERROR_ATTRIBUTE_NOT_LONG) {
             eventData.read.status = GATT_STATUS_SUCCESS;
+            memcpy(&eventData.read.uuid, &handle->read.uuid, sizeof(handle->read.uuid));
             eventData.read.handle = handle->read.handle;
             eventData.read.length = handle->read.offset;
             eventData.read.value = handle->read.buffer;
@@ -543,6 +545,7 @@ static void _GATT_ReadByUUID_Handle_ReadByType_Response(GATTHandle* handle, uint
     if (valueLength < 255 && fullLength < handle->mtu - 1) {
         GATTEventData eventData;
         eventData.read.status = GATT_STATUS_SUCCESS;
+        memcpy(&eventData.read.uuid, &handle->read.uuid, sizeof(handle->read.uuid));
         eventData.read.handle = attHandle;
         eventData.read.length = valueLength - 2;
         eventData.read.value = p;
@@ -598,6 +601,7 @@ static void _GATT_Handle_Read_Response(GATTHandle* handle, uint8_t* p, uint16_t 
     // If value did fit into MTU, we're done
     if (len < handle->mtu - 1) {
         eventData.read.status = GATT_STATUS_SUCCESS;
+        memcpy(&eventData.read.uuid, &handle->read.uuid, sizeof(handle->read.uuid));
         eventData.read.handle = handle->read.handle;
 
         // Shortcut, if this wasn't a long read
@@ -984,6 +988,7 @@ uint8_t GATT_Read(GATTHandle* handle, uint16_t characteristicHandle)
     }
 
     handle->state = GATT_STATE_READ;
+    memset(&handle->read.uuid, 0, sizeof(handle->read.uuid));
     handle->read.handle = characteristicHandle;
     handle->read.offset = 0;
     handle->read.buffer = NULL;
@@ -1005,6 +1010,7 @@ uint8_t GATT_ReadByUUID(GATTHandle* handle, tBT_UUID characteristicUUID)
     }
 
     handle->state = GATT_STATE_READ;
+    memcpy(&handle->read.uuid, &characteristicUUID, sizeof(handle->read.uuid));
     handle->read.handle = 0;
     handle->read.offset = 0;
     handle->read.buffer = NULL;

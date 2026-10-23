@@ -76,6 +76,8 @@ typedef struct {
     uint8_t hidNumReports;
 
     uint8_t currentReportToProcess;
+
+    uint8_t batteryLevelPending;
 } HIDBLEHandle;
 
 static HIDBLECallback hid_callback;
@@ -610,6 +612,24 @@ static void _HID_BLE_Process_InitialRead(HIDBLEHandle* handle, GATTStatus status
     handle->state = HID_BLE_STATE_IDLE;
 }
 
+static void _HID_BLE_Process_BatteryLevel(HIDBLEHandle* handle, GATTStatus status, const uint8_t* p, uint16_t len)
+{
+    handle->batteryLevelPending = 0;
+
+    if (status != GATT_STATUS_SUCCESS || len == 0) {
+        // Oh well, no battery for this controller then
+        return;
+    }
+
+    uint8_t level = *p;
+
+    // Notify upper layer of battery level
+    HIDBLEEventData eventData;
+    eventData.battery.handle = handle->devHandle;
+    eventData.battery.level = level;
+    hid_callback(HID_BLE_EVENT_BATTERY, &eventData);
+}
+
 static void _HID_BLE_Handle_Read_Event(HIDBLEHandle* handle, GATTReadEventData* data)
 {
     if (handle->state == HID_BLE_STATE_PNP_ID) {
@@ -620,6 +640,8 @@ static void _HID_BLE_Handle_Read_Event(HIDBLEHandle* handle, GATTReadEventData* 
         _HID_BLE_Process_ReportMap(handle, data->status, data->value, data->length);
     } else if (handle->state == HID_BLE_STATE_INITIAL_READ) {
         _HID_BLE_Process_InitialRead(handle, data->status, data->value, data->length);
+    } else if (data->uuid.len == LEN_UUID_16 && data->uuid.uu.uuid16 == UUID_BATTERY_LEVEL) {
+        _HID_BLE_Process_BatteryLevel(handle, data->status, data->value, data->length);
     }
 }
 
@@ -814,4 +836,23 @@ uint8_t HID_BLE_SendData(uint8_t devHandle, const void* data, uint16_t len)
     }
 
     return GATT_WriteNoRsp(handle->gattHandle, report->valueHandle, reportData + 1, len - 1);
+}
+
+uint8_t HID_BLE_ReadBatteryLevel(uint8_t devHandle)
+{
+    HIDBLEHandle* handle = _HID_BLE_GetHandleFromHidHostHandle(devHandle);
+    if (!handle) {
+        return 0;
+    }
+
+    if (handle->state != HID_BLE_STATE_IDLE || handle->batteryLevelPending) {
+        return 0;
+    }
+
+    handle->batteryLevelPending = 1;
+
+    tBT_UUID uuid;
+    uuid.len = LEN_UUID_16;
+    uuid.uu.uuid16 = UUID_BATTERY_LEVEL;
+    return GATT_ReadByUUID(handle->gattHandle, uuid);
 }
