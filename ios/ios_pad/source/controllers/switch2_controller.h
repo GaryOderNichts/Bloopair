@@ -212,48 +212,45 @@ typedef struct PACKED {
 } Switch2RawStickCalibration;
 CHECK_SIZE(Switch2RawStickCalibration, 0x09);
 
-typedef struct PACKED {
-    uint8_t zr   : 1;
-    uint8_t r    : 1;
-    uint8_t sl_r : 1;
-    uint8_t sr_r : 1;
-    uint8_t a    : 1;
-    uint8_t b    : 1;
-    uint8_t x    : 1;
-    uint8_t y    : 1;
-
-    uint8_t         : 1;
-    uint8_t c       : 1;
-    uint8_t capture : 1;
-    uint8_t home    : 1;
-    uint8_t lstick  : 1;
-    uint8_t rstick  : 1;
-    uint8_t plus    : 1;
-    uint8_t minus   : 1;
-
-    uint8_t zl    : 1;
-    uint8_t l     : 1;
-    uint8_t sl_l  : 1;
-    uint8_t sr_l  : 1;
-    uint8_t left  : 1;
-    uint8_t right : 1;
-    uint8_t up    : 1;
-    uint8_t down  : 1;
-
-    uint8_t         : 3;
-    uint8_t headset : 1;
-    uint8_t         : 2;
-    uint8_t gl      : 1;
-    uint8_t gr      : 1;
-} Switch2Buttons;
-CHECK_SIZE(Switch2Buttons, 0x04);
-
 #define SWITCH2_INPUT_REPORT_0x05_HANDLE 0x000a
 #define SWITCH2_INPUT_REPORT_0x05_CONF   0x000b
 
 typedef struct PACKED {
     uint32_t counter;
-    Switch2Buttons buttons;
+    struct PACKED {
+        uint8_t zr   : 1;
+        uint8_t r    : 1;
+        uint8_t sl_r : 1;
+        uint8_t sr_r : 1;
+        uint8_t a    : 1;
+        uint8_t b    : 1;
+        uint8_t x    : 1;
+        uint8_t y    : 1;
+
+        uint8_t         : 1;
+        uint8_t c       : 1;
+        uint8_t capture : 1;
+        uint8_t home    : 1;
+        uint8_t lstick  : 1;
+        uint8_t rstick  : 1;
+        uint8_t plus    : 1;
+        uint8_t minus   : 1;
+
+        uint8_t zl    : 1;
+        uint8_t l     : 1;
+        uint8_t sl_l  : 1;
+        uint8_t sr_l  : 1;
+        uint8_t left  : 1;
+        uint8_t right : 1;
+        uint8_t up    : 1;
+        uint8_t down  : 1;
+
+        uint8_t         : 3;
+        uint8_t headset : 1;
+        uint8_t         : 2;
+        uint8_t gl      : 1;
+        uint8_t gr      : 1;
+    } buttons;
     uint16_t unknown0x08;
     Switch2Axis left_stick;
     Switch2Axis right_stick;
@@ -271,14 +268,174 @@ typedef struct PACKED {
 } Switch2InputReport0x05;
 CHECK_SIZE(Switch2InputReport0x05, 0x3F);
 
+#define SWITCH2_INPUT_REPORT_HANDLE 0x000e
+#define SWITCH2_INPUT_REPORT_CONF 0x000f
+
+typedef struct PACKED {
+    uint8_t reserved : 2;
+    uint8_t level    : 4;
+    uint8_t charging : 1;
+    uint8_t external : 1;
+} Switch2PowerInfo;
+CHECK_SIZE(Switch2PowerInfo, 0x01);
+
+typedef struct PACKED {
+    uint8_t counter;
+    Switch2PowerInfo power;
+    struct PACKED {
+        uint8_t stick : 1;
+        uint8_t minus : 1;
+        uint8_t zl    : 1;
+        uint8_t l     : 1;
+        uint8_t up    : 1;
+        uint8_t left  : 1;
+        uint8_t right : 1;
+        uint8_t down  : 1;
+
+        uint8_t sl      : 1;
+        uint8_t sr      : 1;
+        uint8_t         : 1;
+        uint8_t         : 1;
+        uint8_t         : 1;
+        uint8_t         : 1;
+        uint8_t         : 1;
+        uint8_t capture : 1;
+    } buttons;
+    uint8_t unknown0x04;
+    Switch2Axis stick;
+    uint8_t unknown0x08;
+    uint8_t mouse[0x5];
+    uint8_t motion_data_length;
+    uint8_t motion_data[0x28];
+    uint8_t reserved[0x8];
+} Switch2InputReport0x07;
+CHECK_SIZE(Switch2InputReport0x07, 0x3F);
+
+typedef struct PACKED {
+    uint8_t counter;
+    Switch2PowerInfo power;
+    struct PACKED {
+        uint8_t stick : 1;
+        uint8_t plus  : 1;
+        uint8_t zr    : 1;
+        uint8_t r     : 1;
+        uint8_t x     : 1;
+        uint8_t y     : 1;
+        uint8_t a     : 1;
+        uint8_t b     : 1;
+
+        uint8_t sl   : 1;
+        uint8_t sr   : 1;
+        uint8_t      : 1;
+        uint8_t c    : 1;
+        uint8_t      : 1;
+        uint8_t      : 1;
+        uint8_t      : 1;
+        uint8_t home : 1;
+    } buttons;
+    uint8_t unknown0x04;
+    Switch2Axis stick;
+    uint8_t unknown0x08;
+    uint8_t mouse[0x5];
+    uint8_t nfc_state;
+    uint8_t motion_data_length;
+    uint8_t motion_data[0x28];
+    uint8_t reserved[0x7];
+} Switch2InputReport0x08;
+CHECK_SIZE(Switch2InputReport0x08, 0x3F);
+
+typedef struct PACKED {
+    uint8_t counter;
+    Switch2PowerInfo power;
+    struct PACKED {
+        uint8_t rstick : 1;
+        uint8_t plus   : 1;
+        uint8_t zr     : 1;
+        uint8_t r      : 1;
+        uint8_t x      : 1;
+        uint8_t y      : 1;
+        uint8_t a      : 1;
+        uint8_t b      : 1;
+
+        uint8_t lstick : 1;
+        uint8_t minus  : 1;
+        uint8_t zl     : 1;
+        uint8_t l      : 1;
+        uint8_t up     : 1;
+        uint8_t left   : 1;
+        uint8_t right  : 1;
+        uint8_t down   : 1;
+
+        uint8_t         : 1;
+        uint8_t         : 1;
+        uint8_t         : 1;
+        uint8_t c       : 1;
+        uint8_t gl      : 1;
+        uint8_t gr      : 1;
+        uint8_t capture : 1;
+        uint8_t home    : 1;
+    } buttons;
+    Switch2Axis left_stick;
+    Switch2Axis right_stick;
+    uint8_t unknown0x0B;
+    uint8_t nfc_state;
+    uint8_t headset_state;
+    uint8_t motion_data_length;
+    uint8_t motion_data[0x28];
+    uint8_t reserved[0x8];
+} Switch2InputReport0x09;
+CHECK_SIZE(Switch2InputReport0x09, 0x3F);
+
+typedef struct PACKED {
+    uint8_t counter;
+    Switch2PowerInfo power;
+    struct PACKED {
+        uint8_t rstick : 1;
+        uint8_t plus   : 1;
+        uint8_t r      : 1;
+        uint8_t z      : 1;
+        uint8_t x      : 1;
+        uint8_t y      : 1;
+        uint8_t a      : 1;
+        uint8_t b      : 1;
+
+        uint8_t lstick : 1;
+        uint8_t minus  : 1;
+        uint8_t l      : 1;
+        uint8_t zl     : 1;
+        uint8_t up     : 1;
+        uint8_t left   : 1;
+        uint8_t right  : 1;
+        uint8_t down   : 1;
+
+        uint8_t         : 1;
+        uint8_t         : 1;
+        uint8_t         : 1;
+        uint8_t c       : 1;
+        uint8_t         : 1;
+        uint8_t         : 1;
+        uint8_t capture : 1;
+        uint8_t home    : 1;
+    } buttons;
+    Switch2Axis left_stick;
+    Switch2Axis right_stick;
+    uint8_t unknown0x0B;
+    uint8_t left_trigger;
+    uint8_t right_trigger;
+    uint8_t motion_data_length;
+    uint8_t motion_data[0x28];
+    uint8_t reserved[0x8];
+} Switch2InputReport0x0A;
+CHECK_SIZE(Switch2InputReport0x0A, 0x3F);
+
+#define SWITCH2_OUTPUT_REPORT_RUMBLE_HANDLE 0x0012
+
 typedef struct PACKED {
     uint8_t vibration_counter;
     uint8_t rumble_data[5];
     uint8_t unknown[10];
 } Switch2RumbleData;
 CHECK_SIZE(Switch2RumbleData, 0x10);
-
-#define SWITCH2_OUTPUT_REPORT_RUMBLE_HANDLE 0x0012
 
 typedef struct PACKED {
     uint8_t report_id;
