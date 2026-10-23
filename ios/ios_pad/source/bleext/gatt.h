@@ -89,6 +89,7 @@ typedef struct {
 
 typedef struct {
     GATTStatus status;
+    tBT_UUID uuid;
     uint16_t handle;
     uint16_t length;
     const uint8_t* value;

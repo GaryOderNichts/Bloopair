@@ -14,6 +14,7 @@
 #define UUID_HID_CONTROL_POINT 0x2A4C
 #define UUID_REPORT            0x2A4D
 #define UUID_PNP_ID            0x2A50
+#define UUID_BATTERY_LEVEL     0x2A19
 
 // https://bitbucket.org/bluetooth-SIG/public/src/main/assigned_numbers/uuids/descriptors.yaml
 #define UUID_CLIENT_CHARACTERISTIC_CONFIGURATION 0x2902
