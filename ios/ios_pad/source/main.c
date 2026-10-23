@@ -87,6 +87,7 @@ static void Bloopair_HID_BLE_Callback(HIDBLEEvent event, HIDBLEEventData* eventD
 
         if (!WUD_ConnectDevice(connectData->handle, connectData->addr, 0)) {
             HID_BLE_Close(connectData->handle);
+            return;
         }
         break;
     }
@@ -96,6 +97,17 @@ static void Bloopair_HID_BLE_Callback(HIDBLEEvent event, HIDBLEEventData* eventD
 
         WUD_DisconnectDevice(disconnectData->handle, disconnectData->addr);
         break;
+    }
+    case HID_BLE_EVENT_BATTERY: {
+        HIDBLEBatteryData* batteryData = &eventData->battery;
+        Controller* controller = &controllers[batteryData->handle];
+
+        DEBUG_PRINT("HID BLE device %d battery level %d\n", batteryData->handle, batteryData->level);
+
+        // Update battery level
+        if (controller->isInitialized) {
+            controller->battery = MIN((batteryData->level + 12) / 25, 4);
+        }
     }
     };
 }
@@ -435,6 +447,11 @@ void processSmdMessages(void)
                 break;
             }
             case WM_REPORT_ID_REQUEST_STATUS: {
+                // Use the opportunity to read the battery level of BLE controllers
+                if (HID_BLE_IsActiveHandle(msg.dev_handle)) {
+                    HID_BLE_ReadBatteryLevel(msg.dev_handle);
+                }
+
                 WMStatusReport status;
                 status.report_id = WM_REPORT_ID_STATUS;
                 status.core_buttons = 0; // no need to set buttons here, we only send the extension buttons

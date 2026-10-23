@@ -9,9 +9,6 @@ These extensions include:
 - A basic SMP implementation for pairing and bonding support
 - Special "HID" implementation for Switch 2 controllers
 
-## TODO
-- Battery
-
 ## References
 - https://www.bluetooth.com/specifications/specs/core-specification-4-0/
 - https://www.bluetooth.com/specifications/specs/hid-over-gatt-profile-1-0/

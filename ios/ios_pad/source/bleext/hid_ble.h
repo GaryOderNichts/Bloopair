@@ -42,14 +42,21 @@ typedef struct {
     BD_ADDR addr;
 } HIDBLEDisconnectEventData;
 
+typedef struct {
+    uint8_t handle;
+    uint8_t level;
+} HIDBLEBatteryData;
+
 typedef union {
     HIDBLEConnectEventData connect;
     HIDBLEDisconnectEventData disconnect;
+    HIDBLEBatteryData battery;
 } HIDBLEEventData;
 
 typedef enum {
     HID_BLE_EVENT_CONNECT,
     HID_BLE_EVENT_DISCONNECT,
+    HID_BLE_EVENT_BATTERY,
 } HIDBLEEvent;
 
 typedef void (*HIDBLECallback)(HIDBLEEvent event, HIDBLEEventData* eventData);
@@ -63,3 +70,5 @@ uint8_t HID_BLE_Close(uint8_t devHandle);
 uint8_t HID_BLE_IsActiveHandle(uint8_t devHandle);
 
 uint8_t HID_BLE_SendData(uint8_t devHandle, const void* data, uint16_t len);
+
+uint8_t HID_BLE_ReadBatteryLevel(uint8_t devHandle);
