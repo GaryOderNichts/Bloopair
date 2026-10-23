@@ -16,23 +16,31 @@
  */
 
 #include "ipc.h"
-#include "info_store.h"
+#include "device_info.h"
 #include "controllers.h"
+#include "wud.h"
+#include "main.h"
 #include <bloopair/ipc.h>
+
+static int bloopair_is_init = 0;
 
 static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
 {
-    // ensure config is initialized
-    Configuration_Init();
+    // Initialize bloopair on first request received
+    // (this will most likely be the loader with GET_VERSION)
+    if (!bloopair_is_init) {
+        Bloopair_Init();
+        bloopair_is_init = 1;
+    }
 
     switch (request->func) {
     case BLOOPAIR_FUNC_GET_VERSION:
         DEBUG_PRINT("BLOOPAIR_FUNC_GET_VERSION\n");
-        return BLOOPAIR_VERSION(1, 0, 4);
+        return BLOOPAIR_VERSION(1, 1, 0);
 
     case BLOOPAIR_FUNC_READ_CONSOLE_BDADDR: {
         DEBUG_PRINT("BLOOPAIR_FUNC_READ_CONSOLE_BDADDR\n");
-        memcpy(response->data, local_device_bdaddr, 6);
+        memcpy(response->data, gWBC.hostAddress, 6);
         return 0;
     }
     
@@ -42,24 +50,22 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
         BloopairPairingData* data = (BloopairPairingData*) request->data;
 
         // register the device pairing
-        registerNewDevice(data->bd_address, data->link_key, data->name);
+        WUDRegisterDevice(data->bd_address, data->link_key, (const char*) data->name);
 
         // store the link key so the pairing doesn't get removed for not having one
         BTM_WriteStoredLinkKey(1, data->bd_address, data->link_key, NULL);
 
         // add the info to our store
-        StoredInfo* info = store_get_device_info(data->bd_address);
+        DeviceInfo* info = DeviceInfo_GetOrAllocate(data->bd_address);
         if (!info) {
-            info = store_allocate_device_info(data->bd_address);
-            if (!info) {
-                return -8;
-            }
+            return -8;
         }
 
         info->magic = MAGIC_BLOOPAIR;
         info->product_id = data->product_id;
         info->vendor_id = data->vendor_id;
-        
+        info->flush = 1;
+
         return 0;
     }
     

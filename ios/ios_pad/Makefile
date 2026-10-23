@@ -36,14 +36,15 @@ BUILD		:= build
 SOURCES		:= source \
 	source/bta \
 	source/controllers \
-	source/stack
+	source/stack \
+	source/bleext
 DATA		:= data
 INCLUDES	:= source
 
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-CFLAGS	:= -Wall -std=gnu11 -Os $(MACHDEP) $(INCLUDE) -Wno-array-bounds -fno-builtin
+CFLAGS	:= -Wall -std=gnu11 -Os $(MACHDEP) $(INCLUDE) -Wno-unused-variable -fno-builtin
 
 ifeq ($(DEBUG), 1)
 	CFLAGS += -DCOMMIT_HASH=\"$(BLOOPAIR_COMMIT_HASH)\"

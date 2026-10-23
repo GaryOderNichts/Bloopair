@@ -3,7 +3,6 @@
 
 #define USB_PHYS_CODE_BASE      0x101312D0
 #define PAD_PHYS_CODE_BASE      0x11F86000
-#define PAD_PHYS_BSS_BASE       0x12159000
 
 typedef struct {
     uint32_t size;
@@ -75,9 +74,6 @@ int _main()
     uint8_t* padscore_addr = *(uint8_t**) 0x00158000;
     kernel_memcpy((void*) PAD_PHYS_CODE_BASE + payloads->size, padscore_addr + 0x28e8, 0x2a);
     kernel_memcpy((void*) PAD_PHYS_CODE_BASE + payloads->size + 0x2a, padscore_addr + 0x2940, 0x900);
-
-    // memset ios-pad bss
-    kernel_memset((void *) PAD_PHYS_BSS_BASE, 0, 0x3000);
 
     // apply ios_pad patches
     run_ios_pad_patches();

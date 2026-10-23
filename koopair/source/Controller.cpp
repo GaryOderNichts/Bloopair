@@ -63,6 +63,20 @@ std::string GetNameForBloopairControllerType(BloopairControllerType type)
         return "Switch N64 Controller";
     case BLOOPAIR_CONTROLLER_XBOX_ONE:
         return "Xbox One Controller";
+    case BLOOPAIR_CONTROLLER_XBOX_SERIES:
+        return "Xbox Series Controller";
+    case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT:
+        return "Left Joy-Con 2";
+    case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_RIGHT:
+        return "Right Joy-Con 2";
+    case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_DUAL:
+        return "Joy-Cons 2";
+    case BLOOPAIR_CONTROLLER_SWITCH2_PRO:
+        return "Switch 2 Pro Controller";
+    case BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE:
+        return "Switch 2 Gamecube Controller";
+    case BLOOPAIR_CONTROLLER_STADIA:
+        return "Stadia Controller";
     default:
         return "Unknown Pro Controller";
     }
