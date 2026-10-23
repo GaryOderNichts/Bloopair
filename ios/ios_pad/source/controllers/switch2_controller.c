@@ -400,8 +400,8 @@ static void handleFlashResponse(Controller* controller, Switch2CommandResponse* 
                                       (Switch2RawStickCalibration*) &rsp->flash.read.data[0x02]);
             }
 
-            // Enable input report 0x05
-            HID_SW2_EnableReport(controller->handle, SWITCH2_INPUT_REPORT_0x05_CONF);
+            // Enable device specific input reports
+            HID_SW2_EnableReport(controller->handle, SWITCH2_INPUT_REPORT_CONF);
         }
         break;
 
@@ -526,6 +526,12 @@ static void handleCommandResponse(Controller* controller, Switch2CommandResponse
     }
 }
 
+static void handlePowerInfo(Controller* controller, Switch2PowerInfo* info)
+{
+    controller->battery = MIN((info->level + 1) / 2, 4);
+    controller->isCharging = info->external;
+}
+
 static void handleInputReport0x05(Controller* controller, Switch2InputReport0x05* inRep)
 {
     Switch2Data* sdata = (Switch2Data*) controller->additionalData;
@@ -604,6 +610,210 @@ static void handleInputReport0x05(Controller* controller, Switch2InputReport0x05
     }
 }
 
+static void handleInputReport0x07(Controller* controller, Switch2InputReport0x07* inRep)
+{
+    Switch2Data* sdata = (Switch2Data*) controller->additionalData;
+    BloopairReportBuffer* rep = &controller->reportBuffer;
+
+    // "Left" calibration is the calibration of the primary stick
+    rep->left_stick_x = calibrateStickAxis(&sdata->left_stick_calib.x, SWITCH2_AXIS_X(inRep->stick));
+    rep->left_stick_y = -calibrateStickAxis(&sdata->left_stick_calib.y, SWITCH2_AXIS_Y(inRep->stick));
+
+    rep->buttons = 0;
+
+    if (inRep->buttons.stick)
+        rep->buttons |= BTN(SWITCH2_BUTTON_STICK_L);
+    if (inRep->buttons.minus)
+        rep->buttons |= BTN(SWITCH2_BUTTON_MINUS);
+    if (inRep->buttons.zl)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_ZL);
+    if (inRep->buttons.l)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_L);
+    if (inRep->buttons.down)
+        rep->buttons |= BTN(SWITCH2_BUTTON_DOWN);
+    if (inRep->buttons.up)
+        rep->buttons |= BTN(SWITCH2_BUTTON_UP);
+    if (inRep->buttons.right)
+        rep->buttons |= BTN(SWITCH2_BUTTON_RIGHT);
+    if (inRep->buttons.left)
+        rep->buttons |= BTN(SWITCH2_BUTTON_LEFT);
+    if (inRep->buttons.sl)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_SL_L);
+    if (inRep->buttons.sr)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_SR_L);
+    if (inRep->buttons.capture)
+        rep->buttons |= BTN(SWITCH2_BUTTON_CAPTURE);
+
+    handlePowerInfo(controller, &inRep->power);
+
+    if (!controller->isReady) {
+        controller->isReady = 1;
+    }
+}
+
+static void handleInputReport0x08(Controller* controller, Switch2InputReport0x08* inRep)
+{
+    Switch2Data* sdata = (Switch2Data*) controller->additionalData;
+    BloopairReportBuffer* rep = &controller->reportBuffer;
+
+    // "Left" calibration is the calibration of the primary stick
+    rep->right_stick_x = calibrateStickAxis(&sdata->left_stick_calib.x, SWITCH2_AXIS_X(inRep->stick));
+    rep->right_stick_y = -calibrateStickAxis(&sdata->left_stick_calib.y, SWITCH2_AXIS_Y(inRep->stick));
+
+    rep->buttons = 0;
+
+    if (inRep->buttons.stick)
+        rep->buttons |= BTN(SWITCH2_BUTTON_STICK_R);
+    if (inRep->buttons.plus)
+        rep->buttons |= BTN(SWITCH2_BUTTON_PLUS);
+    if (inRep->buttons.zr)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_ZR);
+    if (inRep->buttons.r)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_R);
+    if (inRep->buttons.y)
+        rep->buttons |= BTN(SWITCH2_BUTTON_Y);
+    if (inRep->buttons.x)
+        rep->buttons |= BTN(SWITCH2_BUTTON_X);
+    if (inRep->buttons.b)
+        rep->buttons |= BTN(SWITCH2_BUTTON_B);
+    if (inRep->buttons.a)
+        rep->buttons |= BTN(SWITCH2_BUTTON_A);
+    if (inRep->buttons.sl)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_SL_R);
+    if (inRep->buttons.sr)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_SR_R);
+    if (inRep->buttons.c)
+        rep->buttons |= BTN(SWITCH2_BUTTON_C);
+    if (inRep->buttons.home)
+        rep->buttons |= BTN(SWITCH2_BUTTON_HOME);
+
+    handlePowerInfo(controller, &inRep->power);
+
+    if (!controller->isReady) {
+        controller->isReady = 1;
+    }
+}
+
+static void handleInputReport0x09(Controller* controller, Switch2InputReport0x09* inRep)
+{
+    Switch2Data* sdata = (Switch2Data*) controller->additionalData;
+    BloopairReportBuffer* rep = &controller->reportBuffer;
+
+    rep->buttons = 0;
+
+    rep->left_stick_x = calibrateStickAxis(&sdata->left_stick_calib.x, SWITCH2_AXIS_X(inRep->left_stick));
+    rep->left_stick_y = -calibrateStickAxis(&sdata->left_stick_calib.y, SWITCH2_AXIS_Y(inRep->left_stick));
+    rep->right_stick_x = calibrateStickAxis(&sdata->right_stick_calib.x, SWITCH2_AXIS_X(inRep->right_stick));
+    rep->right_stick_y = -calibrateStickAxis(&sdata->right_stick_calib.y, SWITCH2_AXIS_Y(inRep->right_stick));
+
+    if (inRep->buttons.rstick)
+        rep->buttons |= BTN(SWITCH2_BUTTON_STICK_R);
+    if (inRep->buttons.plus)
+        rep->buttons |= BTN(SWITCH2_BUTTON_PLUS);
+    if (inRep->buttons.zr)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_ZR);
+    if (inRep->buttons.r)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_R);
+    if (inRep->buttons.y)
+        rep->buttons |= BTN(SWITCH2_BUTTON_Y);
+    if (inRep->buttons.x)
+        rep->buttons |= BTN(SWITCH2_BUTTON_X);
+    if (inRep->buttons.b)
+        rep->buttons |= BTN(SWITCH2_BUTTON_B);
+    if (inRep->buttons.a)
+        rep->buttons |= BTN(SWITCH2_BUTTON_A);
+    if (inRep->buttons.lstick)
+        rep->buttons |= BTN(SWITCH2_BUTTON_STICK_L);
+    if (inRep->buttons.minus)
+        rep->buttons |= BTN(SWITCH2_BUTTON_MINUS);
+    if (inRep->buttons.l)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_L);
+    if (inRep->buttons.zl)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_ZL);
+    if (inRep->buttons.down)
+        rep->buttons |= BTN(SWITCH2_BUTTON_DOWN);
+    if (inRep->buttons.up)
+        rep->buttons |= BTN(SWITCH2_BUTTON_UP);
+    if (inRep->buttons.right)
+        rep->buttons |= BTN(SWITCH2_BUTTON_RIGHT);
+    if (inRep->buttons.left)
+        rep->buttons |= BTN(SWITCH2_BUTTON_LEFT);
+    if (inRep->buttons.c)
+        rep->buttons |= BTN(SWITCH2_BUTTON_C);
+    if (inRep->buttons.gl)
+        rep->buttons |= BTN(SWITCH2_BUTTON_GL);
+    if (inRep->buttons.gr)
+        rep->buttons |= BTN(SWITCH2_BUTTON_GR);
+    if (inRep->buttons.capture)
+        rep->buttons |= BTN(SWITCH2_BUTTON_CAPTURE);
+    if (inRep->buttons.home)
+        rep->buttons |= BTN(SWITCH2_BUTTON_HOME);
+
+    handlePowerInfo(controller, &inRep->power);
+
+    if (!controller->isReady) {
+        controller->isReady = 1;
+    }
+}
+
+static void handleInputReport0x0A(Controller* controller, Switch2InputReport0x0A* inRep)
+{
+    Switch2Data* sdata = (Switch2Data*) controller->additionalData;
+    BloopairReportBuffer* rep = &controller->reportBuffer;
+
+    rep->buttons = 0;
+
+    rep->left_stick_x = calibrateStickAxis(&sdata->left_stick_calib.x, SWITCH2_AXIS_X(inRep->left_stick));
+    rep->left_stick_y = -calibrateStickAxis(&sdata->left_stick_calib.y, SWITCH2_AXIS_Y(inRep->left_stick));
+    rep->right_stick_x = calibrateStickAxis(&sdata->right_stick_calib.x, SWITCH2_AXIS_X(inRep->right_stick));
+    rep->right_stick_y = -calibrateStickAxis(&sdata->right_stick_calib.y, SWITCH2_AXIS_Y(inRep->right_stick));
+
+    if (inRep->buttons.rstick)
+        rep->buttons |= BTN(SWITCH2_BUTTON_STICK_R);
+    if (inRep->buttons.plus)
+        rep->buttons |= BTN(SWITCH2_BUTTON_PLUS);
+    if (inRep->buttons.z)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_ZR);
+    if (inRep->buttons.r)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_R);
+    if (inRep->buttons.y)
+        rep->buttons |= BTN(SWITCH2_BUTTON_Y);
+    if (inRep->buttons.x)
+        rep->buttons |= BTN(SWITCH2_BUTTON_X);
+    if (inRep->buttons.b)
+        rep->buttons |= BTN(SWITCH2_BUTTON_B);
+    if (inRep->buttons.a)
+        rep->buttons |= BTN(SWITCH2_BUTTON_A);
+    if (inRep->buttons.lstick)
+        rep->buttons |= BTN(SWITCH2_BUTTON_STICK_L);
+    if (inRep->buttons.minus)
+        rep->buttons |= BTN(SWITCH2_BUTTON_MINUS);
+    if (inRep->buttons.l)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_L);
+    if (inRep->buttons.zl)
+        rep->buttons |= BTN(SWITCH2_TRIGGER_ZL);
+    if (inRep->buttons.down)
+        rep->buttons |= BTN(SWITCH2_BUTTON_DOWN);
+    if (inRep->buttons.up)
+        rep->buttons |= BTN(SWITCH2_BUTTON_UP);
+    if (inRep->buttons.right)
+        rep->buttons |= BTN(SWITCH2_BUTTON_RIGHT);
+    if (inRep->buttons.left)
+        rep->buttons |= BTN(SWITCH2_BUTTON_LEFT);
+    if (inRep->buttons.c)
+        rep->buttons |= BTN(SWITCH2_BUTTON_C);
+    if (inRep->buttons.capture)
+        rep->buttons |= BTN(SWITCH2_BUTTON_CAPTURE);
+    if (inRep->buttons.home)
+        rep->buttons |= BTN(SWITCH2_BUTTON_HOME);
+
+    handlePowerInfo(controller, &inRep->power);
+
+    if (!controller->isReady) {
+        controller->isReady = 1;
+    }
+}
+
 void controllerData_switch2(Controller* controller, uint8_t* buf, uint16_t len)
 {
     // hid_switch2 prepends reports with handle
@@ -613,6 +823,23 @@ void controllerData_switch2(Controller* controller, uint8_t* buf, uint16_t len)
         handleCommandResponse(controller, (Switch2CommandResponse*) (buf + 2));
     } else if (handle == SWITCH2_INPUT_REPORT_0x05_HANDLE) {
         handleInputReport0x05(controller, (Switch2InputReport0x05*) (buf + 2));
+    } else if (handle == SWITCH2_INPUT_REPORT_HANDLE) {
+        // Full reports share the same handle, decide based on device type
+        switch (controller->type) {
+        case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_LEFT:
+            handleInputReport0x07(controller, (Switch2InputReport0x07*) (buf + 2));
+            break;
+        case BLOOPAIR_CONTROLLER_SWITCH2_JOYCON_RIGHT:
+            handleInputReport0x08(controller, (Switch2InputReport0x08*) (buf + 2));
+            break;
+        case BLOOPAIR_CONTROLLER_SWITCH2_PRO:
+            handleInputReport0x09(controller, (Switch2InputReport0x09*) (buf + 2));
+            break;
+        case BLOOPAIR_CONTROLLER_SWITCH2_GAMECUBE:
+            handleInputReport0x0A(controller, (Switch2InputReport0x0A*) (buf + 2));
+            break;
+        default: break;
+        }
     }
 }
 
