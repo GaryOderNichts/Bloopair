@@ -381,15 +381,13 @@ void ControllerListOptionsScreen::SaveAndApplyAll()
 
     // Not disconnecting controllers before applying a mapping is undefined behaviour, since Bloopair needs to redo the init sequence
     // If we apply to all controllers of a type just disconnect all controllers
-    if (mApplyToAll) {
-        for (size_t i = 0; i < 0; i++) {
-            const KPADController& controller = ControllerManager::Get().GetKPADController(i);
-            if (!controller.IsConnected()) {
-                continue;
-            }
-
-            controller.Disconnect();
+    for (size_t i = 0; i < ControllerManager::kMaxKPADControllers; i++) {
+        const KPADController& controller = ControllerManager::Get().GetKPADController(i);
+        if (!controller.IsConnected()) {
+            continue;
         }
+
+        controller.Disconnect();
     }
 
     Configuration cfg(type);
