@@ -119,6 +119,21 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
         return sizeof(controller->reportBuffer);
     }
 
+    case BLOOPAIR_FUNC_READ_MOTION_REPORT: {
+        BloopairControllerRequestData* req = (BloopairControllerRequestData*) request->data;
+        if (req->handle >= BTA_HH_MAX_KNOWN) {
+            return -4;
+        }
+
+        Controller* controller = &controllers[req->handle];
+        if (!controller->isInitialized) {
+            return -4;
+        }
+
+        memcpy(response->data, &controller->motionReport, sizeof(controller->motionReport));
+        return sizeof(controller->motionReport);
+    }
+
     case BLOOPAIR_FUNC_APPLY_CONTROLLER_CONFIG: {
         DEBUG_PRINT("BLOOPAIR_FUNC_APPLY_CONTROLLER_CONFIG\n");
         BloopairApplyControllerConfigurationData* data = (BloopairApplyControllerConfigurationData*) request->data;

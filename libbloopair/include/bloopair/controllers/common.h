@@ -118,3 +118,20 @@ typedef struct {
     int16_t left_stick_y;
     int16_t right_stick_y;
 } BloopairReportBuffer;
+
+// Optional motion data for homebrew. Does not change Wii U Pro reports.
+// gyro: yaw/roll/pitch, 16 counts per degree/second.
+// accel: Wii Remote-aligned X/Y/Z, 8192 counts per g.
+// A bit set in gyroAxes / accelAxes means that axis is valid.
+// DS3 has 3-axis accel, but only an uncalibrated one-axis gyro:
+// rawGyro contains the native 10-bit value, or 0xffff if unavailable.
+// Callers must establish the DS3 gyro center themselves.
+typedef struct {
+    int16_t gyro[3];
+    int16_t accel[3];
+    uint16_t timestamp;  // Native timestamp, or zero if unavailable.
+    uint16_t sequence;   // Increments for every accepted sensor sample.
+    uint16_t rawGyro;    // Uncalibrated DS3 gyro, 0xffff for other controllers.
+    uint8_t gyroAxes;    // Bitmask: bit 0 = yaw, 1 = roll, 2 = pitch.
+    uint8_t accelAxes;   // Bitmask: bit 0 = X, 1 = Y, 2 = Z.
+} BloopairMotionReport;

@@ -111,8 +111,36 @@ void controllerData_dualshock3(Controller* controller, uint8_t* buf, uint16_t le
     }
 
     if (buf[0] == 0x01) {
+        if (len < sizeof(Dualshock3InputReport) || buf[1] == 0xff) {
+            controller->motionReport.accelAxes = 0;
+            controller->motionReport.gyroAxes = 0;
+            controller->motionReport.rawGyro = 0xffff;
+            return;
+        }
         BloopairReportBuffer* rep = &controller->reportBuffer;
         Dualshock3InputReport* inRep = (Dualshock3InputReport*) buf;
+        BloopairMotionReport* motion = &controller->motionReport;
+        const uint8_t* sensor = (const uint8_t*) inRep->accel;
+        uint16_t ax = ((uint16_t)sensor[0] << 8) | sensor[1];
+        uint16_t ay = ((uint16_t)sensor[2] << 8) | sensor[3];
+        uint16_t az = ((uint16_t)sensor[4] << 8) | sensor[5];
+        uint16_t rawGyro = ((uint16_t)sensor[6] << 8) | sensor[7];
+        motion->accelAxes = motion->gyroAxes = 0;
+        motion->rawGyro = rawGyro <= 1023 ? rawGyro : 0xffff;
+        if (ax <= 1023 && ay <= 1023 && az <= 1023) {
+            // Sixaxis factory nominal gravity is ~113 counts per g.
+            int16_t x = motionClamp(((((int32_t)ax - 511) * 8192) / 113));
+            int16_t y = motionClamp((((511 - (int32_t)az) * 8192) / 113));
+            int16_t z = motionClamp((((511 - (int32_t)ay) * 8192) / 113));
+            motion->accel[0] = motionClamp(-(int32_t)x);
+            motion->accel[1] = motionClamp(-(int32_t)z);
+            motion->accel[2] = y;
+            motion->accelAxes = 7;
+        }
+        motion->timestamp = 0;
+        if (motion->accelAxes || motion->rawGyro != 0xffff) {
+            motion->sequence++;
+        }
 
         rep->left_stick_x = scaleStickAxis(inRep->left_stick_x, 256);
         rep->left_stick_y = scaleStickAxis(inRep->left_stick_y, 256);

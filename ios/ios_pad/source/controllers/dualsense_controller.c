@@ -153,6 +153,13 @@ void controllerData_dualsense(Controller* controller, uint8_t* buf, uint16_t len
     if (buf[0] == DUALSENSE_INPUT_REPORT_ID) {
         BloopairReportBuffer* rep = &controller->reportBuffer;
         DualsenseInputReport* inRep = (DualsenseInputReport*) buf;
+        if (len >= sizeof(DualsenseInputReport)) {
+            const uint8_t* t = (const uint8_t*) &inRep->sensor_timestamp;
+            motionPublishSony(controller, inRep->gyro, inRep->accel,
+                              (uint16_t)t[0] | ((uint16_t)t[1] << 8));
+        } else {
+            controller->motionReport.accelAxes = controller->motionReport.gyroAxes = 0;
+        }
 
         rep->left_stick_x = scaleStickAxis(inRep->left_stick_x, 256);
         rep->left_stick_y = scaleStickAxis(inRep->left_stick_y, 256);

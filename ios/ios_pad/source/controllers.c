@@ -159,6 +159,7 @@ int initController(uint8_t* bda, uint8_t handle)
     }
 
     memset(controller, 0, sizeof(Controller));
+    controller->motionReport.rawGyro = 0xffff;
 
     controller->handle = handle;
     memcpy(controller->bda, bda, 6);

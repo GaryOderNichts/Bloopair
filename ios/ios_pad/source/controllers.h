@@ -90,6 +90,8 @@ struct Controller {
     uint8_t isCharging;
     // report data for continuous reports
     BloopairReportBuffer reportBuffer;
+    // Read-only homebrew motion snapshot, independent of the emulated Pro report.
+    BloopairMotionReport motionReport;
     // controller mapping
     MappingConfiguration* mapping;
     // data that can be allocated for a controller feature
@@ -101,6 +103,51 @@ struct Controller {
     // size of custom config for IPC passing
     uint32_t customConfigSize;
 };
+
+// Sony gyro native scale is ~16.384 units per degree/second.
+static inline int16_t motionReadS16LE(const void* src)
+{
+    const uint8_t* b = (const uint8_t*) src;
+    return (int16_t) ((uint16_t)b[0] | ((uint16_t)b[1] << 8));
+}
+
+static inline int16_t motionClamp(int32_t value)
+{
+    if (value > 32767) return 32767;
+    if (value < -32768) return -32768;
+    return (int16_t)value;
+}
+
+static inline int16_t motionSonyGyro(int16_t raw)
+{
+    int32_t scaled = (int32_t)raw * 125;
+    return (int16_t)((scaled + (scaled >= 0 ? 64 : -64)) / 128);
+}
+
+static inline void motionPublishSony(Controller* controller,
+                                     const void* gyroBytes, const void* accelBytes,
+                                     uint16_t timestamp)
+{
+    const uint8_t* gyro = (const uint8_t*)gyroBytes;
+    const uint8_t* accel = (const uint8_t*)accelBytes;
+    int16_t gx = motionReadS16LE(gyro);
+    int16_t gy = motionReadS16LE(gyro + 2);
+    int16_t gz = motionReadS16LE(gyro + 4);
+    int16_t ax = motionReadS16LE(accel);
+    int16_t ay = motionReadS16LE(accel + 2);
+    int16_t az = motionReadS16LE(accel + 4);
+    BloopairMotionReport* motion = &controller->motionReport;
+    motion->gyro[0] = motionSonyGyro(gy);
+    motion->gyro[1] = motionSonyGyro(gz);
+    motion->gyro[2] = -motionSonyGyro(gx);
+    motion->accel[0] = motionClamp(-(int32_t)ax);
+    motion->accel[1] = motionClamp(-(int32_t)az);
+    motion->accel[2] = ay;
+    motion->timestamp = timestamp;
+    motion->gyroAxes = 7;
+    motion->accelAxes = 7;
+    motion->sequence++;
+}
 
 extern Controller controllers[BTA_HH_MAX_KNOWN];
 
