@@ -28,7 +28,7 @@ void run_ios_pad_patches(void)
     ios_map_shared_info_t map_info;
     map_info.paddr = 0x11F86000;
     map_info.vaddr = 0x11F86000;
-    map_info.size = 0x10000;         // Can map up to 0x11FC0000, 0x10000 should be enough for now
+    map_info.size = 0x10000;         // Can map up to 0x11FC0000 (0x10000 is what Bloopair maps and has been tested)
     map_info.domain = 6;            // PAD
     map_info.type = 3;              // 0 = undefined, 1 = kernel only, 2 = read only, 3 = read/write
     map_info.cached = 0xFFFFFFFF;
@@ -37,7 +37,7 @@ void run_ios_pad_patches(void)
     // custom ios-pad bss
     map_info.paddr = 0x12159000;
     map_info.vaddr = 0x12159000;
-    map_info.size = 0x6000;         // Can map up to 0x12300000, 0x6000 should be enough for now
+    map_info.size = 0x8000;         // Can map up to 0x12300000
     map_info.domain = 6;            // PAD
     map_info.type = 3;              // 0 = undefined, 1 = kernel only, 2 = read only, 3 = read/write
     map_info.cached = 0xFFFFFFFF;
@@ -78,6 +78,17 @@ void run_ios_pad_patches(void)
 
     // ppc smd messages hook
     *(volatile uint32_t *) 0x11f01a10 = ARM_B(0x11f01a10, processSmdMessages);
+
+    // log HCI traffic for the audio test: commands (thunk calling the HCI send function) and received packets
+    // (call in the USB interrupt-read completion callback)
+    *(volatile uint32_t *) 0x11f3ba14 = ARM_B(0x11f3ba14, hciTxHook);
+    *(volatile uint32_t *) 0x11f3c584 = ARM_BL(0x11f3c584, hciRxHook);
+
+    // received ACL data is handed to the stack by the same function (bulk read completion)
+    *(volatile uint32_t *) 0x11f3c7d8 = ARM_BL(0x11f3c7d8, hciRxHook);
+
+    // log who requests an HCI disconnect (start of btsnd_hcic_disconnect)
+    *(volatile uint32_t *) 0x11f1ef5c = ARM_B(0x11f1ef5c, hciDisconnectHook);
 
     // hook security procedures
     *(volatile uint32_t *) 0x11f14f00 = ARM_B(0x11f14f00, btm_sec_execute_procedure_hook);

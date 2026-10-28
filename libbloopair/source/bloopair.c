@@ -483,3 +483,134 @@ IOSError Bloopair_GetDefaultCustomConfiguration(IOSHandle handle, BloopairContro
 
     return _Bloopair_GetCustomConfiguration(handle, controllerType, WPAD_CHAN_0, outCustom, outSize);
 }
+
+IOSError Bloopair_SetScanMode(IOSHandle handle, BOOL enabled, BOOL clearResults)
+{
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_SET_SCAN_MODE);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+
+    BloopairScanModeData* request = (BloopairScanModeData*) ioctlv->request.data;
+    request->enabled = enabled ? 1 : 0;
+    request->clear = clearResults ? 1 : 0;
+
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+
+    freeBtrmIoctlv(ioctlv);
+
+    return res;
+}
+
+IOSError Bloopair_GetScanResults(IOSHandle handle, BloopairScanResults* outResults)
+{
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_GET_SCAN_RESULTS);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+    if (res >= 0) {
+        memcpy(outResults, ioctlv->response.data, sizeof(*outResults));
+    }
+
+    freeBtrmIoctlv(ioctlv);
+
+    return res;
+}
+
+IOSError Bloopair_ArmAudioTest(IOSHandle handle, BOOL enabled)
+{
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_AUDIO_TEST_ARM);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+
+    BloopairAudioTestData* request = (BloopairAudioTestData*) ioctlv->request.data;
+    request->enabled = enabled ? 1 : 0;
+
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+
+    freeBtrmIoctlv(ioctlv);
+
+    return res;
+}
+
+IOSError Bloopair_GetAudioStatus(IOSHandle handle, BloopairAudioStatus* outStatus)
+{
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_AUDIO_TEST_GET_STATUS);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+    if (res >= 0) {
+        memcpy(outStatus, ioctlv->response.data, sizeof(*outStatus));
+    }
+
+    freeBtrmIoctlv(ioctlv);
+
+    return res;
+}
+
+IOSError Bloopair_AudioWrite(IOSHandle handle, const void* sbcFrames, uint32_t length)
+{
+    if (length > BLOOPAIR_AUDIO_WRITE_MAX) {
+        return IOS_ERROR_INVALIDARG;
+    }
+
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_AUDIO_WRITE);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+
+    BloopairAudioWriteData* request = (BloopairAudioWriteData*) ioctlv->request.data;
+    request->length = length;
+    memcpy(request->data, sbcFrames, length);
+
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+
+    freeBtrmIoctlv(ioctlv);
+
+    return res;
+}
+
+IOSError Bloopair_AudioConnect(IOSHandle handle, const uint8_t* bdAddress, const uint8_t* linkKey, uint8_t keyType,
+                               uint8_t maxBitpool, uint8_t battery)
+{
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_AUDIO_CONNECT);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+
+    BloopairAudioConnectData* request = (BloopairAudioConnectData*) ioctlv->request.data;
+    memset(request, 0, sizeof(*request));
+    memcpy(request->bd_address, bdAddress, 6);
+    if (linkKey) {
+        request->hasKey = 1;
+        request->keyType = keyType;
+        memcpy(request->linkKey, linkKey, 16);
+    }
+    request->maxBitpool = maxBitpool;
+    request->battery = battery;
+
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+
+    freeBtrmIoctlv(ioctlv);
+
+    return res;
+}
+
+IOSError Bloopair_AudioDisconnect(IOSHandle handle)
+{
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_AUDIO_DISCONNECT);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+
+    freeBtrmIoctlv(ioctlv);
+
+    return res;
+}
