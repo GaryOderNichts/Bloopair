@@ -167,7 +167,7 @@ IOSError Bloopair_ReadRawReport(IOSHandle handle, WPADChan chan, BloopairReportB
 
 /**
  * Read the latest motion sample for a Bloopair controller.
- * Invalid/unsupported sensors have their axis masks cleared.
+ * Gyro and acceleration use Wii U GamePad-style local X/Y/Z axes.
  * Compatible with the existing Wii U Pro Controller emulation.
  * Returns IOS_ERROR_OK or a negative error (e.g. on older Bloopair).
  */

@@ -119,19 +119,33 @@ typedef struct {
     int16_t right_stick_y;
 } BloopairReportBuffer;
 
-// Optional motion data for homebrew. Does not change Wii U Pro reports.
-// gyro: yaw/roll/pitch, 16 counts per degree/second.
-// accel: Wii Remote-aligned X/Y/Z, 8192 counts per g.
-// A bit set in gyroAxes / accelAxes means that axis is valid.
-// DS3 has 3-axis accel, but only an uncalibrated one-axis gyro:
-// rawGyro contains the native 10-bit value, or 0xffff if unavailable.
-// Callers must establish the DS3 gyro center themselves.
+/**
+ * @brief Motion sample in a single Wii U GamePad (DRC)-style XYZ basis. Does not change Wii U Pro reports.
+ *
+ * X points to the controller's right, Y points along its local up axis, and Z points along its local forward axis.
+ * Use this controller-local convention for BOTH gyro and acceleration
+ * A level controller with its buttons facing up typically measures approximately (0, -8192, 0) in accel[].
+ *
+ * gyro[]: X/Y/Z angular velocity, 16 counts per degree/second.
+ * accel[]: X/Y/Z accelerometer specific force, 8192 counts per g.
+ * gyroAxes/accelAxes: bit 0=X, bit 1=Y, bit 2=Z, when measured.
+ *
+ * This is axis/scale-normalized motion, NOT orientation.
+ * Bloopair estimates a startup zero bias for DS3 because its raw zero differs on a device per device basis
+ * But games can still apply drift compensation, smoothing, sensitivity, etc..
+ * DS3 has only the Y gyro axis reporting gyro[0]=0 and gyro[2]=0, gyroAxes=0b010 after 24 stable samples establish its resting zero.
+ * Before calibration gyroAxes is 0 as the value is unavailable and not measured as zero.
+ * rawGyro retains the optional uncalibrated DS3 10-bit reading but it's not needed for ordinary motion input (0xffff means unavailable).
+ *
+ * @note Do not interpret these fields as KPAD MotionPlus yaw/roll/pitch channels.
+ *       MotionPlus uses Wii Remote axes, which are not the same as the DRC VPAD axes used here.
+ */
 typedef struct {
     int16_t gyro[3];
     int16_t accel[3];
     uint16_t timestamp;  // Native timestamp, or zero if unavailable.
     uint16_t sequence;   // Increments for every accepted sensor sample.
     uint16_t rawGyro;    // Uncalibrated DS3 gyro, 0xffff for other controllers.
-    uint8_t gyroAxes;    // Bitmask: bit 0 = yaw, 1 = roll, 2 = pitch.
+    uint8_t gyroAxes;    // Bitmask: bit 0 = X, 1 = Y, 2 = Z.
     uint8_t accelAxes;   // Bitmask: bit 0 = X, 1 = Y, 2 = Z.
 } BloopairMotionReport;

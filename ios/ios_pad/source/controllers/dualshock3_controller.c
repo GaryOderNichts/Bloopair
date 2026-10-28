@@ -115,6 +115,12 @@ void controllerData_dualshock3(Controller* controller, uint8_t* buf, uint16_t le
             controller->motionReport.accelAxes = 0;
             controller->motionReport.gyroAxes = 0;
             controller->motionReport.rawGyro = 0xffff;
+            controller->motionReport.gyro[0] = 0;
+            controller->motionReport.gyro[1] = 0;
+            controller->motionReport.gyro[2] = 0;
+            controller->motionReport.accel[0] = 0;
+            controller->motionReport.accel[1] = 0;
+            controller->motionReport.accel[2] = 0;
             return;
         }
         BloopairReportBuffer* rep = &controller->reportBuffer;
@@ -126,15 +132,23 @@ void controllerData_dualshock3(Controller* controller, uint8_t* buf, uint16_t le
         uint16_t az = ((uint16_t)sensor[4] << 8) | sensor[5];
         uint16_t rawGyro = ((uint16_t)sensor[6] << 8) | sensor[7];
         motion->accelAxes = motion->gyroAxes = 0;
+        // Zero all three output slots on every report so unknown axes are never mistaken for a previous frame's measurements.
+        motion->gyro[0] = motion->gyro[1] = motion->gyro[2] = 0;
+        motion->accel[0] = motion->accel[1] = motion->accel[2] = 0;
         motion->rawGyro = rawGyro <= 1023 ? rawGyro : 0xffff;
+        // The first 24 stable gyro samples establish this controller's zero.
+        // Only the real Y axis becomes valid; X and Z always stay zero.
+        motion->gyroAxes = dualshock3_normalize_gyro(ds_data->gyroCalibration, motion->rawGyro, &motion->gyro[1]);
         if (ax <= 1023 && ay <= 1023 && az <= 1023) {
             // Sixaxis factory nominal gravity is ~113 counts per g.
             int16_t x = motionClamp(((((int32_t)ax - 511) * 8192) / 113));
             int16_t y = motionClamp((((511 - (int32_t)az) * 8192) / 113));
             int16_t z = motionClamp((((511 - (int32_t)ay) * 8192) / 113));
+            // Match DRC local X/Y/Z with -Y for gravity.
+            // Gyro Y is normalized independently using the stable resting zero.
             motion->accel[0] = motionClamp(-(int32_t)x);
-            motion->accel[1] = motionClamp(-(int32_t)z);
-            motion->accel[2] = y;
+            motion->accel[1] = motionClamp(-(int32_t)y);
+            motion->accel[2] = motionClamp(-(int32_t)z);
             motion->accelAxes = 7;
         }
         motion->timestamp = 0;

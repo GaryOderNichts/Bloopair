@@ -137,12 +137,15 @@ static inline void motionPublishSony(Controller* controller,
     int16_t ay = motionReadS16LE(accel + 2);
     int16_t az = motionReadS16LE(accel + 4);
     BloopairMotionReport* motion = &controller->motionReport;
-    motion->gyro[0] = motionSonyGyro(gy);
-    motion->gyro[1] = motionSonyGyro(gz);
-    motion->gyro[2] = -motionSonyGyro(gx);
+    // Sensors are converted to the DRC VPAD XYZ basis.
+    // Sony reports have a different sensor mounting convention.
+    // After conversion, a Sony controler reads about (0, -1g, 0).
+    motion->gyro[0] = motionClamp(-(int32_t)motionSonyGyro(gx));
+    motion->gyro[1] = motionClamp(-(int32_t)motionSonyGyro(gy));
+    motion->gyro[2] = motionClamp(-(int32_t)motionSonyGyro(gz));
     motion->accel[0] = motionClamp(-(int32_t)ax);
-    motion->accel[1] = motionClamp(-(int32_t)az);
-    motion->accel[2] = ay;
+    motion->accel[1] = motionClamp(-(int32_t)ay);
+    motion->accel[2] = motionClamp(-(int32_t)az);
     motion->timestamp = timestamp;
     motion->gyroAxes = 7;
     motion->accelAxes = 7;
