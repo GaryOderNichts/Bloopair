@@ -189,7 +189,8 @@ int initController(uint8_t* bda, uint8_t handle)
                    (vendor_id == 0x045e && product_id == 0x0b05) || // xbox one elite controller
                    (vendor_id == 0x045e && product_id == 0x0b0a) || // xbox one adaptive controller
                    (vendor_id == 0x045e && product_id == 0x0b20) || // xbox one s controller (BLE)
-                   (vendor_id == 0x045e && product_id == 0x0b13)) { // xbox one series s/x controller (BLE)
+                   (vendor_id == 0x045e && product_id == 0x0b13) || // xbox one series s/x controller (BLE)
+                   (vendor_id == 0x045e && product_id == 0x0b22)) { // xbox one elite series 2 controller (BLE)
             controllerInit_xbox_one(controller);
             return 0;
         } else if ((vendor_id == 0x054c && product_id == 0x0ce6) || // dualsense
