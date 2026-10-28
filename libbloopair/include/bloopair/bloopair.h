@@ -417,6 +417,120 @@ IOSError Bloopair_GetCustomConfiguration(IOSHandle handle, WPADChan chan, void* 
  */
 IOSError Bloopair_GetDefaultCustomConfiguration(IOSHandle handle, BloopairControllerType controllerType, void* outCustom, uint32_t* outSize);
 
+/**
+ * Enable or disable the Bluetooth device scan.
+ * While enabled, pressing the sync button on the console lists all
+ * discoverable Bluetooth devices (not only controllers).
+ *
+ * \param handle
+ * A handle obtained by \link Bloopair_Open \endlink.
+ *
+ * \param enabled
+ * TRUE to enable the scan mode.
+ *
+ * \param clearResults
+ * TRUE to clear the list of already found devices.
+ *
+ * \return
+ * \c IOS_ERROR_OK on success.
+ */
+IOSError Bloopair_SetScanMode(IOSHandle handle, BOOL enabled, BOOL clearResults);
+
+/**
+ * Read the list of devices found while the scan mode was enabled.
+ *
+ * \param handle
+ * A handle obtained by \link Bloopair_Open \endlink.
+ *
+ * \param outResults
+ * A pointer to store the results to.
+ *
+ * \return
+ * \c IOS_ERROR_OK on success.
+ */
+IOSError Bloopair_GetScanResults(IOSHandle handle, BloopairScanResults* outResults);
+
+/**
+ * Arm or disarm the audio connection test.
+ * While armed, the next finished device search (sync button) tries to connect
+ * to the first audio device found by the scan.
+ *
+ * \param handle
+ * A handle obtained by \link Bloopair_Open \endlink.
+ *
+ * \param enabled
+ * TRUE to arm the test (this also clears the previous status).
+ *
+ * \return
+ * \c IOS_ERROR_OK on success.
+ */
+IOSError Bloopair_ArmAudioTest(IOSHandle handle, BOOL enabled);
+
+/**
+ * Read the status and event log of the audio connection test.
+ *
+ * \param handle
+ * A handle obtained by \link Bloopair_Open \endlink.
+ *
+ * \param outStatus
+ * A pointer to store the status to.
+ *
+ * \return
+ * \c IOS_ERROR_OK on success.
+ */
+IOSError Bloopair_GetAudioStatus(IOSHandle handle, BloopairAudioStatus* outStatus);
+
+/**
+ * Hand finished SBC frames to the audio connection. Only works while the status is
+ * \c BLOOPAIR_AUDIO_STATE_STREAMING. The frames have to be built with the settings reported in the status.
+ *
+ * \param handle
+ * A handle obtained by \link Bloopair_Open \endlink.
+ *
+ * \param sbcFrames
+ * Whole SBC frames of the length given in the status.
+ *
+ * \param length
+ * Number of bytes (at most \c BLOOPAIR_AUDIO_WRITE_MAX).
+ *
+ * \return
+ * The number of frames which were taken (the rest has to be offered again later), or a negative error.
+ */
+IOSError Bloopair_AudioWrite(IOSHandle handle, const void* sbcFrames, uint32_t length);
+
+/**
+ * Connect to one audio device and start the stream (the progress is visible in the audio status).
+ *
+ * \param handle
+ * A handle obtained by \link Bloopair_Open \endlink.
+ *
+ * \param bdAddress
+ * The 6 byte address of the device.
+ *
+ * \param linkKey
+ * The 16 byte link key from an earlier pairing, or NULL to pair the device now. After a pairing the new key
+ * is part of the audio status (keyValid, keyType, linkKey).
+ *
+ * \param keyType
+ * The key type belonging to the link key (from the audio status of the pairing).
+ *
+ * \return
+ * \c IOS_ERROR_OK if the request was accepted.
+ */
+IOSError Bloopair_AudioConnect(IOSHandle handle, const uint8_t* bdAddress, const uint8_t* linkKey, uint8_t keyType,
+                               uint8_t maxBitpool, uint8_t battery);
+
+/**
+ * Close the audio connection.
+ *
+ * \param handle
+ * A handle obtained by \link Bloopair_Open \endlink.
+ *
+ * \return
+ * \c IOS_ERROR_OK on success.
+ */
+IOSError Bloopair_AudioDisconnect(IOSHandle handle);
+
 #ifdef __cplusplus
 }
 #endif

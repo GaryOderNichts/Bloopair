@@ -106,6 +106,10 @@ SDP_ServiceSearchRequest = 0x11f2aec8;
 HID_HostGetSDPRecord = 0x11f1f840;
 SDP_FindAttributeInRec = 0x11f2a6dc;
 SDP_FindServiceUUIDInDb = 0x11f2ada0;
+SDP_CreateRecord = 0x11f2b8e8;
+SDP_DeleteRecord = 0x11f2b118;
+SDP_AddAttribute = 0x11f2b488;
+SDP_AddServiceClassIdList = 0x11f2b760;
 
 sdp_db_size = 0x11fca8cc;
 
@@ -165,3 +169,16 @@ gWBC = 0x121570e4;
 
 bt_rm_ppc_response_hid_event = 0x11f01504;
 bt_rm_ppc_response_DevNum = 0x11f0122c;
+
+/* BTAudio */
+L2CA_Register = 0x11f21d1c;
+L2CA_ConnectReq = 0x11f21aa0;
+L2CA_ConnectRsp = 0x11f21838;
+L2CA_ConfigReq = 0x11f21ab8;
+L2CA_ConfigRsp = 0x11f21578;
+L2CA_DataWrite = 0x11f20fec;
+L2CA_DisconnectReq = 0x11f214dc;
+L2CA_DisconnectRsp = 0x11f21440;
+BTM_SetSecurityLevel = 0x11f19e10;
+BTM_SetPairableMode = 0x11f147d8;
+BTM_SecBond = 0x11f19900;

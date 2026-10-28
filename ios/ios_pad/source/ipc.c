@@ -20,6 +20,8 @@
 #include "controllers.h"
 #include "wud.h"
 #include "main.h"
+#include "scan.h"
+#include "audio.h"
 #include <bloopair/ipc.h>
 
 static int bloopair_is_init = 0;
@@ -85,7 +87,7 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
     
         BloopairControllerRequestData* req = (BloopairControllerRequestData*) request->data;
         BloopairControllerInformationData* resp = (BloopairControllerInformationData*) response->data;
-        if (req->handle > BTA_HH_MAX_KNOWN) {
+        if (req->handle >= BTA_HH_MAX_KNOWN) {
             return -4;
         }
 
@@ -105,7 +107,7 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
         DEBUG_PRINT("BLOOPAIR_FUNC_READ_RAW_REPORT\n");
 
         BloopairControllerRequestData* req = (BloopairControllerRequestData*) request->data;
-        if (req->handle > BTA_HH_MAX_KNOWN) {
+        if (req->handle >= BTA_HH_MAX_KNOWN) {
             return -4;
         }
 
@@ -247,7 +249,7 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
             configuration = Configuration_GetCommon(data->controllerType, NULL);
         } else {
             // use handle
-            if (data->handle > BTA_HH_MAX_KNOWN) {
+            if (data->handle >= BTA_HH_MAX_KNOWN) {
                 return -4;
             }
 
@@ -277,7 +279,7 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
             mapping = Configuration_GetMapping(data->controllerType, NULL);
         } else {
             // use handle
-            if (data->handle > BTA_HH_MAX_KNOWN) {
+            if (data->handle >= BTA_HH_MAX_KNOWN) {
                 return -4;
             }
 
@@ -308,7 +310,7 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
             customConfiguration = Configuration_GetCustom(data->controllerType, NULL, &customSize);
         } else {
             // use handle
-            if (data->handle > BTA_HH_MAX_KNOWN) {
+            if (data->handle >= BTA_HH_MAX_KNOWN) {
                 return -4;
             }
 
@@ -331,6 +333,53 @@ static int bloopairFunc(BtrmRequest* request, BtrmResponse* response)
 
         memcpy(response->data, customConfiguration, customSize);
         return customSize;
+    }
+
+    case BLOOPAIR_FUNC_SET_SCAN_MODE: {
+        DEBUG_PRINT("BLOOPAIR_FUNC_SET_SCAN_MODE\n");
+
+        BloopairScanModeData* data = (BloopairScanModeData*) request->data;
+        scanSetMode(data->enabled, data->clear);
+        return 0;
+    }
+
+    case BLOOPAIR_FUNC_GET_SCAN_RESULTS: {
+        DEBUG_PRINT("BLOOPAIR_FUNC_GET_SCAN_RESULTS\n");
+
+        BloopairScanResults* results = (BloopairScanResults*) response->data;
+        scanGetResults(results);
+        return sizeof(*results);
+    }
+
+    case BLOOPAIR_FUNC_AUDIO_TEST_ARM: {
+        DEBUG_PRINT("BLOOPAIR_FUNC_AUDIO_TEST_ARM\n");
+
+        BloopairAudioTestData* data = (BloopairAudioTestData*) request->data;
+        audioArmTest(data->enabled);
+        return 0;
+    }
+
+    case BLOOPAIR_FUNC_AUDIO_WRITE: {
+        BloopairAudioWriteData* write = (BloopairAudioWriteData*) request->data;
+        if (write->length > BLOOPAIR_AUDIO_WRITE_MAX) {
+            return -4;
+        }
+
+        return audioWrite(write->data, write->length);
+    }
+
+    case BLOOPAIR_FUNC_AUDIO_CONNECT:
+        audioRequestConnect((BloopairAudioConnectData*) request->data);
+        return 0;
+
+    case BLOOPAIR_FUNC_AUDIO_DISCONNECT:
+        audioRequestDisconnect();
+        return 0;
+
+    case BLOOPAIR_FUNC_AUDIO_TEST_GET_STATUS: {
+        BloopairAudioStatus* audioStatus = (BloopairAudioStatus*) response->data;
+        audioGetStatus(audioStatus);
+        return sizeof(*audioStatus);
     }
 
     }

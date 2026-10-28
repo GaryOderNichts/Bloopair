@@ -34,6 +34,6 @@ SECTIONS {
     }
 }
 
-/* Only mapping 0x10000 in the kernel for now, make sure this isn't bigger than that */
+/* The kernel maps 0x10000 for the text (pad.c, the region is free up to 0x11FC0000), the bss gets 0x8000 */
 ASSERT(_pad_text_end - _pad_text_start < 0x10000, "ios_pad text is too big");
-ASSERT(_pad_bss_end - _pad_bss_start < 0x6000, "ios_pad bss is too big");
+ASSERT(_pad_bss_end - _pad_bss_start < 0x8000, "ios_pad bss is too big");

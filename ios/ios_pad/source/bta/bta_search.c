@@ -18,6 +18,8 @@
 #include <imports.h>
 #include <bta/bta_api.h>
 #include "controllers.h"
+#include "scan.h"
+#include "audio.h"
 
 #define PRO_CONTROLLER_NAME "Nintendo RVL-CNT-01-UC"
 
@@ -34,11 +36,30 @@ void bta_search_callback(uint8_t event, void *p_data)
         if (res->device_type == BT_DEVICE_TYPE_BLE) {
             res->remt_name_not_required = 1;
         }
+
+        if (scanIsEnabled()) {
+            scanOnInquiryResult(res);
+
+            // devices other than peripherals are only recorded,
+            // the original callback should only ever see controllers
+            if ((res->dev_class[1] & BTM_COD_MAJOR_CLASS_MASK) != BTM_COD_MAJOR_PERIPHERAL) {
+                return;
+            }
+        }
         break;
     }
-    
+
     case BTA_DM_DISC_RES_EVT: {
         tBTA_DM_DISC_RES* res = (tBTA_DM_DISC_RES*) p_data;
+
+        if (scanIsEnabled()) {
+            scanOnName(res->bd_addr, res->bd_name);
+
+            // known non-peripheral devices are not passed on
+            if (scanDeviceKind(res->bd_addr) == 0) {
+                return;
+            }
+        }
 
         if (res->result == 0 && !isOfficialName((const char*) res->bd_name)) {
             DEBUG_PRINT("[%s] \"%s\" is non official, replacing name...\n",
@@ -52,6 +73,9 @@ void bta_search_callback(uint8_t event, void *p_data)
         break;
     }
 
+    // lets the audio test start its connection once the search is over
+    audioOnSearchEvent(event);
+
     real_bta_search_callback(event, p_data);
 }
 
@@ -62,6 +86,22 @@ void BTA_DmSearch_hook(tBTA_DM_INQ *p_dm_inq, uint32_t services, void *p_cback)
 {
     DEBUG_PRINT("BTA_DmSearch_hook %ds (%s)\n", p_dm_inq->duration,
         (current_inq_mode == BTM_LIMITED_INQUIRY) ? "BTM_LIMITED_INQUIRY" : "BTM_GENERAL_INQUIRY");
+
+    audioOnSearchStart(services);
+
+    // no new search while the audio test pairs and connects
+    if (audioBlockSearch()) {
+        return;
+    }
+
+    if (scanIsEnabled()) {
+        // scan mode: look for every discoverable BR/EDR device, not only controllers (audio devices are BR/EDR)
+        p_dm_inq->mode = BTM_GENERAL_INQUIRY;
+        p_dm_inq->filter_type = BTM_CLR_INQUIRY_FILTER;
+        p_dm_inq->max_resps = 0;
+        real_BTA_DmSearch(p_dm_inq, services, p_cback);
+        return;
+    }
 
     // switch between limited and general inquiry to make sure all BR/EDR devices are covered
     // BLE is always enabled

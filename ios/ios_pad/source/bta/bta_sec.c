@@ -18,11 +18,15 @@
 #include <imports.h>
 #include <bt_api.h>
 #include <bta/bta_api.h>
+#include "audio.h"
 
 void (*const real_bta_sec_callback)(uint8_t event, void *p_data) = (void*) 0x11f3fd88;
 void bta_sec_callback(uint8_t event, void *p_data)
 {
     DEBUG_PRINT("bta_sec_callback called %u %p\n", event, p_data);
+
+    // the audio test logs pairing progress and takes over its own pairing events
+    int swallow = audioOnSecurityEvent(event, p_data);
 
     switch (event) {
     case BTA_DM_SP_CFM_REQ_EVT: {
@@ -33,6 +37,10 @@ void bta_sec_callback(uint8_t event, void *p_data)
     }
     default:
         break;
+    }
+
+    if (swallow) {
+        return;
     }
 
     real_bta_sec_callback(event, p_data);
