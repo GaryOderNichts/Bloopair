@@ -16,6 +16,7 @@
  */
 #pragma once
 #include <controllers.h>
+#include "dualshock3_motion.h"
 
 // Info about the reports can be found here:
 // - <https://github.com/torvalds/linux/blob/master/drivers/hid/hid-sony.c>
@@ -25,6 +26,7 @@ typedef struct {
     uint8_t led_update;
     uint8_t led_mask;
     uint8_t rumble;
+    Dualshock3GyroCalibration gyroCalibration;
 } Dualshock3Data;
 
 #define DUALSHOCK3_INPUT_REPORT_ID 0x01

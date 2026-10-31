@@ -211,6 +211,32 @@ IOSError Bloopair_ReadRawReport(IOSHandle handle, WPADChan chan, BloopairReportB
     return res;
 }
 
+IOSError Bloopair_ReadMotionReport(IOSHandle handle, WPADChan chan, BloopairMotionReport* outReport)
+{
+    if (!outReport) {
+        return IOS_ERROR_INVALIDARG;
+    }
+    BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_READ_MOTION_REPORT);
+    if (!ioctlv) {
+        return IOS_ERROR_FAILALLOC;
+    }
+
+    BloopairControllerRequestData* request = (BloopairControllerRequestData*) ioctlv->request.data;
+    request->handle = getHandleForChannel(chan);
+
+    IOSError res = executeBtrmIoctlv(handle, ioctlv);
+    if (res >= 0) {
+        if (res == sizeof(*outReport)) {
+            memcpy(outReport, ioctlv->response.data, sizeof(*outReport));
+            res = IOS_ERROR_OK;
+        } else {
+            res = IOS_ERROR_INVALIDSIZE;
+        }
+    }
+    freeBtrmIoctlv(ioctlv);
+    return res;
+}
+
 static IOSError _Bloopair_ApplyControllerConfiguration(IOSHandle handle, BloopairControllerType controllerType, const uint8_t* bda, const BloopairCommonConfiguration* commonConfiguration)
 {
     BtrmIoctlv* ioctlv = allocBtrmIoctlv(BLOOPAIR_LIB, BLOOPAIR_FUNC_APPLY_CONTROLLER_CONFIG);

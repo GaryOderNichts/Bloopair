@@ -170,6 +170,11 @@ static void controllerButtons_dualshock4(BloopairReportBuffer* rep, Dualshock4Bu
 void controllerData_dualshock4(Controller* controller, uint8_t* buf, uint16_t len)
 {
     if (buf[0] == DUALSHOCK4_BASIC_INPUT_REPORT_ID) {
+        controller->motionReport.accelAxes = 0;
+        controller->motionReport.gyroAxes = 0;
+        if (len < sizeof(Dualshock4BasicInputReport)) {
+            return;
+        }
         BloopairReportBuffer* rep = &controller->reportBuffer;
         Dualshock4BasicInputReport* inRep = (Dualshock4BasicInputReport*) buf;
 
@@ -186,6 +191,14 @@ void controllerData_dualshock4(Controller* controller, uint8_t* buf, uint16_t le
     } else if (buf[0] == DUALSHOCK4_INPUT_REPORT_ID) {
         BloopairReportBuffer* rep = &controller->reportBuffer;
         Dualshock4InputReport* inRep = (Dualshock4InputReport*) buf;
+        if (len >= sizeof(Dualshock4InputReport)) {
+            const uint8_t* t = (const uint8_t*) &inRep->timestamp;
+            motionPublishSony(controller, inRep->gyro, inRep->accel,
+                              (uint16_t)t[0] | ((uint16_t)t[1] << 8));
+        } else {
+            // Third-party DS4s may send truncated, button-only reports.
+            controller->motionReport.accelAxes = controller->motionReport.gyroAxes = 0;
+        }
 
         rep->left_stick_x = scaleStickAxis(inRep->left_stick_x, 256);
         rep->left_stick_y = scaleStickAxis(inRep->left_stick_y, 256);

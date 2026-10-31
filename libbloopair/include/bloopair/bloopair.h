@@ -166,6 +166,14 @@ IOSError Bloopair_GetControllerInformation(IOSHandle handle, WPADChan chan, Bloo
 IOSError Bloopair_ReadRawReport(IOSHandle handle, WPADChan chan, BloopairReportBuffer* outReport);
 
 /**
+ * Read the latest motion sample for a Bloopair controller.
+ * Gyro and acceleration use Wii U GamePad-style local X/Y/Z axes.
+ * Compatible with the existing Wii U Pro Controller emulation.
+ * Returns IOS_ERROR_OK or a negative error (e.g. on older Bloopair).
+ */
+IOSError Bloopair_ReadMotionReport(IOSHandle handle, WPADChan chan, BloopairMotionReport* outReport);
+
+/**
  * Apply a configuration for the specified BDA.
  * 
  * \warning
